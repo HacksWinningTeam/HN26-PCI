@@ -1,12 +1,29 @@
-export const appearances = ["light", "dark", "system"] as const;
+export const appearances = [
+  "system",
+  "light",
+  "dark",
+  "hc-black-white",
+  "hc-black-yellow",
+  "grayscale",
+] as const;
+
 export type Appearance = (typeof appearances)[number];
 
 export const defaultAppearance: Appearance = "system";
 export const appearanceStorageKey = "hn26-appearance";
-export const themeColors = { light: "#f8fafc", dark: "#0f172a" } as const;
+export const themeColors = {
+  light: "#f8fafc",
+  dark: "#0f172a",
+  "hc-black-white": "#000000",
+  "hc-black-yellow": "#000000",
+  grayscale: "#f4f4f5",
+} as const;
 
 export function isAppearance(value: unknown): value is Appearance {
-  return value === "light" || value === "dark" || value === "system";
+  return (
+    typeof value === "string" &&
+    (appearances as readonly string[]).includes(value)
+  );
 }
 
 export function resolveAppearance(value: unknown): Appearance {
@@ -24,15 +41,13 @@ export function syncThemeColorMeta(appearance: Appearance): void {
     'meta[name="theme-color"]',
   );
   for (const meta of metas) {
-    if (appearance === "light") {
-      meta.content = themeColors.light;
-    } else if (appearance === "dark") {
-      meta.content = themeColors.dark;
-    } else {
+    if (appearance === "system") {
       const media = meta.getAttribute("media") ?? "";
       meta.content = media.includes("dark")
         ? themeColors.dark
         : themeColors.light;
+    } else {
+      meta.content = themeColors[appearance];
     }
   }
 }

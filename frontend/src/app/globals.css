@@ -34,6 +34,99 @@
   color-scheme: dark;
 }
 
+:root[data-appearance="hc-black-white"] {
+  color-scheme: dark;
+  --color-canvas: #000000;
+  --color-surface: #000000;
+  --color-surface-raised: #111111;
+  --color-text: #ffffff;
+  --color-text-muted: #f4f4f5;
+  --color-border: #ffffff;
+  --color-border-subtle: #d4d4d8;
+  --color-accent: #ffffff;
+  --color-accent-hover: #e4e4e7;
+  --color-accent-text: #ffffff;
+  --color-on-accent: #000000;
+  --color-focus: #ffffff;
+  --color-success-bg: #000000;
+  --color-success-border: #ffffff;
+  --color-success-text: #ffffff;
+  --color-success-badge: #ffffff;
+  --color-success-on-badge: #000000;
+  --color-error-bg: #000000;
+  --color-error-border: #ffffff;
+  --color-error-text: #ffffff;
+  --color-error-badge: #ffffff;
+  --color-error-on-badge: #000000;
+}
+
+:root[data-appearance="hc-black-yellow"] {
+  color-scheme: dark;
+  --color-canvas: #000000;
+  --color-surface: #000000;
+  --color-surface-raised: #141400;
+  --color-text: #ffea00;
+  --color-text-muted: #fff380;
+  --color-border: #ffea00;
+  --color-border-subtle: #ffd600;
+  --color-accent: #ffea00;
+  --color-accent-hover: #ffd600;
+  --color-accent-text: #ffea00;
+  --color-on-accent: #000000;
+  --color-focus: #ffea00;
+  --color-success-bg: #000000;
+  --color-success-border: #ffea00;
+  --color-success-text: #ffea00;
+  --color-success-badge: #ffea00;
+  --color-success-on-badge: #000000;
+  --color-error-bg: #000000;
+  --color-error-border: #ffea00;
+  --color-error-text: #ffea00;
+  --color-error-badge: #ffea00;
+  --color-error-on-badge: #000000;
+}
+
+:root[data-appearance="grayscale"] {
+  color-scheme: light;
+  --color-canvas: #f4f4f5;
+  --color-surface: #ffffff;
+  --color-surface-raised: #e4e4e7;
+  --color-text: #18181b;
+  --color-text-muted: #3f3f46;
+  --color-border: #71717a;
+  --color-border-subtle: #d4d4d8;
+  --color-accent: #27272a;
+  --color-accent-hover: #18181b;
+  --color-accent-text: #18181b;
+  --color-on-accent: #ffffff;
+  --color-focus: #18181b;
+  --color-success-bg: #f4f4f5;
+  --color-success-border: #52525b;
+  --color-success-text: #18181b;
+  --color-success-badge: #27272a;
+  --color-success-on-badge: #ffffff;
+  --color-error-bg: #e4e4e7;
+  --color-error-border: #27272a;
+  --color-error-text: #18181b;
+  --color-error-badge: #18181b;
+  --color-error-on-badge: #ffffff;
+}
+
+:root[data-text-scale="25"] { font-size: 25%; }
+:root[data-text-scale="50"] { font-size: 50%; }
+:root[data-text-scale="75"] { font-size: 75%; }
+:root[data-text-scale="100"] { font-size: 100%; }
+:root[data-text-scale="112.5"] { font-size: 112.5%; }
+:root[data-text-scale="125"] { font-size: 125%; }
+:root[data-text-scale="150"] { font-size: 150%; }
+:root[data-text-scale="175"] { font-size: 175%; }
+:root[data-text-scale="200"] { font-size: 200%; }
+
+:root[data-underline-links="true"] a {
+  text-decoration: underline !important;
+  text-underline-offset: 2px;
+}
+
 :root[data-locale-pending="true"] body {
   visibility: hidden;
 }
@@ -46,6 +139,12 @@ body {
 :focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  :root {
+    --color-focus: Highlight;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

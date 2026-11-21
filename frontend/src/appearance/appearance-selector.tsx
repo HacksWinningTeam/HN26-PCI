@@ -1,10 +1,9 @@
 "use client";
 
-import { useId, useState, useTransition } from "react";
+import { useId } from "react";
+import { useAccessibilityPreferences } from "@/components/accessibility/AccessibilityProvider";
 import { useTranslations } from "@/i18n/provider";
-import { saveAppearance } from "./actions";
 import { isAppearance } from "./appearance";
-import { useAppearance } from "./provider";
 
 export type AppearanceSelectorProps = {
   hideLabel?: boolean;
@@ -15,12 +14,9 @@ export function AppearanceSelector({
   hideLabel = false,
   className,
 }: AppearanceSelectorProps = {}) {
-  const appearance = useAppearance();
+  const { appearance, setAppearance } = useAccessibilityPreferences();
   const t = useTranslations();
-  const [pending, startTransition] = useTransition();
-  const [failed, setFailed] = useState(false);
   const selectId = useId();
-  const errorId = useId();
 
   return (
     <div className={["inline-flex flex-col gap-1", className].filter(Boolean).join(" ")}>
@@ -38,38 +34,21 @@ export function AppearanceSelector({
         <select
           id={selectId}
           value={appearance}
-          disabled={pending}
-          aria-invalid={failed || undefined}
-          aria-describedby={failed ? errorId : undefined}
           onChange={(event) => {
             const value = event.target.value;
             if (!isAppearance(value) || value === appearance) return;
-            setFailed(false);
-            startTransition(async () => {
-              try {
-                await saveAppearance(value);
-              } catch {
-                setFailed(true);
-              }
-            });
+            setAppearance(value);
           }}
-          className="min-h-11 cursor-pointer rounded-md border-2 border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-medium text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-11 cursor-pointer rounded-md border-2 border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-medium text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)]"
         >
+          <option value="system">{t("System")}</option>
           <option value="light">{t("Light")}</option>
           <option value="dark">{t("Dark")}</option>
-          <option value="system">{t("System")}</option>
+          <option value="hc-black-white">{t("High contrast: Black & White")}</option>
+          <option value="hc-black-yellow">{t("High contrast: Black & Yellow")}</option>
+          <option value="grayscale">{t("Grayscale")}</option>
         </select>
       </div>
-      {pending ? (
-        <p className="text-xs text-[var(--color-text-muted)]" role="status">
-          {t("Saving…")}
-        </p>
-      ) : null}
-      {failed ? (
-        <p id={errorId} className="text-xs font-medium text-[var(--color-error-text)]" role="alert">
-          {t("The appearance could not be saved. Try again.")}
-        </p>
-      ) : null}
     </div>
   );
 }

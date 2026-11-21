@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { defaultAppearance, themeColors } from "@/appearance/appearance";
-import { AppearanceProvider } from "@/appearance/provider";
+import { AccessibilityProvider } from "@/components/accessibility/AccessibilityProvider";
 import { AppShell } from "@/components/AppShell";
 import { defaultLocale } from "@/i18n/locale";
 import { LocaleProvider } from "@/i18n/provider";
@@ -43,9 +43,9 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-screen flex-col bg-[var(--color-canvas)] font-sans text-[var(--color-text)] antialiased">
         <LocaleProvider locale={locale}>
-          <AppearanceProvider appearance={appearance}>
+          <AccessibilityProvider>
             <AppShell>{children}</AppShell>
-          </AppearanceProvider>
+          </AccessibilityProvider>
         </LocaleProvider>
       </body>
     </html>

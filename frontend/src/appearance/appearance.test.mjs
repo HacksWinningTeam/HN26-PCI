@@ -41,10 +41,20 @@ const {
 const { getPrehydrateScript } = require("../lib/prehydrate.ts");
 
 test("resolveAppearance accepts valid values and falls back to defaultAppearance", () => {
-  assert.deepEqual(appearances, ["light", "dark", "system"]);
+  assert.deepEqual(appearances, [
+    "system",
+    "light",
+    "dark",
+    "hc-black-white",
+    "hc-black-yellow",
+    "grayscale",
+  ]);
   assert.equal(resolveAppearance("light"), "light");
   assert.equal(resolveAppearance("dark"), "dark");
   assert.equal(resolveAppearance("system"), "system");
+  assert.equal(resolveAppearance("hc-black-white"), "hc-black-white");
+  assert.equal(resolveAppearance("hc-black-yellow"), "hc-black-yellow");
+  assert.equal(resolveAppearance("grayscale"), "grayscale");
   assert.equal(resolveAppearance("sepia"), defaultAppearance);
   assert.equal(resolveAppearance(undefined), defaultAppearance);
   assert.equal(isAppearance("dark"), true);

@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { AppearanceSelector } from "@/appearance/appearance-selector";
+import { AccessibilityMenu } from "@/components/accessibility/AccessibilityMenu";
 import { LanguageSelector } from "@/i18n/language-selector";
 import { useTranslations } from "@/i18n/provider";
 
@@ -39,11 +41,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
 
       <footer className="border-t border-[var(--color-border-subtle)] bg-[var(--color-surface)]">
-        <div className="mx-auto w-full max-w-4xl px-6 py-4 text-sm text-[var(--color-text-muted)]">
-          Django 5.2 LTS &middot; Django REST Framework &middot; drf-spectacular &middot;
-          PostgreSQL 18 &middot; Next.js 16
+        <div className="mx-auto flex w-full max-w-4xl flex-wrap items-center justify-between gap-3 px-6 py-4 text-sm text-[var(--color-text-muted)]">
+          <span>
+            Django 5.2 LTS &middot; Django REST Framework &middot; drf-spectacular &middot;
+            PostgreSQL 18 &middot; Next.js 16
+          </span>
+          <Link
+            href="/settings/accessibility"
+            className="inline-flex min-h-11 items-center font-semibold text-[var(--color-accent-text)] underline decoration-2 underline-offset-2"
+          >
+            {t("Accessibility settings")}
+          </Link>
         </div>
       </footer>
+
+      <AccessibilityMenu />
     </>
   );
 }
