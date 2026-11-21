@@ -2,6 +2,10 @@
 
 > Vertical-slice development roadmap. Each task links to a dedicated verifiable spec in `docs/tasks/TXX-*.md`. `hackathon-plan` replaces the `<Example: ...>` rows below with real tasks and links.
 
+> **Planning note (`DEC-004`):** the approved product flow now starts with public catalog/problem discovery, continues through explained matching and comparison, and introduces registration only for personalized implementation planning and progress tracking. PCI administrators verify source data and monitor implementation progress. This file still contains template tasks; `hackathon-plan` must replace them with real vertical slices after the kickoff brief is approved.
+
+> **Contract note (`DEC-005`):** real tasks must keep area separate from location, use `TRL`, implement the area/character taxonomy, expose the explained 40/20/20/20 match breakdown, preserve the three nested information levels, generate maturity-aware five-phase plans, and provide detailed PCI oversight.
+
 ## Task Status Legend
 
 Status lives in each task file's `Status` field; this table mirrors it.

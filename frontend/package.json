@@ -8,7 +8,7 @@
     "start": "next start -H 0.0.0.0",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test src/i18n/*.test.mjs src/appearance/*.test.mjs src/components/accessibility/*.test.mjs src/app/design-system/*.test.mjs"
+    "test": "node --test src/i18n/*.test.mjs src/appearance/*.test.mjs src/components/accessibility/*.test.mjs src/app/design-system/*.test.mjs src/lib/*.test.mjs"
   },
   "dependencies": {
     "next": "^16.0.0",

@@ -31,7 +31,10 @@ python_files = ["test_*.py", "tests.py"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-exclude = ["*/migrations/*"]
+extend-exclude = ["*/migrations/*"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "DJ"]
+
+[tool.ruff.lint.per-file-ignores]
+"apps/innovations/management/commands/seed_demo.py" = ["E501"]

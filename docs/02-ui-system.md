@@ -12,7 +12,12 @@
 ## App Shell & Navigation
 
 - **Global Layout (`frontend/src/app/layout.tsx`):** `<Header brand/nav, max-width container, footer>`
-- **Primary Navigation Items:** `<Links shown across pages>`
+- **Primary Navigation Items:** `Szukaj rozwiązania`, `Innowacje`, `Porównaj`; po zalogowaniu także `Moje wdrożenia`; dla uprawnionego operatora `Panel PCI`. `Źródła` i `Trendy` mogą być drugorzędne.
+- **Public-to-Account Boundary:** katalog, wyszukiwanie problemu, karty i porównanie są publiczne. Rejestrację pokazujemy dopiero przy akcji wymagającej zapisu: generowanie planu, odsłonięcie dostępnych zweryfikowanych danych kontaktowych, zapis porównania albo śledzenie postępu.
+- **Audience Labels:** określenia takie jak `Seniorzy`, `Dzieci` lub `Osoby z niepełnosprawnościami` są tagami beneficjentów innowacji. Nie mogą być prezentowane jako role konta.
+- **Nested Information Depth:** poziom 1 to skrócona karta w wynikach; poziom 2 to publiczny ekran szczegółów ze źródłami i oceną; poziom 3 „Odkryj” jest dostępny po rejestracji i zawiera plan odpowiedni do dojrzałości, dane kontaktowe potrzebne do wykonania planu oraz zapis postępu.
+- **Match Explanation:** wynik pokazuje łączny procent oraz cztery podpisane składowe (`Problem 40%`, `Branża 20%`, `Beneficjenci 20%`, `Typ organizacji 20%`). Lokalizacja pozostaje osobnym filtrem/polem i nie może być podpisana jako obszar innowacji.
+- **Innovation Taxonomy:** główny obszar (`Technologiczny`, `Edukacyjny`, `Administracyjny`) oraz charakter (`Produktowy`, `Procesowy`, `Organizacyjny`, `Społeczny`) są prezentowane jako osobne grupy tagów.
 
 ## Color & Typography Tokens
 

@@ -4,10 +4,10 @@ Shared workspace rules for **Antigravity** and **Claude Code** on this hackathon
 
 ## Hackathon Project Brief (Fill In At Kickoff)
 
-- **Problem & Demo Goal:** `<1-2 sentences describing what the app proves in the demo>`
-- **Primary User Flow:** `<step-by-step happy path from UI to DB and back>`
-- **Core Models & API Endpoints:** `<key models and /api/... routes>`
-- **Out of Scope for MVP:** `<features intentionally skipped during the hackathon>`
+- **Problem & Demo Goal:** Radar porządkuje istniejące polskie innowacje i prowadzi osobę szukającą rozwiązania od opisu problemu lub katalogu do wyjaśnionego dopasowania, porównania i spersonalizowanego planu wdrożeniowego.
+- **Primary User Flow:** Przeglądaj innowacje lub opisz problem → doprecyzuj branżę, beneficjentów, lokalizację wdrożenia i typ organizacji → oceń dopasowanie rozbite na 40/20/20/20 → porównaj karty → zarejestruj się → uzupełnij kontekst organizacji → odkryj plan walidacji, pilotażu albo transferu/wdrożenia → śledź pięciofazową checklistę; operator PCI weryfikuje dane i widzi szczegóły postępu.
+- **Core Models & API Endpoints:** `Innovation`, `InnovationSource`, `Evidence`, `ProblemQuery`, `InnovationMatch`, `AdopterProfile`, `ImplementationPlan`, `ImplementationStep`; publiczne `/api/innovations/` i `/api/discovery/match/`, chronione `/api/profile/` i `/api/implementation-plans/`, operatorskie `/api/admin/...`.
+- **Out of Scope for MVP:** Konta twórców i publiczne zgłaszanie pomysłów, portal społecznościowy, crowdfunding, wyszukiwanie inwestorów oraz pełne crawlowanie Internetu w czasie rzeczywistym.
 - **Deadline / Demo / Code Freeze:** `<YYYY-MM-DD HH:MM submission deadline, demo slot, code-freeze time>`
 
 ## Stack & Repository Map
