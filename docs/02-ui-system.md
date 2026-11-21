@@ -37,6 +37,8 @@ Track reusable components as tasks create or update them:
 | `DesignSystemPage` & `GalleryShell` | `frontend/src/app/design-system/` | Interactive design system gallery (`/design-system`) with section search, hash navigation, foundations, and planned slots | `DEC-003` |
 | `Popover` | `frontend/src/components/ui/popover.tsx` | Anchored floating card with viewport placement, Escape/outside dismissal, and mobile modal dialog fallback | `DEC-006` |
 | `SimpleTable` & `DataTable` | `frontend/src/components/ui/simple-table.tsx`, `data-table.tsx` | Accessible lightweight presentation table (`SimpleTable`) and query/selection/detail-drawer table (`DataTable`) with scoped feature set | `DEC-006` |
+| `Brand*Icon` | `frontend/src/components/ui/brand-icons.tsx` | 24 custom SVG brand illustrations, status pills, and organic accents driven by `--brand-icon-*` tokens across light, dark, high-contrast, and grayscale themes | Design system |
+| `BrandPhoto` | `frontend/src/components/ui/brand-photo.tsx` | Responsive photo masks (`pebble`, `arch`, `hillside`), optional cyan/lime bursts at top-right or bottom-left, required `alt`, `objectPosition`, Next Image `sizes`, per-instance SVG clip IDs; gallery examples use local demo photos | `DEC-007` |
 
 ## Reference Assets (`docs/inputs/ui/`)
 

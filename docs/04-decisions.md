@@ -67,6 +67,14 @@
 - **Decision:** Implement a clean, focused table suite adapted to `globals.css` semantic tokens (`Brand Cyan` / `Brand Lime`, all 5 WCAG themes) and `LocaleProvider` (`pl-PL` / `en-US`): `SimpleTable` (striping, sticky header, row headers, horizontal/vertical scroll, empty state) and `DataTable` (toolbar with `CompactSearch`, sort/filter/options `Popover`s, header sort buttons, pagination + `PageJump`, pinned first column, horizontal overflow scrolling, row selection with floating `TableSelectionMenu` capsule, `TableDetailDrawer` using `Drawer` + `DefinitionList`, row actions, and loading/refreshing/error/empty/no-results states). Intentionally excluded table footers (`tfoot`/aggregates), `DateFilter`, spreadsheet cell-range drag selection/copy, column drag-and-drop reordering, manual column drag resizing/autofit, `localStorage` saved views, and multi-wallet color palettes.
 - **Affected Docs & Tasks:** `docs/02-ui-system.md`, `frontend/src/components/ui/`, `frontend/src/app/design-system/data-display-examples.tsx`, `frontend/src/i18n/messages.ts`, `frontend/package.json`.
 
+### `DEC-007` — Brand Icons and Organic Photo Frames
+- **Date:** 2026-11-21 23:50
+- **Status:** Accepted
+- **Context / New Info:** User approved adding photo shapes matching the supplied screenshot and requested a local commit together with the existing themed icon set.
+- **Decision:** Keep 24 token-driven brand icons across light, dark, both high-contrast themes and grayscale. Add reusable `BrandPhoto` with three organic masks (`pebble`, `arch`, `hillside`), optional cyan/lime decorative bursts, responsive image cropping and required alternative text. Use unique SVG identifiers per instance for photo masks and bulb gradients. Document examples in the existing `/design-system` icon section, including grayscale preview. Photos are explicitly demo assets. The screenshot and explicit implementation request approve this bounded design-system addition; no product flow, API contract or task status changes.
+- **Affected Docs & Tasks:** `docs/02-ui-system.md`, `docs/05-plan.md`, `frontend/src/components/ui/`, `frontend/src/app/design-system/`, `frontend/src/app/globals.css`, `frontend/public/design-system/`. No active TXX spec exists in the template plan.
+- **Verification:** Automated tests and build checks omitted at the user's explicit request (2026-11-21 23:52); do not treat this commit as verified.
+
 <!-- Template for new entries:
 ### `DEC-XXX` — `<Short Title>`
 - **Date:** `<YYYY-MM-DD HH:MM from date '+%Y-%m-%d %H:%M'>`

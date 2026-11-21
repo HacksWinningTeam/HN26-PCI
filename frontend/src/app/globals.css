@@ -50,17 +50,95 @@
   --color-info-bg: light-dark(#e6f8ff, #122630);
   --color-info-border: light-dark(#0088be, #06bcf9);
   --color-info-text: light-dark(#072141, #bae6fd);
+
+  /* Custom brand SVG illustration tokens (auto-adapt across light, dark, HC, and grayscale) */
+  --brand-icon-stroke: light-dark(#072141, #e4e4e7);
+  --brand-icon-surface: light-dark(#ffffff, #28282c);
+  --brand-icon-ice: light-dark(#d9f0fc, #163244);
+  --brand-icon-ice-soft: light-dark(#eef8ff, #1e2936);
+  --brand-icon-lime: #c4ee2a;
+  --brand-icon-lime-border: #a3d114;
+  --brand-icon-lime-soft: light-dark(#d9f99d, #c4ee2a);
+  --brand-icon-lime-soft-border: light-dark(#bef264, #a3d114);
+  --brand-icon-cyan: #06bcf9;
+  --brand-icon-cyan-fill: #06bcf9;
+  --brand-icon-blob-outline: none;
+  --brand-icon-on-accent: #072141;
+  --brand-icon-on-lime-soft: #072141;
+  --brand-icon-on-bulb: #072141;
+  --brand-icon-bulb-top: #fde047;
+  --brand-icon-bulb-bottom: #facc15;
+  --brand-icon-pill-info-bg: light-dark(#bae6fd, #0c4a6e);
+  --brand-icon-pill-info-border: light-dark(#7dd3fc, #06bcf9);
+  --brand-icon-pill-info-fg: light-dark(#0369a1, #7dd3fc);
+  --brand-icon-line-muted: light-dark(#93c5fd, #38bdf8);
+  --brand-icon-highlight: light-dark(#ffffff, #7dd3fc);
 }
 
-:root[data-appearance="light"] {
+:root[data-appearance="light"],
+[data-icon-preview="light"] {
   color-scheme: light;
+  --color-canvas: #f7f7f8;
+  --color-surface: #ffffff;
+  --color-border-subtle: #e4e4e7;
+  --color-text: #072141;
+  --color-text-muted: #52525b;
+  --brand-icon-stroke: #072141;
+  --brand-icon-surface: #ffffff;
+  --brand-icon-ice: #d9f0fc;
+  --brand-icon-ice-soft: #eef8ff;
+  --brand-icon-lime: #c4ee2a;
+  --brand-icon-lime-border: #a3d114;
+  --brand-icon-lime-soft: #d9f99d;
+  --brand-icon-lime-soft-border: #bef264;
+  --brand-icon-cyan: #06bcf9;
+  --brand-icon-cyan-fill: #06bcf9;
+  --brand-icon-blob-outline: none;
+  --brand-icon-on-accent: #072141;
+  --brand-icon-on-lime-soft: #072141;
+  --brand-icon-on-bulb: #072141;
+  --brand-icon-bulb-top: #fde047;
+  --brand-icon-bulb-bottom: #facc15;
+  --brand-icon-pill-info-bg: #bae6fd;
+  --brand-icon-pill-info-border: #7dd3fc;
+  --brand-icon-pill-info-fg: #0369a1;
+  --brand-icon-line-muted: #93c5fd;
+  --brand-icon-highlight: #ffffff;
 }
 
-:root[data-appearance="dark"] {
+:root[data-appearance="dark"],
+[data-icon-preview="dark"] {
   color-scheme: dark;
+  --color-canvas: #141416;
+  --color-surface: #1d1d20;
+  --color-border-subtle: #34343a;
+  --color-text: #f4f4f5;
+  --color-text-muted: #b8b8c0;
+  --brand-icon-stroke: #e4e4e7;
+  --brand-icon-surface: #28282c;
+  --brand-icon-ice: #163244;
+  --brand-icon-ice-soft: #1e2936;
+  --brand-icon-lime: #c4ee2a;
+  --brand-icon-lime-border: #a3d114;
+  --brand-icon-lime-soft: #c4ee2a;
+  --brand-icon-lime-soft-border: #a3d114;
+  --brand-icon-cyan: #06bcf9;
+  --brand-icon-cyan-fill: #06bcf9;
+  --brand-icon-blob-outline: none;
+  --brand-icon-on-accent: #072141;
+  --brand-icon-on-lime-soft: #072141;
+  --brand-icon-on-bulb: #072141;
+  --brand-icon-bulb-top: #fde047;
+  --brand-icon-bulb-bottom: #facc15;
+  --brand-icon-pill-info-bg: #0c4a6e;
+  --brand-icon-pill-info-border: #06bcf9;
+  --brand-icon-pill-info-fg: #7dd3fc;
+  --brand-icon-line-muted: #38bdf8;
+  --brand-icon-highlight: #7dd3fc;
 }
 
-:root[data-appearance="hc-black-white"] {
+:root[data-appearance="hc-black-white"],
+[data-icon-preview="hc-black-white"] {
   color-scheme: dark;
   --color-canvas: #000000;
   --color-surface: #000000;
@@ -98,9 +176,31 @@
   --color-info-bg: #000000;
   --color-info-border: #ffffff;
   --color-info-text: #ffffff;
+  --brand-icon-stroke: #ffffff;
+  --brand-icon-surface: #000000;
+  --brand-icon-ice: #000000;
+  --brand-icon-ice-soft: #000000;
+  --brand-icon-lime: #ffffff;
+  --brand-icon-lime-border: #ffffff;
+  --brand-icon-lime-soft: #000000;
+  --brand-icon-lime-soft-border: #ffffff;
+  --brand-icon-cyan: #ffffff;
+  --brand-icon-cyan-fill: #000000;
+  --brand-icon-blob-outline: #ffffff;
+  --brand-icon-on-accent: #000000;
+  --brand-icon-on-lime-soft: #ffffff;
+  --brand-icon-on-bulb: #ffffff;
+  --brand-icon-bulb-top: #000000;
+  --brand-icon-bulb-bottom: #000000;
+  --brand-icon-pill-info-bg: #000000;
+  --brand-icon-pill-info-border: #ffffff;
+  --brand-icon-pill-info-fg: #ffffff;
+  --brand-icon-line-muted: #ffffff;
+  --brand-icon-highlight: #ffffff;
 }
 
-:root[data-appearance="hc-black-yellow"] {
+:root[data-appearance="hc-black-yellow"],
+[data-icon-preview="hc-black-yellow"] {
   color-scheme: dark;
   --color-canvas: #000000;
   --color-surface: #000000;
@@ -138,9 +238,31 @@
   --color-info-bg: #000000;
   --color-info-border: #ffea00;
   --color-info-text: #ffea00;
+  --brand-icon-stroke: #ffea00;
+  --brand-icon-surface: #000000;
+  --brand-icon-ice: #000000;
+  --brand-icon-ice-soft: #000000;
+  --brand-icon-lime: #ffea00;
+  --brand-icon-lime-border: #ffea00;
+  --brand-icon-lime-soft: #000000;
+  --brand-icon-lime-soft-border: #ffea00;
+  --brand-icon-cyan: #ffea00;
+  --brand-icon-cyan-fill: #000000;
+  --brand-icon-blob-outline: #ffea00;
+  --brand-icon-on-accent: #000000;
+  --brand-icon-on-lime-soft: #ffea00;
+  --brand-icon-on-bulb: #ffea00;
+  --brand-icon-bulb-top: #000000;
+  --brand-icon-bulb-bottom: #000000;
+  --brand-icon-pill-info-bg: #000000;
+  --brand-icon-pill-info-border: #ffea00;
+  --brand-icon-pill-info-fg: #ffea00;
+  --brand-icon-line-muted: #ffea00;
+  --brand-icon-highlight: #ffea00;
 }
 
-:root[data-appearance="grayscale"] {
+:root[data-appearance="grayscale"],
+[data-icon-preview="grayscale"] {
   color-scheme: light;
   --color-canvas: #f4f4f5;
   --color-surface: #ffffff;
@@ -178,6 +300,32 @@
   --color-info-bg: #f4f4f5;
   --color-info-border: #3f3f46;
   --color-info-text: #18181b;
+  --brand-icon-stroke: #18181b;
+  --brand-icon-surface: #ffffff;
+  --brand-icon-ice: #e4e4e7;
+  --brand-icon-ice-soft: #f4f4f5;
+  --brand-icon-lime: #d4d4d8;
+  --brand-icon-lime-border: #71717a;
+  --brand-icon-lime-soft: #e4e4e7;
+  --brand-icon-lime-soft-border: #71717a;
+  --brand-icon-cyan: #52525b;
+  --brand-icon-cyan-fill: #52525b;
+  --brand-icon-blob-outline: none;
+  --brand-icon-on-accent: #18181b;
+  --brand-icon-on-lime-soft: #18181b;
+  --brand-icon-on-bulb: #18181b;
+  --brand-icon-bulb-top: #e4e4e7;
+  --brand-icon-bulb-bottom: #d4d4d8;
+  --brand-icon-pill-info-bg: #e4e4e7;
+  --brand-icon-pill-info-border: #71717a;
+  --brand-icon-pill-info-fg: #18181b;
+  --brand-icon-line-muted: #71717a;
+  --brand-icon-highlight: #ffffff;
+}
+
+:root[data-appearance="grayscale"] .brand-photo-image,
+[data-icon-preview="grayscale"] .brand-photo-image {
+  filter: grayscale(1);
 }
 
 :root[data-text-scale="25"] { font-size: 25%; }

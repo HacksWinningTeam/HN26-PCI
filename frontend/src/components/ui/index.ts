@@ -1,5 +1,7 @@
 export * from "./badge";
 export * from "./banner";
+export * from "./brand-icons";
+export * from "./brand-photo";
 export * from "./breadcrumbs";
 export * from "./button";
 export * from "./card";

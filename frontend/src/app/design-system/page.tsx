@@ -329,7 +329,7 @@ export default function DesignSystemPage() {
           </ul>
         </DesignSection>
 
-        <DesignSection id="icons" title="Icons">
+        <DesignSection id="icons" title="Icons" defaultOpen>
           <IconExamples />
         </DesignSection>
 

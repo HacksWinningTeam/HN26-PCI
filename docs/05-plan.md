@@ -8,6 +8,8 @@
 
 ## Task Status Legend
 
+Design-system addition (`DEC-007`): themed brand icons and three organic photo frames are maintained in `/design-system`; user approved the supplied visual reference and requested a local commit. Existing template task statuses are unchanged.
+
 Status lives in each task file's `Status` field; this table mirrors it.
 
 - `TODO` — Planned; ready for design (if UI-facing) or implementation (if backend/infra only, once dependencies are `VERIFIED`).
