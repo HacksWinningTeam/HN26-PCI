@@ -72,6 +72,7 @@ export default function GalleryShell({ children }: { children: ReactNode }) {
         {t("Skip to main content")}
       </a>
       <AppShellLayout
+        viewport
         contentAs="main"
         contentId="main-content"
         navigationId={navigationId}

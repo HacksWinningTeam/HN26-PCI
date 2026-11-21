@@ -16,6 +16,12 @@
 .shell[data-sidebar] { grid-template-columns: var(--app-shell-sidebar-width) minmax(0, 1fr); }
 .shell:has(> .navigation > [data-collapsed="true"]) { --app-shell-sidebar-width: 76px; }
 
+.shell[data-app-shell-viewport] {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+}
+
 .navigation {
   min-width: 0;
   min-height: 0;
@@ -59,6 +65,7 @@
 }
 
 @media print {
+  .shell[data-app-shell-viewport] { position: static; inset: auto; width: auto; }
   .shell { display: block; height: auto; padding: 0; overflow: visible; }
   .shell > .navigation { display: none !important; }
   .content { overflow: visible; }

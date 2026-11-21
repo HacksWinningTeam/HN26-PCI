@@ -10,6 +10,8 @@ export type AppShellLayoutProps = ComponentPropsWithoutRef<"div"> & {
   navigationId?: string;
   mobileMenuOpen?: boolean;
   layout?: "responsive" | "desktop" | "mobile";
+  /** Anchor a full application shell to the viewport; omit for embedded previews. */
+  viewport?: boolean;
 };
 
 /** Floating sidebar on the left; page navbar and content in the right column. */
@@ -23,6 +25,7 @@ export function AppShellLayout({
   navigationId,
   mobileMenuOpen = false,
   layout = "responsive",
+  viewport = false,
   className,
   ...props
 }: AppShellLayoutProps) {
@@ -33,6 +36,7 @@ export function AppShellLayout({
       data-layout={layout}
       data-sidebar={sidebar ? "true" : undefined}
       data-menu-open={mobileMenuOpen ? "true" : undefined}
+      data-app-shell-viewport={viewport ? "true" : undefined}
     >
       {sidebar && <div id={navigationId} className={styles.navigation}>{sidebar}</div>}
       <div className={styles.column}>

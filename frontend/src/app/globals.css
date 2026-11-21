@@ -375,6 +375,15 @@ body {
   color: var(--color-text);
 }
 
+/* Fullscreen app shells own scrolling; hash navigation must not move the document. */
+@media screen {
+  :root:has([data-app-shell-viewport]),
+  body:has([data-app-shell-viewport]) {
+    overflow: clip;
+    overscroll-behavior: none;
+  }
+}
+
 @keyframes ui-shimmer {
   0% {
     background-position: 200% 0;
