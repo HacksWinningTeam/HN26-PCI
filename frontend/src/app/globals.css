@@ -60,6 +60,12 @@
   --color-info-border: light-dark(#0088be, #06bcf9);
   --color-info-text: light-dark(#072141, #bae6fd);
 
+  /* High-impact navy CTA surface (adapts safely across light, dark, HC, and grayscale) */
+  --color-promo-navy-bg: light-dark(#072141, #0f2c4f);
+  --color-promo-navy-fg: #f8fafc;
+  --color-promo-navy-muted: #cbd5e1;
+  --color-promo-navy-border: light-dark(#072141, #06bcf9);
+
   /* Custom brand SVG illustration tokens (auto-adapt across light, dark, HC, and grayscale) */
   --brand-icon-stroke: light-dark(#072141, #e4e4e7);
   --brand-icon-surface: light-dark(#ffffff, #28282c);
@@ -192,6 +198,10 @@
   --color-info-bg: #000000;
   --color-info-border: #ffffff;
   --color-info-text: #ffffff;
+  --color-promo-navy-bg: #000000;
+  --color-promo-navy-fg: #ffffff;
+  --color-promo-navy-muted: #f4f4f5;
+  --color-promo-navy-border: #ffffff;
   --brand-icon-stroke: #ffffff;
   --brand-icon-surface: #000000;
   --brand-icon-ice: #000000;
@@ -261,6 +271,10 @@
   --color-info-bg: #000000;
   --color-info-border: #ffea00;
   --color-info-text: #ffea00;
+  --color-promo-navy-bg: #000000;
+  --color-promo-navy-fg: #ffea00;
+  --color-promo-navy-muted: #fff380;
+  --color-promo-navy-border: #ffea00;
   --brand-icon-stroke: #ffea00;
   --brand-icon-surface: #000000;
   --brand-icon-ice: #000000;
@@ -323,6 +337,10 @@
   --color-info-bg: #f4f4f5;
   --color-info-border: #3f3f46;
   --color-info-text: #18181b;
+  --color-promo-navy-bg: #18181b;
+  --color-promo-navy-fg: #ffffff;
+  --color-promo-navy-muted: #e4e4e7;
+  --color-promo-navy-border: #18181b;
   --brand-icon-stroke: #18181b;
   --brand-icon-surface: #ffffff;
   --brand-icon-ice: #e4e4e7;

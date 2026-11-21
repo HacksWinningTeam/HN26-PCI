@@ -38,32 +38,56 @@ export function PublicNavBar({ variant = "landing", layout = "responsive" }: Pub
         }}
       >
         <div className={styles.row}>
-          <Link href="/" className={styles.brand} aria-label={`Praktoteka — ${t("Home")}`}>
+          <Link
+            href="/"
+            className={styles.brand}
+            aria-label={`Praktoteka — ${t("Home")}`}
+            onClick={() => setMenuOpen(false)}
+          >
             <BrandLogo />
           </Link>
           <nav className={styles.navigation} aria-label={t("Public navigation")}>
             {variant === "landing" && (
               <div id={`${id}-links`} className={styles.links}>
-                  <Link className={styles.link} href="/innovations">{t("Browse innovations")}</Link>
-                  <Link className={styles.link} href="/solve">{t("Find a solution")}</Link>
+                <Link
+                  className={styles.link}
+                  href="/innovations"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {t("Catalog")}
+                </Link>
+                <Link
+                  className={styles.link}
+                  href="/#jak-to-dziala"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {t("How it works?")}
+                </Link>
+                <Link
+                  className={styles.link}
+                  href="/#o-platformie"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {t("About the platform")}
+                </Link>
               </div>
             )}
-            <div className={styles.utilities}>
-              <button type="button" className={styles.link} title={t("Settings")}
-                aria-label={t("Settings")} aria-haspopup="dialog" aria-expanded={panel === "settings"}
-                onClick={() => setPanel("settings")}>
-                <SettingsIcon size={20} />
-                <span className={styles.utilityLabel}>{t("Settings")}</span>
-              </button>
-              <button type="button" className={styles.link} title={t("Accessibility")}
-                aria-label={t("Accessibility")} aria-haspopup="dialog" aria-expanded={panel === "accessibility"}
-                onClick={() => setPanel("accessibility")}>
-                <AccessibilityIcon className="h-5 w-5 shrink-0" />
-                <span className={styles.utilityLabel}>{t("Accessibility")}</span>
-              </button>
-            </div>
-            <div id={`${id}-auth`} className={styles.auth}>
-              <Link href={authHref} className={styles.authLink}>{authLabel}</Link>
+            <div className={styles.actions}>
+              <div className={styles.utilities}>
+                <button type="button" className={styles.link} title={t("Settings")}
+                  aria-label={t("Settings")} aria-haspopup="dialog" aria-expanded={panel === "settings"}
+                  onClick={() => setPanel("settings")}>
+                  <SettingsIcon size={20} />
+                </button>
+                <button type="button" className={styles.link} title={t("Accessibility")}
+                  aria-label={t("Accessibility")} aria-haspopup="dialog" aria-expanded={panel === "accessibility"}
+                  onClick={() => setPanel("accessibility")}>
+                  <AccessibilityIcon className="h-5 w-5 shrink-0" />
+                </button>
+              </div>
+              <div id={`${id}-auth`} className={styles.auth}>
+                <Link href={authHref} className={styles.authLink}>{authLabel}</Link>
+              </div>
             </div>
           </nav>
           <button ref={menuButton} type="button" className={styles.toggle}

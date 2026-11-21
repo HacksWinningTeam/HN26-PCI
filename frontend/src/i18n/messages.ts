@@ -1,6 +1,9 @@
 /** English source phrases are stable message IDs. Never pass user content as a key. */
 export const polish = {
   "Public navigation": "Nawigacja strony",
+  "Catalog": "Katalog",
+  "How it works?": "Jak to działa?",
+  "About the platform": "O platformie",
   "Browse innovations": "Przeglądaj innowacje",
   "Find a solution": "Znajdź rozwiązanie",
   "Sign in": "Zaloguj się",
