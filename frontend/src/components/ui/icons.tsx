@@ -4,24 +4,30 @@ import { ArrowRightIcon as PhosphorArrowRightIcon } from "@phosphor-icons/react/
 import { ArrowsDownUpIcon as PhosphorArrowsDownUpIcon } from "@phosphor-icons/react/dist/ssr/ArrowsDownUp";
 import { ArrowsLeftRightIcon as PhosphorArrowsLeftRightIcon } from "@phosphor-icons/react/dist/ssr/ArrowsLeftRight";
 import { ArrowUpIcon as PhosphorArrowUpIcon } from "@phosphor-icons/react/dist/ssr/ArrowUp";
+import { ArrowsClockwiseIcon as PhosphorArrowsClockwiseIcon } from "@phosphor-icons/react/dist/ssr/ArrowsClockwise";
+import { BuildingsIcon as PhosphorBuildingsIcon } from "@phosphor-icons/react/dist/ssr/Buildings";
 import { CaretDownIcon as PhosphorCaretDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDown";
 import { CaretLeftIcon as PhosphorCaretLeftIcon } from "@phosphor-icons/react/dist/ssr/CaretLeft";
 import { CaretRightIcon as PhosphorCaretRightIcon } from "@phosphor-icons/react/dist/ssr/CaretRight";
 import { CheckIcon as PhosphorCheckIcon } from "@phosphor-icons/react/dist/ssr/Check";
 import { CheckCircleIcon as PhosphorCheckCircleIcon } from "@phosphor-icons/react/dist/ssr/CheckCircle";
 import { CircleNotchIcon as PhosphorCircleNotchIcon } from "@phosphor-icons/react/dist/ssr/CircleNotch";
+import { DatabaseIcon as PhosphorDatabaseIcon } from "@phosphor-icons/react/dist/ssr/Database";
 import { DotsThreeIcon as PhosphorDotsThreeIcon } from "@phosphor-icons/react/dist/ssr/DotsThree";
 import { EyeIcon as PhosphorEyeIcon } from "@phosphor-icons/react/dist/ssr/Eye";
 import { FileCsvIcon as PhosphorFileCsvIcon } from "@phosphor-icons/react/dist/ssr/FileCsv";
 import { FilePdfIcon as PhosphorFilePdfIcon } from "@phosphor-icons/react/dist/ssr/FilePdf";
 import { FunnelIcon as PhosphorFunnelIcon } from "@phosphor-icons/react/dist/ssr/Funnel";
 import { GearSixIcon as PhosphorGearSixIcon } from "@phosphor-icons/react/dist/ssr/GearSix";
+import { GitMergeIcon as PhosphorGitMergeIcon } from "@phosphor-icons/react/dist/ssr/GitMerge";
 import { InfoIcon as PhosphorInfoIcon } from "@phosphor-icons/react/dist/ssr/Info";
 import { ListIcon as PhosphorListIcon } from "@phosphor-icons/react/dist/ssr/List";
 import { MagnifyingGlassIcon as PhosphorMagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
 import { MinusIcon as PhosphorMinusIcon } from "@phosphor-icons/react/dist/ssr/Minus";
 import { PlusIcon as PhosphorPlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
+import { ShieldCheckIcon as PhosphorShieldCheckIcon } from "@phosphor-icons/react/dist/ssr/ShieldCheck";
 import { SidebarSimpleIcon as PhosphorSidebarSimpleIcon } from "@phosphor-icons/react/dist/ssr/SidebarSimple";
+import { SignOutIcon as PhosphorSignOutIcon } from "@phosphor-icons/react/dist/ssr/SignOut";
 import { SlidersHorizontalIcon as PhosphorSlidersHorizontalIcon } from "@phosphor-icons/react/dist/ssr/SlidersHorizontal";
 import { SparkleIcon as PhosphorSparkleIcon } from "@phosphor-icons/react/dist/ssr/Sparkle";
 import { WarningIcon as PhosphorWarningIcon } from "@phosphor-icons/react/dist/ssr/Warning";
@@ -151,4 +157,28 @@ export function DrawerIcon({ size = 16, weight = "regular", ...props }: UIIconPr
 
 export function EyeIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
   return <PhosphorEyeIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
+}
+
+export function ShieldCheckIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
+  return <PhosphorShieldCheckIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
+}
+
+export function GitMergeIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
+  return <PhosphorGitMergeIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
+}
+
+export function DatabaseIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
+  return <PhosphorDatabaseIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
+}
+
+export function BuildingsIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
+  return <PhosphorBuildingsIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
+}
+
+export function RefreshIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
+  return <PhosphorArrowsClockwiseIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
+}
+
+export function SignOutIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
+  return <PhosphorSignOutIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
 }

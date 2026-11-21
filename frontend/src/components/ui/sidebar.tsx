@@ -6,6 +6,7 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { useTranslations } from "@/i18n/provider";
 import { ChevronLeftIcon, ChevronRightIcon, MenuIcon } from "./icons";
 import { SidebarUtilities } from "./sidebar-utilities";
+export { SidebarUtilities, type SidebarUtilitiesProps } from "./sidebar-utilities";
 import styles from "./sidebar.module.css";
 
 export type SidebarItem = {

@@ -8,6 +8,7 @@ export const polish = {
   "Find a solution": "Znajdź rozwiązanie",
   "Sign in": "Zaloguj się",
   "Create account": "Załóż konto",
+  "Log out": "Wyloguj się",
   "Open navigation": "Otwórz nawigację",
   "Close navigation": "Zamknij nawigację",
   "Settings": "Ustawienia",

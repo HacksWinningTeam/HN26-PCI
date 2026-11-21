@@ -3,15 +3,22 @@
 import { useState } from "react";
 import { AccessibilityIcon } from "@/components/accessibility/AccessibilityIcon";
 import { AccessibilityPreferencesControls } from "@/components/accessibility/AccessibilityPreferencesControls";
+import { LanguageSelector } from "@/i18n/language-selector";
 import { useTranslations } from "@/i18n/provider";
-import { SettingsIcon } from "./icons";
+import { SettingsIcon, SignOutIcon } from "./icons";
 import { Sheet } from "./sheet";
 import styles from "./sidebar.module.css";
 
-/** Sidebar entry points for the application settings sheets. */
-export function SidebarUtilities() {
+export type SidebarUtilitiesProps = {
+  onLogout?: () => void | Promise<void>;
+  logoutLabel?: string;
+};
+
+/** Sidebar entry points for the application settings sheets and optional sign-out action. */
+export function SidebarUtilities({ onLogout, logoutLabel }: SidebarUtilitiesProps) {
   const t = useTranslations();
   const [panel, setPanel] = useState<"settings" | "accessibility" | null>(null);
+  const signOutText = logoutLabel ?? t("Log out");
 
   return (
     <>
@@ -43,6 +50,19 @@ export function SidebarUtilities() {
               <span className={styles.label}>{t("Accessibility")}</span>
             </button>
           </li>
+          {onLogout ? (
+            <li>
+              <button
+                type="button"
+                className={styles.item}
+                title={signOutText}
+                onClick={() => void onLogout()}
+              >
+                <SignOutIcon size={20} className={styles.icon} />
+                <span className={styles.label}>{signOutText}</span>
+              </button>
+            </li>
+          ) : null}
         </ul>
       </nav>
       <Sheet
@@ -50,6 +70,7 @@ export function SidebarUtilities() {
         title={panel === "settings" ? t("Settings") : t("Accessibility")}
         onClose={() => setPanel(null)}
       >
+        {panel === "settings" ? <LanguageSelector /> : null}
         {panel === "accessibility" ? <AccessibilityPreferencesControls layout="settings" /> : null}
       </Sheet>
     </>
