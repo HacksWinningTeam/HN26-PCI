@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import {
@@ -389,7 +390,7 @@ export function NavigationExamples() {
 
         <div
           className={[
-            "rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-4 transition-all",
+            "rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 transition-all",
             widthMode === "narrow" ? "max-w-[260px]" : "w-full",
           ].join(" ")}
         >
@@ -401,6 +402,40 @@ export function NavigationExamples() {
               { label: "Asystent e-Usług dla Seniorów" },
             ]}
           />
+        </div>
+      </div>
+
+      {/* Footer Showcase */}
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-[var(--color-text)]">
+            Footer (stopka aplikacji)
+          </h3>
+          <p className="text-xs text-[var(--color-text-muted)]">
+            Spójna stopka główna z oznaczeniem projektu Praktoteka i odnośnikiem do panelu operatora PCI (ukrywana przy druku).
+          </p>
+        </div>
+
+        <div className="overflow-hidden rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)]">
+          <footer className="border-t border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-5 py-5 text-xs text-[var(--color-text-muted)]">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <span>Praktoteka © 2026 • Stworzone na HackNation 2026</span>
+              <div className="flex flex-wrap items-center gap-4">
+                <Link
+                  href="/design-system"
+                  className="hover:text-[var(--color-text)] hover:underline"
+                >
+                  Design System
+                </Link>
+                <Link
+                  href="/admin"
+                  className="hover:text-[var(--color-text)] hover:underline"
+                >
+                  Panel Admina
+                </Link>
+              </div>
+            </div>
+          </footer>
         </div>
       </div>
     </div>

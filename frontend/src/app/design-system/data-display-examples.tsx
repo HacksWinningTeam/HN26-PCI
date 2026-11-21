@@ -10,6 +10,7 @@ import {
   PhaseStepper,
   ProgressBar,
   ScoreBreakdown,
+  SegmentedControl,
   SimpleTable,
   StatFilterCard,
   StatusIndicator,
@@ -188,6 +189,7 @@ export function TableExamples() {
 
 export function CardExamples() {
   const [metricState, setMetricState] = useState<"ready" | "loading" | "error">("ready");
+  const [cardVariant, setCardVariant] = useState<"subtle" | "highlighted-lime" | "highlighted">("subtle");
   const [activeFilter, setActiveFilter] = useState("all");
 
   return (
@@ -218,25 +220,59 @@ export function CardExamples() {
       </div>
 
       {/* Card variants */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-bold text-[var(--color-text)]">
-          Card (outline / highlighted / highlighted-lime) i MetricCard (ready / loading / error)
-        </h3>
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-bold text-[var(--color-text)]">
+              Card i MetricCard
+            </h3>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              Spójne subtelne ramki i miękkie warianty wyróżnień jak w StatFilterCard i Bannerach.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <SegmentedControl
+              label="Wariant karty"
+              value={cardVariant}
+              onValueChange={(val) =>
+                setCardVariant(val as "subtle" | "highlighted-lime" | "highlighted")
+              }
+              options={[
+                { value: "subtle", label: "Domyślna" },
+                { value: "highlighted-lime", label: "Lime" },
+                { value: "highlighted", label: "Cyan" },
+              ]}
+            />
+            <SegmentedControl
+              label="Stan MetricCard"
+              value={metricState}
+              onValueChange={(val) =>
+                setMetricState(val as "ready" | "loading" | "error")
+              }
+              options={[
+                { value: "ready", label: "Ready" },
+                { value: "loading", label: "Loading" },
+                { value: "error", label: "Error" },
+              ]}
+            />
+          </div>
+        </div>
+
         <div className="grid gap-4 md:grid-cols-2">
           <Card
             title="Asystent e-Usług dla Seniorów"
-            variant="highlighted-lime"
-            badge={<Badge tone="lime">Rekomendacja Brand Lime</Badge>}
+            variant={cardVariant}
+            badge={<Badge tone="lime" size="compact">Brand Lime</Badge>}
             footer="Źródło: Baza Innowacji Społecznych · Weryfikacja: 2026-10-14"
             actions={<Button size="compact" tone="lime">Otwórz szczegóły</Button>}
             secondaryActions={
-              <Button size="compact" tone="lime" variant="outline">
+              <Button size="compact" variant="outline">
                 Dodaj do porównania
               </Button>
             }
           >
-            <p className="text-sm text-[var(--color-text-muted)]">
-              Wariant highlighted-lime z akcentem Brand Lime oraz dopasowanymi przyciskami i odznaką.
+            <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">
+              Cyfrowy punkt wsparcia dla osób 60+ ułatwiający załatwianie spraw urzędowych w gminie.
             </p>
           </Card>
 
@@ -245,7 +281,8 @@ export function CardExamples() {
             value={86}
             unit="%"
             prominent
-            variant="highlighted"
+            variant={cardVariant}
+            badge={<Badge tone="info" size="compact">TRL 7/9</Badge>}
             state={metricState}
             description="Wyliczenie na podstawie opisu problemu i kontekstu organizacji."
             breakdownSummary="Rozbicie 40 / 20 / 20 / 20"
@@ -255,21 +292,8 @@ export function CardExamples() {
               { label: "Beneficjenci (20%)", value: "85%" },
               { label: "Typ organizacji (20%)", value: "65%" },
             ]}
+            footer="Ostatnia aktualizacja wyliczenia: dzisiaj"
             onRetry={() => setMetricState("ready")}
-            actions={
-              <div className="flex flex-wrap gap-1.5">
-                {(["ready", "loading", "error"] as const).map((s) => (
-                  <Button
-                    key={s}
-                    size="compact"
-                    variant={metricState === s ? "filled" : "outline"}
-                    onClick={() => setMetricState(s)}
-                  >
-                    {s}
-                  </Button>
-                ))}
-              </div>
-            }
           />
         </div>
       </div>

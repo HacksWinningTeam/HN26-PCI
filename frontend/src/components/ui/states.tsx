@@ -2,11 +2,100 @@
 
 import type { ReactNode } from "react";
 import { Button } from "./button";
-import { ErrorCircleIcon, SpinnerIcon } from "./icons";
+import { CardSurface, type CardVariant } from "./card";
+import { ErrorCircleIcon, SearchIcon, SpinnerIcon } from "./icons";
+
+export type StateAlignment = "center" | "left";
+
+function StatePanel({
+  align = "center",
+  tone = "neutral",
+  variant = "subtle",
+  icon,
+  title,
+  description,
+  actions,
+  children,
+  className,
+  role,
+  ariaLive,
+  ariaBusy,
+}: {
+  align?: StateAlignment;
+  tone?: "neutral" | "accent" | "error";
+  variant?: CardVariant;
+  icon: ReactNode;
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+  role?: "status" | "alert";
+  ariaLive?: "polite" | "assertive";
+  ariaBusy?: boolean;
+}) {
+  const isCentered = align === "center";
+  const badgeClasses =
+    tone === "error"
+      ? "border-[var(--color-error-border)] bg-[var(--color-error-bg)] text-[var(--color-error-badge)]"
+      : tone === "accent"
+        ? "border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] text-[var(--color-accent-text)]"
+        : "border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] text-[var(--color-text-muted)]";
+
+  return (
+    <CardSurface
+      variant={variant}
+      role={role}
+      aria-live={ariaLive}
+      aria-busy={ariaBusy}
+      className={[
+        "flex flex-col justify-center gap-4 px-6 py-8",
+        isCentered ? "items-center text-center" : "items-start text-left",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      <div
+        aria-hidden="true"
+        className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border ${badgeClasses}`}
+      >
+        {icon}
+      </div>
+
+      <div className="max-w-md space-y-1.5">
+        <h3 className="text-base font-bold leading-snug text-[var(--color-text)]">
+          {title}
+        </h3>
+        {description ? (
+          <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">
+            {description}
+          </p>
+        ) : null}
+      </div>
+
+      {actions ? (
+        <div
+          className={[
+            "flex flex-wrap items-center gap-2 pt-1",
+            isCentered ? "justify-center" : "justify-start",
+          ].join(" ")}
+        >
+          {actions}
+        </div>
+      ) : null}
+
+      {children}
+    </CardSurface>
+  );
+}
 
 export type EmptyStateProps = {
   title: string;
   description: string;
+  icon?: ReactNode;
+  align?: StateAlignment;
+  variant?: CardVariant;
   actions?: ReactNode;
   children?: ReactNode;
   className?: string;
@@ -15,30 +104,26 @@ export type EmptyStateProps = {
 export function EmptyState({
   title,
   description,
+  icon,
+  align = "center",
+  variant = "subtle",
   actions,
   children,
   className,
 }: EmptyStateProps) {
   return (
-    <div
-      className={[
-        "space-y-4 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-6",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+    <StatePanel
+      align={align}
+      variant={variant}
+      tone="neutral"
+      icon={icon ?? <SearchIcon size={20} weight="bold" />}
+      title={title}
+      description={description}
+      actions={actions}
+      className={className}
     >
-      <div className="space-y-1.5">
-        <h3 className="text-base font-bold text-[var(--color-text)] sm:text-lg">
-          {title}
-        </h3>
-        <p className="max-w-xl text-sm text-[var(--color-text-muted)]">
-          {description}
-        </p>
-      </div>
-      {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
       {children}
-    </div>
+    </StatePanel>
   );
 }
 
@@ -47,65 +132,57 @@ export function Skeleton({ className = "h-4 w-full" }: { className?: string }) {
     <div
       aria-hidden="true"
       className={[
-        "ui-shimmer rounded-md border border-[var(--color-border-subtle)]/50",
+        "ui-shimmer rounded-md border border-[var(--color-border-subtle)]",
         className,
       ].join(" ")}
     />
   );
 }
 
-const SKELETON_ROW_WIDTHS = ["mx-auto w-3/4", "w-full", "mx-auto w-5/6"] as const;
+const CENTERED_SKELETON_WIDTHS = ["mx-auto w-3/4", "w-full", "mx-auto w-5/6"] as const;
+const LEFT_SKELETON_WIDTHS = ["w-3/4", "w-full", "w-5/6"] as const;
 
 export function LoadingState({
   label = "Ładowanie danych…",
   description,
   rows = 3,
+  align = "center",
+  variant = "subtle",
   className,
 }: {
   label?: string;
   description?: string;
   rows?: number;
+  align?: StateAlignment;
+  variant?: CardVariant;
   className?: string;
 }) {
+  const widths = align === "center" ? CENTERED_SKELETON_WIDTHS : LEFT_SKELETON_WIDTHS;
+
   return (
-    <div
+    <StatePanel
       role="status"
-      aria-live="polite"
-      aria-busy="true"
-      className={[
-        "flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-6 py-8 text-center",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
+      ariaLive="polite"
+      ariaBusy
+      align={align}
+      variant={variant}
+      tone="accent"
+      icon={<SpinnerIcon size={20} weight="bold" />}
+      title={label}
+      description={description}
+      className={className}
     >
-      <div
-        aria-hidden="true"
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] text-[var(--color-accent-text)] shadow-xs"
-      >
-        <SpinnerIcon size={20} weight="bold" />
-      </div>
-
-      <div className="max-w-md space-y-1">
-        <p className="text-sm font-semibold text-[var(--color-text)]">{label}</p>
-        {description ? (
-          <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
-            {description}
-          </p>
-        ) : null}
-      </div>
-
       {rows > 0 ? (
         <div className="w-full max-w-sm space-y-2 pt-1">
           {Array.from({ length: rows }).map((_, index) => (
             <Skeleton
               key={index}
-              className={`h-3 rounded-full ${SKELETON_ROW_WIDTHS[index % SKELETON_ROW_WIDTHS.length]}`}
+              className={`h-3 rounded-full ${widths[index % widths.length]}`}
             />
           ))}
         </div>
       ) : null}
-    </div>
+    </StatePanel>
   );
 }
 
@@ -115,6 +192,8 @@ export function ErrorState({
   onRetry,
   retryLabel = "Spróbuj ponownie",
   secondaryAction,
+  align = "center",
+  variant = "subtle",
   className,
 }: {
   title?: string;
@@ -122,43 +201,33 @@ export function ErrorState({
   onRetry?: () => void;
   retryLabel?: string;
   secondaryAction?: ReactNode;
+  align?: StateAlignment;
+  variant?: CardVariant;
   className?: string;
 }) {
   return (
-    <div
+    <StatePanel
       role="alert"
-      className={[
-        "flex flex-col items-center justify-center gap-4 rounded-xl border border-[var(--color-error-border)]/45 bg-[var(--color-surface)] px-6 py-8 text-center",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <div
-        aria-hidden="true"
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-[var(--color-error-border)]/50 bg-[var(--color-error-bg)] text-[var(--color-error-badge)]"
-      >
-        <ErrorCircleIcon size={22} weight="bold" />
-      </div>
-
-      <div className="max-w-md space-y-1.5">
-        <h3 className="text-base font-bold text-[var(--color-text)]">{title}</h3>
-        <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">
-          {message}
-        </p>
-      </div>
-
-      {onRetry || secondaryAction ? (
-        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-          {onRetry ? (
-            <Button size="compact" variant="outline" onClick={onRetry}>
-              {retryLabel}
-            </Button>
-          ) : null}
-          {secondaryAction}
-        </div>
-      ) : null}
-    </div>
+      align={align}
+      variant={variant}
+      tone="error"
+      icon={<ErrorCircleIcon size={20} weight="bold" />}
+      title={title}
+      description={message}
+      className={className}
+      actions={
+        onRetry || secondaryAction ? (
+          <>
+            {onRetry ? (
+              <Button size="compact" variant="outline" onClick={onRetry}>
+                {retryLabel}
+              </Button>
+            ) : null}
+            {secondaryAction}
+          </>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -286,7 +355,7 @@ export function ScoreBreakdown({
       : "bg-[var(--color-accent)]";
 
   return (
-    <div className="space-y-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] p-4">
+    <CardSurface variant="surface" className="space-y-3 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-semibold text-[var(--color-text)] sm:text-sm">
           Przyczyna dopasowania: {primaryReason}
@@ -333,6 +402,6 @@ export function ScoreBreakdown({
           </div>
         ))}
       </div>
-    </div>
+    </CardSurface>
   );
 }

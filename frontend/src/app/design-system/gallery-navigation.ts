@@ -33,7 +33,7 @@ export const gallerySections: readonly GallerySection[] = [
   { id: "error-states", name: "Error states", group: "Feedback", keywords: "failure retry alert" },
   { id: "dialogs", name: "Dialogs and confirmations", group: "Overlays", keywords: "modal alert confirmation unsaved" },
   { id: "sheets-modals", name: "Sheets and drawers", group: "Overlays", keywords: "bottom sheet drawer detents mobile" },
-  { id: "navigation-bars", name: "Navigation bars", group: "Navigation", keywords: "radar navbar header logo breadcrumbs menu" },
+  { id: "navigation-bars", name: "Navigation bars", group: "Navigation", keywords: "radar navbar header logo breadcrumbs menu footer" },
 ] as const;
 
 export function filterGallerySections(query: string): GallerySection[] {

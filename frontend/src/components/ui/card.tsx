@@ -2,7 +2,45 @@
 
 import { useId, type ComponentPropsWithRef, type ReactNode } from "react";
 import { Button } from "./button";
-import { ChevronDownIcon, ErrorCircleIcon, SpinnerIcon } from "./icons";
+import { ChevronDownIcon, ErrorCircleIcon } from "./icons";
+
+export type CardVariant =
+  | "outline"
+  | "subtle"
+  | "surface"
+  | "highlighted"
+  | "highlighted-lime";
+
+export const CARD_VARIANT_CLASSES: Record<CardVariant, string> = {
+  outline: "border border-[var(--color-border)] bg-[var(--color-surface)]",
+  subtle: "border border-[var(--color-border-subtle)] bg-[var(--color-surface)]",
+  surface:
+    "border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)]",
+  highlighted:
+    "border border-[var(--color-info-border)] bg-[var(--color-info-bg)]",
+  "highlighted-lime":
+    "border border-[var(--color-accent-lime-border)] bg-[var(--color-accent-lime-bg)]",
+};
+
+export type CardSurfaceProps = ComponentPropsWithRef<"div"> & {
+  variant?: CardVariant;
+};
+
+/** Shared base card container used across Card, MetricCard, ScoreBreakdown, and StatePanel. */
+export function CardSurface({
+  variant = "subtle",
+  className,
+  ...props
+}: CardSurfaceProps) {
+  return (
+    <div
+      {...props}
+      className={["rounded-xl", CARD_VARIANT_CLASSES[variant], className]
+        .filter(Boolean)
+        .join(" ")}
+    />
+  );
+}
 
 export type CardProps = Omit<
   ComponentPropsWithRef<"article">,
@@ -15,18 +53,8 @@ export type CardProps = Omit<
   footer?: ReactNode;
   actions?: ReactNode;
   secondaryActions?: ReactNode;
-  variant?: "outline" | "surface" | "highlighted" | "highlighted-lime";
+  variant?: CardVariant;
   density?: "default" | "compact";
-};
-
-const CARD_VARIANT_CLASSES: Record<NonNullable<CardProps["variant"]>, string> = {
-  outline: "border border-[var(--color-border)] bg-[var(--color-surface)]",
-  surface:
-    "border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)]",
-  highlighted:
-    "border-2 border-[var(--color-accent)] bg-[var(--color-surface)]",
-  "highlighted-lime":
-    "border-2 border-[var(--color-accent-lime-border)] bg-[var(--color-surface)]",
 };
 
 /** Semantic display container with header badge, body, and explicit action footer. */
@@ -38,7 +66,7 @@ export function Card({
   footer,
   actions,
   secondaryActions,
-  variant = "outline",
+  variant = "subtle",
   density = "default",
   className,
   ...props
@@ -59,11 +87,11 @@ export function Card({
         .filter(Boolean)
         .join(" ")}
     >
-      <div className="space-y-3">
-        <header className="flex flex-wrap items-start justify-between gap-2">
+      <div className="space-y-2.5">
+        <header className="flex items-start justify-between gap-3">
           <Heading
             id={id}
-            className="text-base font-bold leading-snug text-[var(--color-text)] sm:text-lg"
+            className="min-w-0 flex-1 text-base font-bold leading-snug text-[var(--color-text)]"
           >
             {title}
           </Heading>
@@ -73,18 +101,14 @@ export function Card({
       </div>
 
       {footer || actions || secondaryActions ? (
-        <footer className="space-y-2 border-t border-[var(--color-border-subtle)] pt-3">
+        <footer className="space-y-3 border-t border-[var(--color-border-subtle)] pt-3">
           {footer ? (
             <div className="text-xs text-[var(--color-text-muted)]">{footer}</div>
           ) : null}
           {actions || secondaryActions ? (
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-2">{actions}</div>
-              {secondaryActions ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  {secondaryActions}
-                </div>
-              ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {actions}
+              {secondaryActions}
             </div>
           ) : null}
         </footer>
@@ -128,6 +152,12 @@ export function MetricCard({
   ...props
 }: MetricCardProps) {
   const ready = state === "ready";
+  const disclosureBgClass =
+    props.variant === "surface" ||
+    props.variant === "highlighted" ||
+    props.variant === "highlighted-lime"
+      ? "bg-[var(--color-surface)]"
+      : "bg-[var(--color-surface-raised)]";
 
   return (
     <Card
@@ -135,34 +165,58 @@ export function MetricCard({
       aria-busy={state === "loading" || undefined}
       actions={ready ? actions : undefined}
       secondaryActions={ready ? secondaryActions : undefined}
-      footer={ready ? footer : undefined}
+      footer={
+        ready
+          ? footer
+          : state === "loading" && footer
+            ? (
+                <span
+                  aria-hidden="true"
+                  className="ui-shimmer inline-block h-3 w-44 rounded-full align-middle"
+                />
+              )
+            : undefined
+      }
     >
       {state === "loading" ? (
-        <div
-          className="flex flex-col items-center justify-center gap-2.5 py-4 text-center"
-          role="status"
-        >
+        <div className="space-y-2.5" role="status">
+          <span className="sr-only">Ładowanie danych…</span>
           <div
             aria-hidden="true"
-            className="ui-shimmer h-7 w-28 rounded-md border border-[var(--color-border-subtle)]/50"
+            className={[
+              "ui-shimmer rounded-lg border border-[var(--color-border-subtle)]",
+              prominent ? "h-9 w-24" : "h-8 w-20",
+            ].join(" ")}
           />
-          <div className="flex items-center gap-2 text-xs font-medium text-[var(--color-text-muted)]">
-            <SpinnerIcon size={14} weight="bold" className="text-[var(--color-accent-text)]" />
-            <span>Ładowanie danych…</span>
-          </div>
+
+          {description ? (
+            <div aria-hidden="true" className="space-y-1.5 pt-0.5">
+              <div className="ui-shimmer h-3.5 w-full rounded-md border border-[var(--color-border-subtle)]" />
+              <div className="ui-shimmer h-3.5 w-3/4 rounded-md border border-[var(--color-border-subtle)]" />
+            </div>
+          ) : null}
+
+          {breakdownSummary || (breakdownItems && breakdownItems.length > 0) ? (
+            <div
+              aria-hidden="true"
+              className={`flex h-9 items-center justify-between rounded-lg border border-[var(--color-border-subtle)] px-3 ${disclosureBgClass}`}
+            >
+              <div className="ui-shimmer h-3 w-36 rounded-full" />
+              <div className="ui-shimmer h-3 w-3 rounded-full" />
+            </div>
+          ) : null}
         </div>
       ) : state === "error" ? (
         <div
-          className="flex flex-col items-center justify-center gap-3 py-3 text-center"
+          className="flex flex-col items-center justify-center gap-3 py-4 text-center"
           role="alert"
         >
-          <div
-            aria-hidden="true"
-            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--color-error-border)]/50 bg-[var(--color-error-bg)] text-[var(--color-error-badge)]"
-          >
-            <ErrorCircleIcon size={18} weight="bold" />
-          </div>
-          <p className="max-w-xs text-xs font-medium leading-relaxed text-[var(--color-text-muted)]">
+          <ErrorCircleIcon
+            size={22}
+            weight="bold"
+            className="text-[var(--color-error-badge)]"
+          />
+          <p className="max-w-xs text-sm leading-relaxed text-[var(--color-text-muted)]">
             {errorMessage}
           </p>
           {onRetry ? (
@@ -172,10 +226,10 @@ export function MetricCard({
           ) : null}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-2.5">
           <p
             className={[
-              "font-mono font-bold tabular-nums text-[var(--color-text)]",
+              "flex items-baseline gap-1 font-mono font-bold tracking-tight tabular-nums text-[var(--color-text)]",
               prominent ? "text-3xl" : "text-2xl",
             ].join(" ")}
           >
@@ -187,7 +241,7 @@ export function MetricCard({
               <>
                 <span>{value}</span>
                 {unit ? (
-                  <span className="ml-1.5 text-sm font-semibold text-[var(--color-text-muted)]">
+                  <span className="text-sm font-semibold text-[var(--color-text-muted)]">
                     {unit}
                   </span>
                 ) : null}
@@ -196,13 +250,15 @@ export function MetricCard({
           </p>
 
           {description ? (
-            <p className="text-xs text-[var(--color-text-muted)]">
+            <p className="text-sm leading-relaxed text-[var(--color-text-muted)]">
               {description}
             </p>
           ) : null}
 
           {breakdownItems && breakdownItems.length > 0 ? (
-            <details className="group rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] px-3 py-2 text-xs">
+            <details
+              className={`group rounded-lg border border-[var(--color-border-subtle)] px-3 py-2 text-xs ${disclosureBgClass}`}
+            >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-2 font-semibold text-[var(--color-text)] [&::-webkit-details-marker]:hidden">
                 <span>{breakdownSummary ?? "Szczegóły wyliczenia"}</span>
                 <ChevronDownIcon
@@ -257,12 +313,12 @@ export function StatFilterCard({
       onClick={onClick}
       aria-pressed={active}
       className={[
-        "cursor-pointer rounded-xl border p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]",
+        "cursor-pointer rounded-xl p-4 text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]",
         active
           ? accent === "lime"
-            ? "border-2 border-[var(--color-accent-lime-border)] bg-[var(--color-accent-lime-bg)]"
-            : "border-2 border-[var(--color-accent)] bg-[var(--color-info-bg)]"
-          : "border-[var(--color-border)] bg-[var(--color-surface)] hover:border-[var(--color-accent)]",
+            ? "border border-[var(--color-accent-lime-border)] bg-[var(--color-accent-lime-bg)]"
+            : "border border-[var(--color-accent)] bg-[var(--color-info-bg)]"
+          : `${CARD_VARIANT_CLASSES.subtle} hover:border-[var(--color-border)]`,
       ].join(" ")}
     >
       <div className="font-mono text-2xl font-bold tabular-nums text-[var(--color-text)]">
