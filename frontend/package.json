@@ -8,7 +8,7 @@
     "start": "next start -H 0.0.0.0",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --test src/i18n/*.test.mjs src/appearance/*.test.mjs src/components/accessibility/*.test.mjs src/app/design-system/*.test.mjs src/lib/*.test.mjs"
+    "test": "node --test src/i18n/*.test.mjs src/appearance/*.test.mjs src/components/accessibility/*.test.mjs src/components/ui/*.test.mjs src/app/design-system/*.test.mjs src/lib/*.test.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

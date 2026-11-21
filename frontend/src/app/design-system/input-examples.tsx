@@ -169,7 +169,7 @@ export default function InputExamples() {
       {/* Search & CompactSearch */}
       <div className="space-y-3">
         <h3 className="text-sm font-bold text-[var(--color-text)]">
-          SearchInput oraz CompactSearch (rozwijana kapsuła)
+          SearchInput oraz CompactSearch (rozwijane pole wyszukiwania)
         </h3>
         <div className="grid gap-4 md:grid-cols-2">
           <SearchInput

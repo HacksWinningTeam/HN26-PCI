@@ -35,6 +35,8 @@ Track reusable components as tasks create or update them:
 | --- | --- | --- | --- |
 | `HealthStatusCard` | `frontend/src/components/HealthStatusCard.tsx` | Live API & DB connectivity banner pattern | Starter template |
 | `DesignSystemPage` & `GalleryShell` | `frontend/src/app/design-system/` | Interactive design system gallery (`/design-system`) with section search, hash navigation, foundations, and planned slots | `DEC-003` |
+| `Popover` | `frontend/src/components/ui/popover.tsx` | Anchored floating card with viewport placement, Escape/outside dismissal, and mobile modal dialog fallback | `DEC-006` |
+| `SimpleTable` & `DataTable` | `frontend/src/components/ui/simple-table.tsx`, `data-table.tsx` | Accessible lightweight presentation table (`SimpleTable`) and query/selection/detail-drawer table (`DataTable`) with scoped feature set | `DEC-006` |
 
 ## Reference Assets (`docs/inputs/ui/`)
 

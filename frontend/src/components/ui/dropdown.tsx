@@ -373,6 +373,7 @@ export function Dropdown({
             <div
               ref={popup}
               id={popupId}
+              data-ui-dropdown-popup="true"
               role={searchable ? "dialog" : undefined}
               aria-labelledby={searchable ? `${fieldId}-label` : undefined}
               style={{ visibility: "hidden" }}
@@ -649,6 +650,7 @@ export function MultiSelect({
             <div
               ref={popup}
               id={`${fieldId}-popup`}
+              data-ui-dropdown-popup="true"
               role="dialog"
               aria-labelledby={`${fieldId}-label`}
               tabIndex={-1}

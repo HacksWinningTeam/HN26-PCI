@@ -349,7 +349,7 @@ export default function DesignSystemPage() {
           <ScoringBreakdownExamples />
         </DesignSection>
 
-        <DesignSection id="tables" title="Tables">
+        <DesignSection id="tables" title="Tables" defaultOpen>
           <TableExamples />
         </DesignSection>
 

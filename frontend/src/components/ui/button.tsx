@@ -14,11 +14,13 @@ import { SpinnerIcon } from "./icons";
 export type ButtonVariant = "filled" | "outline" | "ghost";
 export type ButtonSize = "default" | "compact";
 export type ButtonTone = "neutral" | "lime" | "destructive" | "success";
+export type ButtonShape = "rounded" | "pill";
 
 type ButtonBaseProps = ComponentPropsWithRef<"button"> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
   tone?: ButtonTone;
+  shape?: ButtonShape;
   loading?: boolean;
 };
 
@@ -198,6 +200,7 @@ function ButtonBase({
   variant,
   size,
   tone = "neutral",
+  shape = "rounded",
   loading = false,
   disabled,
   type = "button",
@@ -218,7 +221,8 @@ function ButtonBase({
         disabled={disabled || loading}
         aria-busy={loading || undefined}
         className={[
-          "relative inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] disabled:cursor-not-allowed disabled:opacity-55",
+          "relative inline-flex cursor-pointer items-center justify-center gap-2 font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] disabled:cursor-not-allowed disabled:opacity-55",
+          shape === "pill" ? "rounded-full" : "rounded-lg",
           VARIANT_CLASSES[tone][resolvedVariant],
           iconOnly ? ICON_SIZE_CLASSES[resolvedSize] : SIZE_CLASSES[resolvedSize],
           className,

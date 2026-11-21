@@ -196,14 +196,16 @@ export type CompactSearchProps = Omit<
   label: string;
   value: string;
   onValueChange: (value: string) => void;
+  size?: "default" | "compact";
   escapeScope?: RefObject<HTMLElement | null>;
 };
 
-/** Circle-to-capsule expandable search control with Escape collapse and focus restoration. */
+/** Expandable rounded-square search control with Escape collapse and focus restoration. */
 export function CompactSearch({
   label,
   value,
   onValueChange,
+  size = "default",
   escapeScope,
   id,
   className,
@@ -260,13 +262,21 @@ export function CompactSearch({
   }, [expanded, disabled, value, escapeScope]);
 
   const isExpanded = expanded && !disabled;
+  const isCompact = size === "compact";
 
   return (
     <div
       ref={container}
       className={[
-        "inline-flex min-h-11 items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] transition-all",
-        isExpanded ? "w-full max-w-xs pr-1.5" : "w-11 justify-center",
+        "inline-flex items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-all hover:border-[var(--color-accent)]",
+        isCompact ? "h-9" : "h-11",
+        isExpanded
+          ? isCompact
+            ? "w-48 min-w-0 max-w-full shrink pr-1"
+            : "w-64 min-w-0 max-w-full shrink pr-1"
+          : isCompact
+            ? "w-9 shrink-0 justify-center"
+            : "w-11 shrink-0 justify-center",
         value.trim() && "border-[var(--color-accent)]",
         disabled && "opacity-60",
         className,
@@ -283,7 +293,7 @@ export function CompactSearch({
         aria-expanded={isExpanded}
         aria-controls={inputId}
         onClick={() => setExpanded((prev) => !prev)}
-        className="rounded-full"
+        className={isCompact ? "min-h-[34px] min-w-[34px]" : "min-h-[42px] min-w-[42px]"}
       >
         <SearchIcon size={16} />
       </IconButton>
@@ -318,7 +328,7 @@ export function CompactSearch({
             onValueChange("");
             input.current?.focus();
           }}
-          className="rounded-full"
+          className={isCompact ? "min-h-[30px] min-w-[30px]" : "min-h-[34px] min-w-[34px]"}
         >
           <CloseIcon size={14} />
         </IconButton>

@@ -10,6 +10,7 @@ export * from "./dropdown";
 export * from "./icons";
 export * from "./input";
 export * from "./list";
+export * from "./popover";
 export * from "./selection";
 export * from "./sheet";
 export * from "./states";
