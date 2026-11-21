@@ -18,6 +18,13 @@
 - **Decision:** Keep single-port Next.js 16 proxying (`frontend/src/proxy.ts` + `skipTrailingSlashRedirect`), PostgreSQL 18 (`/var/lib/postgresql`), `uv` (`/opt/venv`), WCAG 2.2 AA light UI baseline, mandatory unit tests + lint/typecheck/schema checks, and manual `git push`.
 - **Affected Docs & Tasks:** `AGENTS.md`, `docs/02-ui-system.md`, `docs/03-architecture.md`.
 
+### `DEC-001` — Language (i18n) and Appearance (Light / Dark / System) Configuration
+- **Date:** 2026-11-21 14:22
+- **Status:** Accepted
+- **Context / New Info:** User requested implementing language (`pl-PL` default / `en-US`) and appearance (`light` / `dark` / `system`) configuration early, referencing `/Users/kubamilcarz/Developer/investments-portfolio`.
+- **Decision:** Add client-persisted `localStorage` preferences (`hn26-locale`, `hn26-appearance`) with a synchronous pre-hydration script in `RootLayout` `<head>` to prevent FOUC/flash of untranslated text, CSS `light-dark()` semantic tokens in `frontend/src/app/globals.css` maintaining WCAG 2.2 AA contrast in both light and dark themes, and accessible `LanguageSelector` + `AppearanceSelector` controls in the global header.
+- **Affected Docs & Tasks:** `docs/02-ui-system.md`, `frontend/src/app/layout.tsx`, `frontend/src/app/globals.css`, `frontend/src/i18n/`, `frontend/src/appearance/`.
+
 <!-- Template for new entries:
 ### `DEC-XXX` — `<Short Title>`
 - **Date:** `<YYYY-MM-DD HH:MM from date '+%Y-%m-%d %H:%M'>`

@@ -1,16 +1,50 @@
 @import "tailwindcss";
 
 :root {
+  color-scheme: light dark;
+  --color-canvas: light-dark(#f8fafc, #0f172a);
+  --color-surface: light-dark(#ffffff, #1e293b);
+  --color-surface-raised: light-dark(#f1f5f9, #334155);
+  --color-text: light-dark(#0f172a, #f8fafc);
+  --color-text-muted: light-dark(#334155, #cbd5e1);
+  --color-border: light-dark(#94a3b8, #475569);
+  --color-border-subtle: light-dark(#cbd5e1, #334155);
+  --color-accent: light-dark(#1d4ed8, #3b82f6);
+  --color-accent-hover: light-dark(#1e40af, #60a5fa);
+  --color-accent-text: light-dark(#1e40af, #93c5fd);
+  --color-on-accent: light-dark(#ffffff, #0f172a);
+  --color-focus: light-dark(#1d4ed8, #93c5fd);
+  --color-success-bg: light-dark(#ecfdf5, #064e3b);
+  --color-success-border: light-dark(#047857, #34d399);
+  --color-success-text: light-dark(#022c22, #ecfdf5);
+  --color-success-badge: light-dark(#065f46, #10b981);
+  --color-success-on-badge: light-dark(#ffffff, #022c22);
+  --color-error-bg: light-dark(#fef2f2, #7f1d1d);
+  --color-error-border: light-dark(#b91c1c, #f87171);
+  --color-error-text: light-dark(#450a0a, #fef2f2);
+  --color-error-badge: light-dark(#991b1b, #ef4444);
+  --color-error-on-badge: light-dark(#ffffff, #450a0a);
+}
+
+:root[data-appearance="light"] {
   color-scheme: light;
 }
 
+:root[data-appearance="dark"] {
+  color-scheme: dark;
+}
+
+:root[data-locale-pending="true"] body {
+  visibility: hidden;
+}
+
 body {
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: var(--color-canvas);
+  color: var(--color-text);
 }
 
 :focus-visible {
-  outline: 2px solid #1d4ed8;
+  outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
 
