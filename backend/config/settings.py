@@ -40,6 +40,11 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "apps.core",
+    "apps.innovations",
+    "apps.discovery",
+    "apps.accounts",
+    "apps.implementation",
+    "apps.ingestion",
 ]
 
 MIDDLEWARE = [
@@ -154,8 +159,12 @@ REST_FRAMEWORK = {
 }
 
 SPECTACULAR_SETTINGS = {
-    "TITLE": env("API_TITLE", default="Django + Next.js API"),
+    "TITLE": env("API_TITLE", default="Praktoteka API"),
     "DESCRIPTION": "REST API powered by Django, Django REST Framework, and drf-spectacular.",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "ENUM_NAME_OVERRIDES": {
+        "StepStatusEnum": "apps.implementation.models.ImplementationStep.STATUS_CHOICES",
+        "SourceFeedStatusEnum": "apps.ingestion.models.SourceFeed.STATUS_CHOICES",
+    },
 }
