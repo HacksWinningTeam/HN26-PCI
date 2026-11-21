@@ -24,6 +24,14 @@
   --color-error-text: light-dark(#450a0a, #fef2f2);
   --color-error-badge: light-dark(#991b1b, #ef4444);
   --color-error-on-badge: light-dark(#ffffff, #450a0a);
+  --color-warn-bg: light-dark(#fffbeb, #451a03);
+  --color-warn-border: light-dark(#b45309, #fbbf24);
+  --color-warn-text: light-dark(#451a03, #fef3c7);
+  --color-warn-badge: light-dark(#92400e, #f59e0b);
+  --color-warn-on-badge: light-dark(#ffffff, #451a03);
+  --color-info-bg: light-dark(#eff6ff, #172554);
+  --color-info-border: light-dark(#1d4ed8, #60a5fa);
+  --color-info-text: light-dark(#1e3a8a, #dbeafe);
 }
 
 :root[data-appearance="light"] {
@@ -58,6 +66,14 @@
   --color-error-text: #ffffff;
   --color-error-badge: #ffffff;
   --color-error-on-badge: #000000;
+  --color-warn-bg: #000000;
+  --color-warn-border: #ffffff;
+  --color-warn-text: #ffffff;
+  --color-warn-badge: #ffffff;
+  --color-warn-on-badge: #000000;
+  --color-info-bg: #000000;
+  --color-info-border: #ffffff;
+  --color-info-text: #ffffff;
 }
 
 :root[data-appearance="hc-black-yellow"] {
@@ -84,6 +100,14 @@
   --color-error-text: #ffea00;
   --color-error-badge: #ffea00;
   --color-error-on-badge: #000000;
+  --color-warn-bg: #000000;
+  --color-warn-border: #ffea00;
+  --color-warn-text: #ffea00;
+  --color-warn-badge: #ffea00;
+  --color-warn-on-badge: #000000;
+  --color-info-bg: #000000;
+  --color-info-border: #ffea00;
+  --color-info-text: #ffea00;
 }
 
 :root[data-appearance="grayscale"] {
@@ -110,6 +134,14 @@
   --color-error-text: #18181b;
   --color-error-badge: #18181b;
   --color-error-on-badge: #ffffff;
+  --color-warn-bg: #f4f4f5;
+  --color-warn-border: #52525b;
+  --color-warn-text: #18181b;
+  --color-warn-badge: #3f3f46;
+  --color-warn-on-badge: #ffffff;
+  --color-info-bg: #f4f4f5;
+  --color-info-border: #3f3f46;
+  --color-info-text: #18181b;
 }
 
 :root[data-text-scale="25"] { font-size: 25%; }
@@ -155,5 +187,32 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+@page {
+  margin: 14mm;
+}
+
+@media print {
+  :root {
+    color-scheme: light !important;
+    --color-canvas: #ffffff !important;
+    --color-surface: #ffffff !important;
+    --color-surface-raised: #f8fafc !important;
+    --color-text: #0f172a !important;
+    --color-text-muted: #334155 !important;
+    --color-border: #94a3b8 !important;
+    --color-border-subtle: #cbd5e1 !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  article,
+  section {
+    break-inside: avoid;
   }
 }

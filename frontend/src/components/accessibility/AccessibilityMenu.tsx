@@ -1,14 +1,12 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
 import { useTranslations } from "@/i18n/provider";
 import { AccessibilityIcon } from "./AccessibilityIcon";
 import { AccessibilityPreferencesControls } from "./AccessibilityPreferencesControls";
 
 export function AccessibilityMenu() {
   const t = useTranslations();
-  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const launcherRef = useRef<HTMLButtonElement>(null);
@@ -58,10 +56,8 @@ export function AccessibilityMenu() {
     }
   }
 
-  if (pathname === "/settings/accessibility") return null;
-
   return (
-    <div ref={rootRef} className="fixed right-4 bottom-4 z-40">
+    <div ref={rootRef} className="fixed right-4 bottom-4 z-40 print:hidden">
       <section
         id={panelId}
         role="dialog"

@@ -5,9 +5,9 @@ import ButtonExamples from "./button-examples";
 import GalleryShell from "./gallery-shell";
 
 export const metadata: Metadata = {
-  title: "Design system · Radar Innowacji",
+  title: "Design system · Praktoteka",
   description:
-    "Typography, colors, spacing, and UI component patterns for PCI / Radar Innowacji.",
+    "Typography, colors, spacing, and UI component patterns for Praktoteka.",
 };
 
 const typeScale = [
@@ -15,7 +15,7 @@ const typeScale = [
     token: "text-3xl",
     size: "30px",
     use: "Page title",
-    sample: "Innovation Radar",
+    sample: "Praktoteka",
     className: "text-3xl font-bold tracking-tight",
   },
   {

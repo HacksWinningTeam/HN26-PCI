@@ -18,5 +18,5 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/api/:path*", "/admin/:path*", "/static/:path*"],
+  matcher: ["/api/:path*", "/django-admin/:path*", "/static/:path*"],
 };

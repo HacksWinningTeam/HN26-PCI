@@ -32,15 +32,86 @@ export function getApiBaseUrl(): string {
   return getPublicApiBaseUrl();
 }
 
+function getCookie(name: string): string {
+  if (typeof document === "undefined") return "";
+  const match = document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${name}=`));
+  return match ? decodeURIComponent(match.split("=").slice(1).join("=")) : "";
+}
+
+export async function ensureCsrfToken(): Promise<string> {
+  const existing = getCookie("csrftoken");
+  if (existing) return existing;
+  await fetch(`${getApiBaseUrl()}/api/auth/me/`, {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+  });
+  return getCookie("csrftoken");
+}
+
+export class ApiError extends Error {
+  status: number;
+  detail: string;
+
+  constructor(status: number, detail: string) {
+    super(detail);
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
+export async function apiRequest<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const method = (options.method ?? "GET").toUpperCase();
+  const headers = new Headers(options.headers);
+  headers.set("Accept", "application/json");
+
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  if (typeof window !== "undefined" && !["GET", "HEAD", "OPTIONS"].includes(method)) {
+    const csrf = await ensureCsrfToken();
+    if (csrf) {
+      headers.set("X-CSRFToken", csrf);
+    }
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+    ...options,
+    method,
+    headers,
+    credentials: "include",
+    cache: "no-store",
+  });
+
+  const isJson = (response.headers.get("content-type") ?? "").includes(
+    "application/json",
+  );
+  const payload = isJson ? await response.json() : null;
+
+  if (!response.ok) {
+    const detail =
+      (payload && typeof payload === "object" && "detail" in payload
+        ? String(payload.detail)
+        : null) || `HTTP ${response.status}`;
+    throw new ApiError(response.status, detail);
+  }
+
+  return payload as T;
+}
+
 export async function fetchHealth(): Promise<HealthCheckResult> {
   const endpoint = `${getApiBaseUrl()}/api/health/`;
 
   try {
     const response = await fetch(endpoint, {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
       cache: "no-store",
     });
 

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { defaultAppearance, themeColors } from "@/appearance/appearance";
 import { AccessibilityProvider } from "@/components/accessibility/AccessibilityProvider";
 import { AppShell } from "@/components/AppShell";
+import { SessionProvider } from "@/components/SessionProvider";
 import { defaultLocale } from "@/i18n/locale";
 import { LocaleProvider } from "@/i18n/provider";
 import { getPrehydrateScript } from "@/lib/prehydrate";
@@ -19,9 +20,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Django + DRF + Next.js Template",
+  title: "Praktoteka",
   description:
-    "Dockerized application template powered by Django, Django REST Framework, PostgreSQL, and Next.js.",
+    "Wyszukiwanie, porównywanie i planowanie wdrożeń istniejących polskich innowacji.",
 };
 
 export default function RootLayout({
@@ -33,18 +34,16 @@ export default function RootLayout({
   const appearance = defaultAppearance;
 
   return (
-    <html
-      suppressHydrationWarning
-      data-appearance={appearance}
-      lang={locale}
-    >
+    <html suppressHydrationWarning data-appearance={appearance} lang={locale}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: getPrehydrateScript() }} />
       </head>
       <body className="flex min-h-screen flex-col bg-[var(--color-canvas)] font-sans text-[var(--color-text)] antialiased">
         <LocaleProvider locale={locale}>
           <AccessibilityProvider>
-            <AppShell>{children}</AppShell>
+            <SessionProvider>
+              <AppShell>{children}</AppShell>
+            </SessionProvider>
           </AccessibilityProvider>
         </LocaleProvider>
       </body>
