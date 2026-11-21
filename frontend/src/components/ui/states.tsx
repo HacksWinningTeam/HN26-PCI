@@ -264,7 +264,7 @@ export function ProgressBar({
             <span />
           )}
           {showPercent ? (
-            <span className="font-mono font-bold tabular-nums text-[var(--color-text)]">
+            <span className="font-bold tabular-nums text-[var(--color-text)]">
               {percent}%
             </span>
           ) : null}
@@ -298,7 +298,7 @@ export function PhaseStepper({
 }) {
   return (
     <div className="space-y-1">
-      <div className="font-mono text-xs font-bold tabular-nums text-[var(--color-text)]">
+      <div className="text-xs font-bold tabular-nums text-[var(--color-text)]">
         Etap {currentPhase}/{totalPhases} · Ukończono {completedCount}/
         {totalPhases}
       </div>
@@ -361,7 +361,7 @@ export function ScoreBreakdown({
           Przyczyna dopasowania: {primaryReason}
         </p>
         <span
-          className={`rounded-md border px-2.5 py-1 font-mono text-sm font-bold tabular-nums ${pillClasses}`}
+          className={`rounded-md border px-2.5 py-1 text-sm font-bold tabular-nums ${pillClasses}`}
         >
           {overallScore}%
         </span>
@@ -377,7 +377,7 @@ export function ScoreBreakdown({
               <span className="font-semibold text-[var(--color-text)]">
                 {criterion.label} ({criterion.weightPercent}%)
               </span>
-              <span className="font-mono font-bold tabular-nums text-[var(--color-text)]">
+              <span className="font-bold tabular-nums text-[var(--color-text)]">
                 {criterion.score}%
               </span>
             </div>

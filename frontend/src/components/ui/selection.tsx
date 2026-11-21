@@ -133,7 +133,7 @@ function Choices({
           const isLime = accent === "lime";
           const itemClass = segmented
             ? [
-                "inline-flex min-h-9 cursor-pointer items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors",
+                "inline-flex min-h-9 cursor-pointer items-center justify-center rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--color-focus)]",
                 isSelected
                   ? isLime
                     ? "bg-[var(--color-accent-lime)] text-[var(--color-on-accent-lime)] shadow-xs"
@@ -203,7 +203,7 @@ function Choices({
                   onChange={() => onValueChange([option.value])}
                   className={
                     segmented
-                      ? "sr-only"
+                      ? "sr-only outline-none focus-visible:outline-none"
                       : isLime
                         ? "mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[var(--color-accent-lime-border)]"
                         : "mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[var(--color-accent)]"
@@ -378,7 +378,7 @@ export function Switch({
             onChange={(event) => {
               if (!pending) onChange?.(event);
             }}
-            className="peer sr-only"
+            className="peer sr-only outline-none focus-visible:outline-none"
           />
           <span
             aria-hidden="true"

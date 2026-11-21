@@ -77,11 +77,11 @@ function Field({
 
       <div
         className={[
-          "flex items-center gap-2 rounded-lg border bg-[var(--color-surface)] px-3 transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--color-focus)]",
+          "flex items-center gap-2 rounded-lg border bg-[var(--color-surface)] px-3 transition-colors has-[>input:focus-visible]:outline-2 has-[>input:focus-visible]:outline-offset-2 has-[>input:focus-visible]:outline-[var(--color-focus)]",
           size === "compact" ? "min-h-9" : "min-h-11",
           isInvalid
             ? "border-[var(--color-error-border)]"
-            : "border-[var(--color-border)] hover:border-[var(--color-accent)]",
+            : "border-[var(--color-border)] hover:border-[var(--color-accent)] focus-within:border-[var(--color-accent)]",
           props.disabled && "cursor-not-allowed opacity-60 bg-[var(--color-surface-raised)]",
           props.readOnly && "bg-[var(--color-surface-raised)]",
         ]
@@ -99,7 +99,7 @@ function Field({
           aria-describedby={describedBy}
           aria-invalid={error ? true : props["aria-invalid"]}
           className={[
-            "min-w-0 flex-1 bg-transparent py-1.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none disabled:cursor-not-allowed",
+            "min-w-0 flex-1 bg-transparent py-1.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed",
             numeric && "font-mono tabular-nums",
           ]
             .filter(Boolean)
@@ -268,7 +268,7 @@ export function CompactSearch({
     <div
       ref={container}
       className={[
-        "inline-flex items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-all hover:border-[var(--color-accent)]",
+        "inline-flex items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] transition-all hover:border-[var(--color-accent)] focus-within:border-[var(--color-accent)] has-[>input:focus-visible]:outline-2 has-[>input:focus-visible]:outline-offset-2 has-[>input:focus-visible]:outline-[var(--color-focus)]",
         isCompact ? "h-9" : "h-11",
         isExpanded
           ? isCompact
@@ -312,7 +312,7 @@ export function CompactSearch({
         aria-hidden={!isExpanded}
         onChange={(event) => onValueChange(event.target.value)}
         className={[
-          "bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none",
+          "bg-transparent text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] outline-none focus:outline-none focus-visible:outline-none",
           isExpanded ? "min-w-0 flex-1 px-1.5" : "w-0 p-0 opacity-0 pointer-events-none",
         ]
           .filter(Boolean)
@@ -456,10 +456,10 @@ export function TextArea({
 
       <div
         className={[
-          "rounded-lg border bg-[var(--color-surface)] p-3 transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--color-focus)]",
+          "rounded-lg border bg-[var(--color-surface)] p-3 transition-colors has-[>textarea:focus-visible]:outline-2 has-[>textarea:focus-visible]:outline-offset-2 has-[>textarea:focus-visible]:outline-[var(--color-focus)]",
           isInvalid
             ? "border-[var(--color-error-border)]"
-            : "border-[var(--color-border)] hover:border-[var(--color-accent)]",
+            : "border-[var(--color-border)] hover:border-[var(--color-accent)] focus-within:border-[var(--color-accent)]",
           props.disabled && "cursor-not-allowed opacity-60 bg-[var(--color-surface-raised)]",
           props.readOnly && "bg-[var(--color-surface-raised)]",
         ]
@@ -488,7 +488,7 @@ export function TextArea({
           }}
           aria-describedby={describedBy}
           aria-invalid={error ? true : props["aria-invalid"]}
-          className="w-full bg-transparent text-sm leading-relaxed text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] focus:outline-none disabled:cursor-not-allowed"
+          className="w-full bg-transparent text-sm leading-relaxed text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed"
         />
       </div>
 

@@ -239,7 +239,7 @@ export function Stepper({
         }}
         onContextMenu={(event) => event.preventDefault()}
         className={[
-          "inline-flex shrink-0 cursor-pointer items-center justify-center text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-raised)] disabled:cursor-not-allowed disabled:opacity-40",
+          "inline-flex shrink-0 cursor-pointer items-center justify-center text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-raised)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--color-focus)] disabled:cursor-not-allowed disabled:opacity-40",
           size === "compact" ? "min-h-9 min-w-9" : "min-h-11 min-w-11",
           held === direction && "bg-[var(--color-surface-raised)]",
         ]
@@ -270,7 +270,7 @@ export function Stepper({
 
       <div
         className={[
-          "inline-flex items-center overflow-hidden rounded-lg border bg-[var(--color-surface)] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--color-focus)]",
+          "inline-flex items-center overflow-hidden rounded-lg border bg-[var(--color-surface)] focus-within:border-[var(--color-accent)] has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-offset-2 has-[input:focus-visible]:outline-[var(--color-focus)]",
           fullWidth ? "w-full" : "w-auto",
           error
             ? "border-[var(--color-error-border)]"
@@ -349,7 +349,7 @@ export function Stepper({
                 commit(event.key === "Home" ? min : max);
               }
             }}
-            className="w-14 flex-1 bg-transparent text-center font-mono text-sm font-semibold tabular-nums text-[var(--color-text)] focus:outline-none disabled:cursor-not-allowed"
+            className="w-14 flex-1 bg-transparent text-center font-mono text-sm font-semibold tabular-nums text-[var(--color-text)] outline-none focus:outline-none focus-visible:outline-none disabled:cursor-not-allowed"
           />
           {unit ? (
             <span

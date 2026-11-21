@@ -397,7 +397,7 @@ export function Dropdown({
                   trigger.current?.focus();
                 }
               }}
-              className="fixed z-50 flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl"
+              className="fixed z-50 flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl focus:outline-none"
             >
               {searchable ? (
                 <div className="border-b border-[var(--color-border-subtle)] p-2">
@@ -678,7 +678,7 @@ export function MultiSelect({
                   }
                 }
               }}
-              className="fixed z-50 flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl"
+              className="fixed z-50 flex flex-col overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xl focus:outline-none"
             >
               {searchable ? (
                 <div className="border-b border-[var(--color-border-subtle)] p-2">

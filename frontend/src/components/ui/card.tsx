@@ -24,18 +24,25 @@ export const CARD_VARIANT_CLASSES: Record<CardVariant, string> = {
 
 export type CardSurfaceProps = ComponentPropsWithRef<"div"> & {
   variant?: CardVariant;
+  stretch?: boolean;
 };
 
 /** Shared base card container used across Card, MetricCard, ScoreBreakdown, and StatePanel. */
 export function CardSurface({
   variant = "subtle",
+  stretch = false,
   className,
   ...props
 }: CardSurfaceProps) {
   return (
     <div
       {...props}
-      className={["rounded-xl", CARD_VARIANT_CLASSES[variant], className]
+      className={[
+        "w-full rounded-xl",
+        stretch ? "h-full self-stretch" : "self-start",
+        CARD_VARIANT_CLASSES[variant],
+        className,
+      ]
         .filter(Boolean)
         .join(" ")}
     />
@@ -55,6 +62,7 @@ export type CardProps = Omit<
   secondaryActions?: ReactNode;
   variant?: CardVariant;
   density?: "default" | "compact";
+  stretch?: boolean;
 };
 
 /** Semantic display container with header badge, body, and explicit action footer. */
@@ -68,6 +76,7 @@ export function Card({
   secondaryActions,
   variant = "subtle",
   density = "default",
+  stretch = false,
   className,
   ...props
 }: CardProps) {
@@ -79,7 +88,8 @@ export function Card({
       aria-labelledby={id}
       {...props}
       className={[
-        "flex flex-col justify-between gap-4 rounded-xl",
+        "flex w-full flex-col justify-between gap-4 rounded-xl",
+        stretch ? "h-full self-stretch" : "self-start",
         CARD_VARIANT_CLASSES[variant],
         paddingClass,
         className,
