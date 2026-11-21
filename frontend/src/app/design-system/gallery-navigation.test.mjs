@@ -43,6 +43,12 @@ test("sidebar search matches labels, groups and keywords without changing the fu
     filterGallerySections("navigation radar").map((section) => section.id),
     ["navigation-bars"],
   );
+  for (const query of ["sidebar", "app shell", "floating navy"]) {
+    assert.deepEqual(
+      filterGallerySections(query).map((section) => section.id),
+      ["navigation-bars"],
+    );
+  }
   assert.ok(
     filterGallerySections("feedback").some(
       (section) => section.id === "badges-status",
@@ -56,32 +62,44 @@ test("sidebar search matches labels, groups and keywords without changing the fu
   assert.equal(gallerySectionForHash("#main-content"), undefined);
 });
 
-test("section reveal opens disclosures before scrolling target into view", () => {
+test("section reveal opens disclosures and scrolls only the content column", () => {
   const original = Object.getOwnPropertyDescriptor(globalThis, "document");
   const scrolledTargets = [];
   const outer = { open: false, parentElement: null };
   const inner = { open: false, parentElement: { closest: () => outer } };
   const target = {
     closest: () => inner,
-    scrollIntoView: (options) => {
+    getBoundingClientRect: () => {
       assert.equal(inner.open, true);
       assert.equal(outer.open, true);
-      scrolledTargets.push(options);
+      return { top: 284 };
     },
+    scrollIntoView: () => assert.fail("must not scroll ancestor containers"),
+  };
+  const container = {
+    scrollTop: 120,
+    clientTop: 0,
+    contains: (element) => element === target,
+    getBoundingClientRect: () => ({ top: 64 }),
+    scrollTo: (options) => scrolledTargets.push(options),
   };
 
   Object.defineProperty(globalThis, "document", {
     configurable: true,
     value: {
-      getElementById: (id) => (id === "colors" ? target : null),
+      getElementById: (id) => id === "main-content" ? container : id === "colors" ? target : null,
     },
   });
 
   try {
     revealGalleryTarget("#colors");
-    assert.deepEqual(scrolledTargets, [{ behavior: "instant", block: "start" }]);
+    assert.deepEqual(scrolledTargets, [{ top: 324, left: 0, behavior: "instant" }]);
     revealGalleryTarget("#unknown");
     assert.equal(scrolledTargets.length, 1);
+    revealGalleryTarget("#semantic-colors");
+    assert.deepEqual(scrolledTargets[1], { top: 324, left: 0, behavior: "instant" });
+    revealGalleryTarget("");
+    assert.deepEqual(scrolledTargets[2], { top: 0, left: 0, behavior: "instant" });
   } finally {
     if (original) {
       Object.defineProperty(globalThis, "document", original);

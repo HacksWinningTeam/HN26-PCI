@@ -15,6 +15,7 @@ import { EyeIcon as PhosphorEyeIcon } from "@phosphor-icons/react/dist/ssr/Eye";
 import { FileCsvIcon as PhosphorFileCsvIcon } from "@phosphor-icons/react/dist/ssr/FileCsv";
 import { FilePdfIcon as PhosphorFilePdfIcon } from "@phosphor-icons/react/dist/ssr/FilePdf";
 import { FunnelIcon as PhosphorFunnelIcon } from "@phosphor-icons/react/dist/ssr/Funnel";
+import { GearSixIcon as PhosphorGearSixIcon } from "@phosphor-icons/react/dist/ssr/GearSix";
 import { InfoIcon as PhosphorInfoIcon } from "@phosphor-icons/react/dist/ssr/Info";
 import { ListIcon as PhosphorListIcon } from "@phosphor-icons/react/dist/ssr/List";
 import { MagnifyingGlassIcon as PhosphorMagnifyingGlassIcon } from "@phosphor-icons/react/dist/ssr/MagnifyingGlass";
@@ -30,6 +31,10 @@ import { XIcon as PhosphorXIcon } from "@phosphor-icons/react/dist/ssr/X";
 export type { IconProps, IconWeight } from "@phosphor-icons/react";
 
 type UIIconProps = PhosphorIconProps;
+
+export function SettingsIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
+  return <PhosphorGearSixIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
+}
 
 export function SearchIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
   return <PhosphorMagnifyingGlassIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;

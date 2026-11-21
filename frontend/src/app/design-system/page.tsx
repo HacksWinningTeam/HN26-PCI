@@ -197,9 +197,6 @@ export default function DesignSystemPage() {
     <GalleryShell>
       <div className="space-y-4">
         <header className="space-y-2 pb-4">
-          <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text)]">
-            Design System
-          </h1>
           <p className="max-w-2xl text-base leading-relaxed text-[var(--color-text-muted)]">
             Fundamenty oraz gotowe, dostępne komponenty strukturalne dla{" "}
             <code className="rounded bg-[var(--color-surface-raised)] px-1.5 py-0.5 font-mono text-xs">

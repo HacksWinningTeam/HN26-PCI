@@ -1,5 +1,8 @@
 /** English source phrases are stable message IDs. Never pass user content as a key. */
 export const polish = {
+  "Settings": "Ustawienia",
+  "Collapse sidebar": "Zwiń panel boczny",
+  "Expand sidebar": "Rozwiń panel boczny",
   "Skip to main content": "Przejdź do głównej treści",
   "Django + DRF + Next.js": "Django + DRF + Next.js",
   "Docker Full-Stack Template": "Szablon Docker Full-Stack",

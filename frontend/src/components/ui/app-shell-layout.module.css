@@ -1,0 +1,66 @@
+.shell {
+  --app-shell-sidebar-width: 256px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 24px;
+  height: 100dvh;
+  min-height: 0;
+  min-width: 0;
+  padding: 16px;
+  background: var(--color-canvas);
+  overflow: clip;
+  transition: grid-template-columns 160ms ease;
+}
+
+.shell[data-sidebar] { grid-template-columns: var(--app-shell-sidebar-width) minmax(0, 1fr); }
+.shell:has(> .navigation > [data-collapsed="true"]) { --app-shell-sidebar-width: 76px; }
+
+.navigation {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--color-sidebar-border);
+  border-radius: 24px;
+  background: var(--color-sidebar-bg);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 4%);
+  scrollbar-color: var(--color-sidebar-text) var(--color-sidebar-bg);
+  scrollbar-width: thin;
+}
+
+.column { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: clip; }
+.navbar { position: relative; z-index: 1; flex-shrink: 0; }
+.content {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
+}
+.contentBody { display: flex; flex-direction: column; min-height: 100%; }
+.page { flex: 1; min-width: 0; padding-block: 24px; }
+
+.shell[data-layout="mobile"] { display: flex; flex-direction: column; }
+.shell[data-layout="mobile"] > .column { display: contents; }
+.shell[data-layout="mobile"] > .column > .navbar { order: -1; }
+.shell[data-layout="mobile"] > .column > .content { min-height: 160px; }
+.shell[data-layout="mobile"] > .navigation { display: none; height: min(28rem, 60dvh); flex-shrink: 1; }
+.shell[data-layout="mobile"][data-menu-open] > .navigation { display: block; }
+
+@media (max-width: 767px) {
+  .shell[data-layout="responsive"] { display: flex; flex-direction: column; }
+  .shell[data-layout="responsive"] > .column { display: contents; }
+  .shell[data-layout="responsive"] > .column > .navbar { order: -1; }
+  .shell[data-layout="responsive"] > .column > .content { min-height: 160px; }
+  .shell[data-layout="responsive"] > .navigation { display: none; height: min(28rem, 60dvh); flex-shrink: 1; }
+  .shell[data-layout="responsive"][data-menu-open] > .navigation { display: block; }
+}
+
+@media print {
+  .shell { display: block; height: auto; padding: 0; overflow: visible; }
+  .shell > .navigation { display: none !important; }
+  .content { overflow: visible; }
+  .column { overflow: visible; }
+}

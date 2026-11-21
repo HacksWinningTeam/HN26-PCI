@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import AppShellExamples from "./app-shell-examples";
 import {
   AlertDialog,
+  AppFooter,
   Banner,
   Breadcrumbs,
   Button,
@@ -213,6 +214,7 @@ export function NavigationExamples() {
 
   return (
     <div className="space-y-8">
+      <AppShellExamples />
       {/* Main Top Navbar Showcase */}
       <div className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
@@ -416,26 +418,8 @@ export function NavigationExamples() {
           </p>
         </div>
 
-        <div className="overflow-hidden rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)]">
-          <footer className="border-t border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-5 py-5 text-xs text-[var(--color-text-muted)]">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <span>Praktoteka © 2026 • Stworzone na HackNation 2026</span>
-              <div className="flex flex-wrap items-center gap-4">
-                <Link
-                  href="/design-system"
-                  className="hover:text-[var(--color-text)] hover:underline"
-                >
-                  Design System
-                </Link>
-                <Link
-                  href="/admin"
-                  className="hover:text-[var(--color-text)] hover:underline"
-                >
-                  Panel Admina
-                </Link>
-              </div>
-            </div>
-          </footer>
+        <div className="overflow-hidden rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-5">
+          <AppFooter />
         </div>
       </div>
     </div>

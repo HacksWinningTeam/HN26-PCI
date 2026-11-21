@@ -7,6 +7,15 @@
   --color-brand-cyan: #06bcf9;
   --color-brand-lime: #c4ee2a;
 
+  /* Neutral floating navigation follows the current surface palette. */
+  --color-sidebar-bg: var(--color-surface);
+  --color-sidebar-text: var(--color-text-muted);
+  --color-sidebar-hover: var(--color-canvas);
+  --color-sidebar-active: var(--color-surface-raised);
+  --color-sidebar-on-active: var(--color-text);
+  --color-sidebar-focus: var(--color-focus);
+  --color-sidebar-border: var(--color-border-subtle);
+
   /* Neutral surfaces: neutral light gray in light, neutral dark gray in dark (no blue/navy cast) */
   --color-canvas: light-dark(#f7f7f8, #141416);
   --color-surface: light-dark(#ffffff, #1d1d20);
@@ -139,6 +148,13 @@
 
 :root[data-appearance="hc-black-white"],
 [data-icon-preview="hc-black-white"] {
+  --color-sidebar-bg: #000000;
+  --color-sidebar-text: #ffffff;
+  --color-sidebar-hover: #222222;
+  --color-sidebar-active: #ffffff;
+  --color-sidebar-on-active: #000000;
+  --color-sidebar-focus: #ffffff;
+  --color-sidebar-border: #ffffff;
   color-scheme: dark;
   --color-canvas: #000000;
   --color-surface: #000000;
@@ -201,6 +217,13 @@
 
 :root[data-appearance="hc-black-yellow"],
 [data-icon-preview="hc-black-yellow"] {
+  --color-sidebar-bg: #000000;
+  --color-sidebar-text: #ffea00;
+  --color-sidebar-hover: #222200;
+  --color-sidebar-active: #ffea00;
+  --color-sidebar-on-active: #000000;
+  --color-sidebar-focus: #ffea00;
+  --color-sidebar-border: #ffea00;
   color-scheme: dark;
   --color-canvas: #000000;
   --color-surface: #000000;
@@ -418,6 +441,13 @@ body {
 @media (forced-colors: active) {
   :root {
     --color-focus: Highlight;
+    --color-sidebar-bg: Canvas;
+    --color-sidebar-text: CanvasText;
+    --color-sidebar-hover: Canvas;
+    --color-sidebar-active: Highlight;
+    --color-sidebar-on-active: HighlightText;
+    --color-sidebar-focus: Highlight;
+    --color-sidebar-border: CanvasText;
   }
 }
 

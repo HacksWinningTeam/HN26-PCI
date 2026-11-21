@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useRef, useState, type ReactNode } from "react";
-import { AccessibilityMenu } from "@/components/accessibility/AccessibilityMenu";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useSession } from "@/components/SessionProvider";
 import { useTranslations } from "@/i18n/provider";
@@ -41,6 +40,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       toggleBtnRef.current?.focus();
     }
   }
+
+  if (pathname === "/design-system") return children;
 
   return (
     <>
@@ -223,7 +224,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       </footer>
 
-      <AccessibilityMenu />
     </>
   );
 }

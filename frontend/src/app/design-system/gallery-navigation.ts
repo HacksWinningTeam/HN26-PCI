@@ -33,7 +33,7 @@ export const gallerySections: readonly GallerySection[] = [
   { id: "error-states", name: "Error states", group: "Feedback", keywords: "failure retry alert" },
   { id: "dialogs", name: "Dialogs and confirmations", group: "Overlays", keywords: "modal alert confirmation unsaved" },
   { id: "sheets-modals", name: "Sheets and drawers", group: "Overlays", keywords: "bottom sheet drawer detents mobile" },
-  { id: "navigation-bars", name: "Navigation bars", group: "Navigation", keywords: "radar navbar header logo breadcrumbs menu footer" },
+  { id: "navigation-bars", name: "Navigation bars", group: "Navigation", keywords: "radar navbar header logo breadcrumbs menu footer sidebar app shell floating navy" },
 ] as const;
 
 export function filterGallerySections(query: string): GallerySection[] {
@@ -65,19 +65,15 @@ export function gallerySectionForHash(hash: string): GallerySection | undefined 
   return gallerySections.find((section) => section.id === alias);
 }
 
-/** Open ancestor disclosures before scrolling to the target section. */
+/** Open disclosures and scroll only the shell's content column. */
 export function revealGalleryTarget(hash: string): void {
   const section = gallerySectionForHash(hash);
   if (!section || typeof document === "undefined") return;
+  const container = document.getElementById("main-content");
+  if (!container) return;
 
   if (section.id === "overview") {
-    const container = document.getElementById("main-content");
-    if (container && typeof container.scrollTo === "function") {
-      container.scrollTo({ top: 0, behavior: "instant" });
-    }
-    if (typeof window !== "undefined" && typeof window.scrollTo === "function") {
-      window.scrollTo({ top: 0, behavior: "instant" });
-    }
+    container.scrollTo({ top: 0, left: 0, behavior: "instant" });
     return;
   }
 
@@ -88,8 +84,8 @@ export function revealGalleryTarget(hash: string): void {
     return;
   }
 
-  const target = document.getElementById(decodedId);
-  if (!target) return;
+  const target = document.getElementById(decodedId) ?? document.getElementById(section.id);
+  if (!target || !container.contains(target)) return;
 
   let disclosure = target.closest("details");
   while (disclosure) {
@@ -97,7 +93,7 @@ export function revealGalleryTarget(hash: string): void {
     disclosure = disclosure.parentElement?.closest("details") ?? null;
   }
 
-  if (typeof target.scrollIntoView === "function") {
-    target.scrollIntoView({ behavior: "instant", block: "start" });
-  }
+  const top = container.scrollTop + target.getBoundingClientRect().top
+    - container.getBoundingClientRect().top - container.clientTop - 16;
+  container.scrollTo({ top: Math.max(0, top), left: 0, behavior: "instant" });
 }
