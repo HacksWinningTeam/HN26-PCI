@@ -21,14 +21,14 @@
 ### `DEC-001` — Language (i18n) and Appearance (Light / Dark / System) Configuration
 - **Date:** 2026-11-21 14:22
 - **Status:** Accepted
-- **Context / New Info:** User requested implementing language (`pl-PL` default / `en-US`) and appearance (`light` / `dark` / `system`) configuration early, referencing `/Users/kubamilcarz/Developer/investments-portfolio`.
+- **Context / New Info:** User requested implementing language (`pl-PL` default / `en-US`) and appearance (`light` / `dark` / `system`) configuration early.
 - **Decision:** Add client-persisted `localStorage` preferences (`hn26-locale`, `hn26-appearance`) with a synchronous pre-hydration script in `RootLayout` `<head>` to prevent FOUC/flash of untranslated text, CSS `light-dark()` semantic tokens in `frontend/src/app/globals.css` maintaining WCAG 2.2 AA contrast in both light and dark themes, and accessible `LanguageSelector` + `AppearanceSelector` controls in the global header.
 - **Affected Docs & Tasks:** `docs/02-ui-system.md`, `frontend/src/app/layout.tsx`, `frontend/src/app/globals.css`, `frontend/src/i18n/`, `frontend/src/appearance/`.
 
 ### `DEC-002` — WCAG 2.2 AA Accessibility System Plan
 - **Date:** 2026-11-21 14:27
 - **Status:** Accepted
-- **Context / New Info:** User requested planning WCAG 2.2 AA accessibility modeled on `/Users/kubamilcarz/Developer/HackYeah-2026/HackYeah2026-Defence`.
+- **Context / New Info:** User requested planning WCAG 2.2 AA accessibility preferences, semantic theme tokens, and Read Aloud controls.
 - **Decision:** Adopt the `AccessibilityProvider` preference contract (`appearance`: `system` | `light` | `dark` | `hc-black-white` | `hc-black-yellow` | `grayscale`, `textScale`: `25`–`200`, `underlineLinks`: boolean), pre-paint `getPrehydrateScript()` application, semantic CSS token maps for all 5 resolved themes, and a shared `AccessibilityPreferencesControls` component used by a floating `AccessibilityMenu` and `/settings/accessibility` (with `Read aloud` via `speechSynthesis` respecting `pl-PL` / `en-US`), documented in `docs/accessibility-system.md`.
 - **Affected Docs & Tasks:** `docs/accessibility-system.md`, `docs/02-ui-system.md`, `frontend/src/app/globals.css`, `frontend/src/lib/prehydrate.ts`, `frontend/src/i18n/messages.ts`.
 

@@ -1,6 +1,6 @@
 # Accessibility System (WCAG 2.2 AA)
 
-> Adapted from `HackYeah2026-Defence` (`DEC-002`) and integrated with `HN26-PCI` localization (`pl-PL` default / `en-US`) and pre-hydration (`frontend/src/lib/prehydrate.ts`).
+> WCAG 2.2 AA accessibility architecture (`DEC-002`) integrated with `HN26-PCI` localization (`pl-PL` default / `en-US`) and pre-hydration (`frontend/src/lib/prehydrate.ts`).
 
 ## Purpose
 
