@@ -12,8 +12,8 @@ export type Appearance = (typeof appearances)[number];
 export const defaultAppearance: Appearance = "system";
 export const appearanceStorageKey = "hn26-appearance";
 export const themeColors = {
-  light: "#f8fafc",
-  dark: "#0f172a",
+  light: "#f7f7f8",
+  dark: "#141416",
   "hc-black-white": "#000000",
   "hc-black-yellow": "#000000",
   grayscale: "#f4f4f5",

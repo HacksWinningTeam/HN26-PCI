@@ -2,36 +2,54 @@
 
 :root {
   color-scheme: light dark;
-  --color-canvas: light-dark(#f8fafc, #0f172a);
-  --color-surface: light-dark(#ffffff, #1e293b);
-  --color-surface-raised: light-dark(#f1f5f9, #334155);
-  --color-text: light-dark(#0f172a, #f8fafc);
-  --color-text-muted: light-dark(#334155, #cbd5e1);
-  --color-border: light-dark(#94a3b8, #475569);
-  --color-border-subtle: light-dark(#cbd5e1, #334155);
-  --color-accent: light-dark(#1d4ed8, #3b82f6);
-  --color-accent-hover: light-dark(#1e40af, #60a5fa);
-  --color-accent-text: light-dark(#1e40af, #93c5fd);
-  --color-on-accent: light-dark(#ffffff, #0f172a);
-  --color-focus: light-dark(#1d4ed8, #93c5fd);
-  --color-success-bg: light-dark(#ecfdf5, #064e3b);
-  --color-success-border: light-dark(#047857, #34d399);
-  --color-success-text: light-dark(#022c22, #ecfdf5);
-  --color-success-badge: light-dark(#065f46, #10b981);
-  --color-success-on-badge: light-dark(#ffffff, #022c22);
-  --color-error-bg: light-dark(#fef2f2, #7f1d1d);
+  /* Praktoteka brand source tokens */
+  --color-brand-navy: #072141;
+  --color-brand-cyan: #06bcf9;
+  --color-brand-lime: #c4ee2a;
+
+  /* Neutral surfaces: neutral light gray in light, neutral dark gray in dark (no blue/navy cast) */
+  --color-canvas: light-dark(#f7f7f8, #141416);
+  --color-surface: light-dark(#ffffff, #1d1d20);
+  --color-surface-raised: light-dark(#eeeeef, #28282c);
+  --color-text: light-dark(#072141, #f4f4f5);
+  --color-text-muted: light-dark(#52525b, #b8b8c0);
+  --color-border: light-dark(#71717a, #6e6e77);
+  --color-border-subtle: light-dark(#e4e4e7, #34343a);
+
+  /* Primary accent uses exact Brand Cyan (#06bcf9) paired with Brand Navy (#072141) text (>= 7.3:1 in both modes) */
+  --color-accent: #06bcf9;
+  --color-accent-hover: light-dark(#00a3dc, #3cd0ff);
+  --color-accent-text: light-dark(#00648f, #06bcf9);
+  --color-on-accent: #072141;
+  --color-focus: light-dark(#0077a8, #06bcf9);
+
+  /* Secondary brand accent uses exact Brand Lime (#c4ee2a) paired with Brand Navy (#072141) text (>= 11.9:1) */
+  --color-accent-lime: #c4ee2a;
+  --color-accent-lime-hover: light-dark(#b2dd18, #d4f454);
+  --color-on-accent-lime: #072141;
+  --color-accent-lime-bg: light-dark(#f3fce0, #1e2614);
+  --color-accent-lime-border: light-dark(#4d7c0f, #c4ee2a);
+  --color-accent-lime-text: light-dark(#365314, #c4ee2a);
+
+  /* Semantic statuses harmonized with #c4ee2a and #06bcf9 */
+  --color-success-bg: light-dark(#f3fce0, #1e2614);
+  --color-success-border: light-dark(#4d7c0f, #84cc16);
+  --color-success-text: light-dark(#1a2e05, #e5f99d);
+  --color-success-badge: #c4ee2a;
+  --color-success-on-badge: #072141;
+  --color-error-bg: light-dark(#fef2f2, #33161a);
   --color-error-border: light-dark(#b91c1c, #f87171);
-  --color-error-text: light-dark(#450a0a, #fef2f2);
+  --color-error-text: light-dark(#450a0a, #fee2e2);
   --color-error-badge: light-dark(#991b1b, #ef4444);
-  --color-error-on-badge: light-dark(#ffffff, #450a0a);
-  --color-warn-bg: light-dark(#fffbeb, #451a03);
+  --color-error-on-badge: light-dark(#ffffff, #141416);
+  --color-warn-bg: light-dark(#fffbeb, #2b210d);
   --color-warn-border: light-dark(#b45309, #fbbf24);
   --color-warn-text: light-dark(#451a03, #fef3c7);
   --color-warn-badge: light-dark(#92400e, #f59e0b);
-  --color-warn-on-badge: light-dark(#ffffff, #451a03);
-  --color-info-bg: light-dark(#eff6ff, #172554);
-  --color-info-border: light-dark(#1d4ed8, #60a5fa);
-  --color-info-text: light-dark(#1e3a8a, #dbeafe);
+  --color-warn-on-badge: light-dark(#ffffff, #141416);
+  --color-info-bg: light-dark(#e6f8ff, #122630);
+  --color-info-border: light-dark(#0088be, #06bcf9);
+  --color-info-text: light-dark(#072141, #bae6fd);
 }
 
 :root[data-appearance="light"] {
@@ -56,6 +74,12 @@
   --color-accent-text: #ffffff;
   --color-on-accent: #000000;
   --color-focus: #ffffff;
+  --color-accent-lime: #ffffff;
+  --color-accent-lime-hover: #e4e4e7;
+  --color-on-accent-lime: #000000;
+  --color-accent-lime-bg: #000000;
+  --color-accent-lime-border: #ffffff;
+  --color-accent-lime-text: #ffffff;
   --color-success-bg: #000000;
   --color-success-border: #ffffff;
   --color-success-text: #ffffff;
@@ -90,6 +114,12 @@
   --color-accent-text: #ffea00;
   --color-on-accent: #000000;
   --color-focus: #ffea00;
+  --color-accent-lime: #ffea00;
+  --color-accent-lime-hover: #ffd600;
+  --color-on-accent-lime: #000000;
+  --color-accent-lime-bg: #000000;
+  --color-accent-lime-border: #ffea00;
+  --color-accent-lime-text: #ffea00;
   --color-success-bg: #000000;
   --color-success-border: #ffea00;
   --color-success-text: #ffea00;
@@ -124,6 +154,12 @@
   --color-accent-text: #18181b;
   --color-on-accent: #ffffff;
   --color-focus: #18181b;
+  --color-accent-lime: #27272a;
+  --color-accent-lime-hover: #18181b;
+  --color-on-accent-lime: #ffffff;
+  --color-accent-lime-bg: #f4f4f5;
+  --color-accent-lime-border: #52525b;
+  --color-accent-lime-text: #18181b;
   --color-success-bg: #f4f4f5;
   --color-success-border: #52525b;
   --color-success-text: #18181b;
@@ -168,6 +204,62 @@ body {
   color: var(--color-text);
 }
 
+@keyframes ui-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.ui-shimmer {
+  background-color: var(--color-surface-raised);
+  background-image: linear-gradient(
+    90deg,
+    var(--color-surface-raised) 0%,
+    var(--color-surface-raised) 35%,
+    color-mix(in srgb, var(--color-surface) 75%, var(--color-border-subtle)) 50%,
+    var(--color-surface-raised) 65%,
+    var(--color-surface-raised) 100%
+  );
+  background-size: 200% 100%;
+  animation: ui-shimmer 1.8s ease-in-out infinite;
+}
+
+/* Transparent brand logo variant switching across light, dark, and high-contrast modes */
+.brand-logo-light {
+  display: block;
+}
+
+.brand-logo-dark {
+  display: none;
+}
+
+:root[data-appearance="dark"] .brand-logo-light,
+:root[data-appearance="hc-black-white"] .brand-logo-light,
+:root[data-appearance="hc-black-yellow"] .brand-logo-light {
+  display: none;
+}
+
+:root[data-appearance="dark"] .brand-logo-dark,
+:root[data-appearance="hc-black-white"] .brand-logo-dark,
+:root[data-appearance="hc-black-yellow"] .brand-logo-dark {
+  display: block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-appearance="system"] .brand-logo-light,
+  :root:not([data-appearance]) .brand-logo-light {
+    display: none;
+  }
+
+  :root[data-appearance="system"] .brand-logo-dark,
+  :root:not([data-appearance]) .brand-logo-dark {
+    display: block;
+  }
+}
+
 :focus-visible {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
@@ -199,16 +291,24 @@ body {
     color-scheme: light !important;
     --color-canvas: #ffffff !important;
     --color-surface: #ffffff !important;
-    --color-surface-raised: #f8fafc !important;
-    --color-text: #0f172a !important;
-    --color-text-muted: #334155 !important;
-    --color-border: #94a3b8 !important;
-    --color-border-subtle: #cbd5e1 !important;
+    --color-surface-raised: #f4f4f5 !important;
+    --color-text: #072141 !important;
+    --color-text-muted: #52525b !important;
+    --color-border: #71717a !important;
+    --color-border-subtle: #e4e4e7 !important;
+  }
+
+  .brand-logo-light {
+    display: block !important;
+  }
+
+  .brand-logo-dark {
+    display: none !important;
   }
 
   body {
     background: #ffffff !important;
-    color: #0f172a !important;
+    color: #072141 !important;
   }
 
   article,

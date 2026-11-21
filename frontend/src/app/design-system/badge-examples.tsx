@@ -1,29 +1,70 @@
+import { Badge, CheckIcon, StatusIndicator, WarningIcon } from "@/components/ui";
+
 export default function BadgeExamples() {
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-success-border)] bg-[var(--color-success-bg)] px-3 py-1 text-xs font-semibold text-[var(--color-success-text)]">
-        <span
-          aria-hidden="true"
-          className="inline-block h-2 w-2 rounded-full bg-[var(--color-success-badge)]"
-        />
-        PASS · Verified evidence
-      </span>
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h3 className="text-sm font-bold text-[var(--color-text)]">
+          Badge — wariant Soft (taksonomia i statusy)
+        </h3>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Badge tone="info">Technologiczny</Badge>
+          <Badge tone="lime" leadingIcon={<CheckIcon size={12} />}>
+            Polecane (Brand Lime)
+          </Badge>
+          <Badge tone="neutral">Produktowy</Badge>
+          <Badge tone="success" leadingIcon={<CheckIcon size={12} />}>
+            Zweryfikowano
+          </Badge>
+          <Badge tone="warning" leadingIcon={<WarningIcon size={12} />}>
+            Wymaga aktualizacji
+          </Badge>
+          <Badge tone="error">Sprzeczność danych</Badge>
+        </div>
+      </div>
 
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-error-border)] bg-[var(--color-error-bg)] px-3 py-1 text-xs font-semibold text-[var(--color-error-text)]">
-        <span
-          aria-hidden="true"
-          className="inline-block h-2 w-2 rounded-full bg-[var(--color-error-badge)]"
-        />
-        FAIL · Missing evidence
-      </span>
+      <div className="space-y-2">
+        <h3 className="text-sm font-bold text-[var(--color-text)]">
+          Badge — wariant Solid i Outline (rozmiar Compact)
+        </h3>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Badge variant="solid" size="compact" tone="info">
+            Brand Cyan Solid
+          </Badge>
+          <Badge variant="solid" size="compact" tone="lime">
+            Brand Lime Solid
+          </Badge>
+          <Badge variant="outline" size="compact" tone="info">
+            Plan pilotażu
+          </Badge>
+          <Badge variant="outline" size="compact" tone="lime">
+            Gotowe do wdrożenia
+          </Badge>
+          <Badge variant="outline" size="compact" tone="success">
+            TRL 7/9
+          </Badge>
+          <Badge variant="outline" size="compact" tone="neutral">
+            Dane demonstracyjne
+          </Badge>
+          <Badge variant="outline" size="compact" tone="warning">
+            Brak kosztów wdrożenia
+          </Badge>
+        </div>
+      </div>
 
-      <span className="inline-flex items-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-1 text-xs font-semibold text-[var(--color-text)]">
-        Synthetic demo
-      </span>
-
-      <span className="inline-flex items-center rounded-full border border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-3 py-1 text-xs font-medium text-[var(--color-text-muted)]">
-        Planned
-      </span>
+      <div className="space-y-2">
+        <h3 className="text-sm font-bold text-[var(--color-text)]">
+          StatusIndicator (kropka + zawsze widoczna etykieta tekstowa)
+        </h3>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <StatusIndicator tone="success">PASS · Potwierdzone źródło</StatusIndicator>
+          <StatusIndicator tone="lime">Aktywne wdrożenie (Brand Lime)</StatusIndicator>
+          <StatusIndicator tone="info">Oczekuje na przegląd</StatusIndicator>
+          <StatusIndicator tone="warning">Nieaktualne źródło</StatusIndicator>
+          <StatusIndicator tone="error">FAIL · Błąd pobierania</StatusIndicator>
+          <StatusIndicator tone="neutral">Planowane</StatusIndicator>
+        </div>
+      </div>
     </div>
   );
 }

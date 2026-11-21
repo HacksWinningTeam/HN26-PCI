@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useId, useRef, useState, type ReactNode } from "react";
 import { AccessibilityMenu } from "@/components/accessibility/AccessibilityMenu";
+import { BrandLogo } from "@/components/BrandLogo";
 import { useSession } from "@/components/SessionProvider";
 import { useTranslations } from "@/i18n/provider";
 
@@ -58,9 +59,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="inline-flex min-h-11 items-center text-base font-bold tracking-tight text-[var(--color-text)]"
+            aria-label="Praktoteka — strona główna"
+            className="inline-flex min-h-11 items-center rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
           >
-            Praktoteka
+            <BrandLogo size="sm" />
           </Link>
 
           {/* Desktop navigation */}

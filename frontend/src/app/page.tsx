@@ -1,12 +1,12 @@
 import Link from "next/link";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function HomePage() {
   return (
     <div className="mx-auto max-w-4xl space-y-8 py-6">
-      <section className="space-y-3">
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--color-text)] sm:text-4xl">
-          Praktoteka
-        </h1>
+      <section className="space-y-4">
+        <h1 className="sr-only">Praktoteka</h1>
+        <BrandLogo size="lg" />
         <p className="max-w-2xl text-base text-[var(--color-text-muted)]">
           Katalog, wyszukiwarka, karty innowacji i porównanie są dostępne bez logowania.
         </p>

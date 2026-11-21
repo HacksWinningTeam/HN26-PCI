@@ -1,8 +1,26 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { BrandLogo } from "@/components/BrandLogo";
 import BadgeExamples from "./badge-examples";
 import ButtonExamples from "./button-examples";
+import {
+  CardExamples,
+  ListExamples,
+  ScoringBreakdownExamples,
+  TableExamples,
+} from "./data-display-examples";
+import {
+  BannerExamples,
+  DialogExamples,
+  EmptyStateExamples,
+  ErrorStateExamples,
+  LoadingStateExamples,
+  NavigationExamples,
+} from "./feedback-overlay-examples";
 import GalleryShell from "./gallery-shell";
+import IconExamples from "./icon-examples";
+import InputExamples from "./input-examples";
+import SheetExamples from "./sheet-examples";
 
 export const metadata: Metadata = {
   title: "Design system · Praktoteka",
@@ -36,7 +54,8 @@ const typeScale = [
     token: "text-base",
     size: "16px",
     use: "Body",
-    sample: "Each innovation moves from structured submission through transparent assessment to a concrete next step.",
+    sample:
+      "Each innovation moves from structured submission through transparent assessment to a concrete next step.",
     className: "text-base leading-relaxed",
   },
   {
@@ -61,11 +80,17 @@ type ColorToken = {
   usage: string;
 };
 
+const brandColors: readonly ColorToken[] = [
+  { name: "Brand Lime", token: "--color-brand-lime", usage: "#c4ee2a · Wyróżnienia, sukces i paski postępu (z tekstem #072141)" },
+  { name: "Brand Cyan", token: "--color-brand-cyan", usage: "#06bcf9 · Główny akcent akcji i aktywnych stanów (--color-accent)" },
+  { name: "Brand Navy", token: "--color-brand-navy", usage: "#072141 · Główny tekst (light) i tekst na Lime/Cyan (--color-on-accent)" },
+];
+
 const semanticColors: readonly ColorToken[] = [
-  { name: "Accent", token: "--color-accent", usage: "Primary actions & active highlights" },
-  { name: "Accent hover", token: "--color-accent-hover", usage: "Hover state for accent controls" },
-  { name: "Success badge", token: "--color-success-badge", usage: "PASS / connected indicators" },
-  { name: "Error badge", token: "--color-error-badge", usage: "FAIL / error indicators" },
+  { name: "Info", token: "--color-info-border", usage: "Kontekst i wskazówki (pochodna Brand Cyan)" },
+  { name: "Success", token: "--color-success-badge", usage: "PASS / ukończone (Brand Lime #c4ee2a)" },
+  { name: "Warning", token: "--color-warn-badge", usage: "Ostrzeżenia / braki informacyjne" },
+  { name: "Error", token: "--color-error-badge", usage: "FAIL / sprzeczności i błędy" },
 ];
 
 const neutralColors: readonly ColorToken[] = [
@@ -89,17 +114,7 @@ const spacingScale = [
   { step: 11, px: "44px", use: "Minimum interactive target (WCAG 2.2 AA)" },
 ] as const;
 
-const futureSections = [
-  { id: "forms", name: "Forms and controls", scope: "Innovation submission · Filters · Selectors · Validation states" },
-  { id: "scoring-breakdown", name: "Scoring breakdown", scope: "5 criteria (0–5) · Weights · Evidence vs. declaration · Missing info" },
-  { id: "tables", name: "Tables", scope: "Catalog records · Partner archetypes · Tabular numerals" },
-  { id: "banners", name: "Banners", scope: "Demo data notices · AI assistance disclosures · Status alerts" },
-  { id: "empty-states", name: "Empty states", scope: "No matching innovations · No similar records in demo catalog" },
-  { id: "loading-states", name: "Loading states", scope: "Skeletons · Pending assessment · Pending submission" },
-  { id: "error-states", name: "Error states", scope: "Failed submission · Unavailable API · Retry actions" },
-  { id: "dialogs", name: "Dialogs and confirmations", scope: "Expert score override confirmation · Reset actions" },
-  { id: "navigation-bars", name: "Navigation bars", scope: "Radar catalog · Submit · Detail · Assessment · Next steps" },
-] as const;
+const futureSections: readonly { id: string; name: string; scope: string }[] = [] as const;
 
 function DesignSection({
   id,
@@ -186,12 +201,15 @@ export default function DesignSystemPage() {
             Design System
           </h1>
           <p className="max-w-2xl text-base leading-relaxed text-[var(--color-text-muted)]">
-            Foundations, semantic tokens, and UI component patterns for PCI /
-            Radar Innowacji (see{" "}
+            Fundamenty oraz gotowe, dostępne komponenty strukturalne dla{" "}
             <code className="rounded bg-[var(--color-surface-raised)] px-1.5 py-0.5 font-mono text-xs">
-              docs/PROJECT_KNOWLEDGE.md
+              @/components/ui
             </code>
-            ).
+            . Każdy komponent dziedziczy tokeny z{" "}
+            <code className="rounded bg-[var(--color-surface-raised)] px-1.5 py-0.5 font-mono text-xs">
+              globals.css
+            </code>{" "}
+            (WCAG 2.2 AA, tryb jasny, ciemny i wysokiego kontrastu).
           </p>
         </header>
 
@@ -236,6 +254,30 @@ export default function DesignSystemPage() {
 
         <DesignSection id="colors" title="Colors" defaultOpen>
           <div className="space-y-6">
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-[var(--color-text)]">
+                Brand identity & source colors
+              </h3>
+              <p className="text-sm text-[var(--color-text-muted)]">
+                Logo Praktoteki oraz kolory bazowe (#c4ee2a, #06bcf9, #072141), z których wyliczono kontrastowe tokeny jasne i neutralnie ciemnoszary dark mode.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="flex flex-col gap-2 rounded-xl border border-[#e4e4e7] bg-[#ffffff] p-4">
+                  <span className="text-xs font-semibold text-[#52525b]">
+                    Wersja jasna (transparent SVG)
+                  </span>
+                  <BrandLogo size="lg" variant="light" />
+                </div>
+                <div className="flex flex-col gap-2 rounded-xl border border-[#34343a] bg-[#1d1d20] p-4">
+                  <span className="text-xs font-semibold text-[#b8b8c0]">
+                    Wersja ciemna (transparent SVG)
+                  </span>
+                  <BrandLogo size="lg" variant="dark" />
+                </div>
+              </div>
+              <Palette colors={brandColors} />
+            </div>
+
             <div className="space-y-3">
               <h3
                 id="semantic-colors"
@@ -287,40 +329,64 @@ export default function DesignSystemPage() {
           </ul>
         </DesignSection>
 
-        <DesignSection id="buttons" title="Buttons">
+        <DesignSection id="icons" title="Icons">
+          <IconExamples />
+        </DesignSection>
+
+        <DesignSection id="buttons" title="Buttons" defaultOpen>
           <ButtonExamples />
         </DesignSection>
 
-        <DesignSection id="cards-metrics" title="Cards and metrics">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-xs">
-              <p className="text-xs font-medium text-[var(--color-text-muted)]">
-                Surface card
-              </p>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--color-text)]">
-                99.98%
-              </p>
-              <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                Uses --color-surface and --color-border-subtle.
-              </p>
-            </div>
+        <DesignSection id="forms" title="Forms and controls" defaultOpen>
+          <InputExamples />
+        </DesignSection>
 
-            <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] p-5">
-              <p className="text-xs font-medium text-[var(--color-text-muted)]">
-                Raised surface card
-              </p>
-              <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--color-text)]">
-                44px
-              </p>
-              <p className="mt-2 text-xs text-[var(--color-text-muted)]">
-                Minimum WCAG 2.2 AA interactive target size.
-              </p>
-            </div>
-          </div>
+        <DesignSection id="lists" title="Lists">
+          <ListExamples />
+        </DesignSection>
+
+        <DesignSection id="scoring-breakdown" title="Scoring breakdown">
+          <ScoringBreakdownExamples />
+        </DesignSection>
+
+        <DesignSection id="tables" title="Tables">
+          <TableExamples />
+        </DesignSection>
+
+        <DesignSection id="cards-metrics" title="Cards and metrics">
+          <CardExamples />
+        </DesignSection>
+
+        <DesignSection id="banners" title="Banners">
+          <BannerExamples />
         </DesignSection>
 
         <DesignSection id="badges-status" title="Badges and status indicators">
           <BadgeExamples />
+        </DesignSection>
+
+        <DesignSection id="empty-states" title="Empty states">
+          <EmptyStateExamples />
+        </DesignSection>
+
+        <DesignSection id="loading-states" title="Loading states">
+          <LoadingStateExamples />
+        </DesignSection>
+
+        <DesignSection id="error-states" title="Error states">
+          <ErrorStateExamples />
+        </DesignSection>
+
+        <DesignSection id="dialogs" title="Dialogs and confirmations">
+          <DialogExamples />
+        </DesignSection>
+
+        <DesignSection id="sheets-modals" title="Sheets and drawers">
+          <SheetExamples />
+        </DesignSection>
+
+        <DesignSection id="navigation-bars" title="Navigation bars">
+          <NavigationExamples />
         </DesignSection>
 
         {futureSections.map(({ id, name, scope }) => (

@@ -11,6 +11,7 @@
     "test": "node --test src/i18n/*.test.mjs src/appearance/*.test.mjs src/components/accessibility/*.test.mjs src/app/design-system/*.test.mjs src/lib/*.test.mjs"
   },
   "dependencies": {
+    "@phosphor-icons/react": "^2.1.10",
     "next": "^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
