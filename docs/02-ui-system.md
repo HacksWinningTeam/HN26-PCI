@@ -1,6 +1,6 @@
 # 02 — Shared UI System (Global Baseline)
 
-> Lightweight global foundation only. Per-screen layouts, component hierarchies, and interactive states are designed **per task** inside each `docs/tasks/TXX-*.md` via `hackathon-ui-design` immediately before implementing that task.
+> Lightweight global foundation only. Product screens and UX rules are defined in [`docs/PROJECT_KNOWLEDGE.md`](PROJECT_KNOWLEDGE.md) (Section 9), and interactive tokens/patterns are showcased at `/design-system`. Per-screen layouts, component hierarchies, and interactive states are designed **per task** inside each `docs/tasks/TXX-*.md` via `hackathon-ui-design` immediately before implementing that task.
 
 ## Baseline & Constraints
 
@@ -29,6 +29,7 @@ Track reusable components as tasks create or update them:
 | Component | Path | Purpose | Introduced In |
 | --- | --- | --- | --- |
 | `HealthStatusCard` | `frontend/src/components/HealthStatusCard.tsx` | Live API & DB connectivity banner pattern | Starter template |
+| `DesignSystemPage` & `GalleryShell` | `frontend/src/app/design-system/` | Interactive design system gallery (`/design-system`) with section search, hash navigation, foundations, and planned slots | `DEC-003` |
 
 ## Reference Assets (`docs/inputs/ui/`)
 

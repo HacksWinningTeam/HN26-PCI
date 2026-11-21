@@ -1,6 +1,7 @@
 # 01 — Distilled Hackathon Brief
 
-> Distilled from `docs/inputs/organizer-brief/` and `docs/inputs/my-notes.md` via `hackathon-kickoff`. Keep concise so agents can read the whole brief quickly without re-reading raw PDFs.
+> Primary project brief & challenge context: [`docs/PROJECT_KNOWLEDGE.md`](PROJECT_KNOWLEDGE.md) (**PCI / Radar Innowacji — HackNation 2026**).
+> Distilled from `docs/PROJECT_KNOWLEDGE.md`, `docs/inputs/organizer-brief/`, and `docs/inputs/my-notes.md` via `hackathon-kickoff`. Keep concise so agents can read the whole brief quickly without re-reading raw PDFs.
 
 ## Timeline
 

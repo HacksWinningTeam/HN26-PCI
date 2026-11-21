@@ -21,6 +21,7 @@ flowchart LR
 
 | File | Purpose | Created / Updated By |
 | --- | --- | --- |
+| [`PROJECT_KNOWLEDGE.md`](PROJECT_KNOWLEDGE.md) | Authoritative HackNation 2026 PCI / Radar Innowacji brief, criteria, MVP scope, and domain contracts | User / project kickoff |
 | [`inputs/organizer-brief/`](inputs/organizer-brief/) | Raw organizer PDFs and challenge specs (tracked in Git) | User at kickoff |
 | [`inputs/ui/`](inputs/ui/) | Brand assets and optional per-task screen sketches (e.g. `T02-dashboard.png`) | User anytime |
 | [`inputs/my-notes.md`](inputs/my-notes.md) | User's rough notes, priorities, and mid-hackathon additions | User anytime |

@@ -32,6 +32,13 @@
 - **Decision:** Adopt the `AccessibilityProvider` preference contract (`appearance`: `system` | `light` | `dark` | `hc-black-white` | `hc-black-yellow` | `grayscale`, `textScale`: `25`–`200`, `underlineLinks`: boolean), pre-paint `getPrehydrateScript()` application, semantic CSS token maps for all 5 resolved themes, and a shared `AccessibilityPreferencesControls` component used by a floating `AccessibilityMenu` and `/settings/accessibility` (with `Read aloud` via `speechSynthesis` respecting `pl-PL` / `en-US`), documented in `docs/accessibility-system.md`.
 - **Affected Docs & Tasks:** `docs/accessibility-system.md`, `docs/02-ui-system.md`, `frontend/src/app/globals.css`, `frontend/src/lib/prehydrate.ts`, `frontend/src/i18n/messages.ts`.
 
+### `DEC-003` — Design System Gallery Structure (`/design-system`)
+- **Date:** 2026-11-21 14:41
+- **Status:** Accepted
+- **Context / New Info:** Added a dedicated `/design-system` route aligned with the **PCI / Radar Innowacji** brief in `docs/PROJECT_KNOWLEDGE.md` to document UI foundations, shared tokens, and upcoming component patterns.
+- **Decision:** Add `frontend/src/app/design-system/` with `gallery-navigation.ts` (section catalog, multi-word search, hash alias resolution, and disclosure-opening scroll helper), `gallery-navigation.test.mjs`, `GalleryShell` (sticky sidebar navigation + live search inside `AppShell`), and `page.tsx` with Foundations (Typography, Colors, Spacing), starter primitives (Buttons, Cards, Badges), and `Planned` slots.
+- **Affected Docs & Tasks:** `docs/02-ui-system.md`, `frontend/src/app/design-system/`, `frontend/src/components/AppShell.tsx`, `frontend/src/i18n/messages.ts`, `frontend/package.json`.
+
 <!-- Template for new entries:
 ### `DEC-XXX` — `<Short Title>`
 - **Date:** `<YYYY-MM-DD HH:MM from date '+%Y-%m-%d %H:%M'>`

@@ -92,6 +92,14 @@ export const polish = {
   "Server Timestamp (UTC)": "Znacznik czasu serwera (UTC)",
   "N/A": "Brak",
   "Detail: {0}": "Szczegóły: {0}",
+  "Design system": "System projektowy",
+  "Design system navigation": "Nawigacja systemu projektowego",
+  "Design system sections": "Sekcje systemu projektowego",
+  "Foundations & UI": "Fundamenty i UI",
+  "Home": "Start",
+  "Search sections": "Szukaj sekcji",
+  "Matching sections: {0}": "Pasujące sekcje: {0}",
+  "No sections found.": "Nie znaleziono sekcji.",
 } as const;
 
 export type MessageKey = keyof typeof polish;

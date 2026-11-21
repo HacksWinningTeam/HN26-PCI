@@ -61,8 +61,8 @@ When working from the repository root, read the matching scoped guide before edi
 
 ## Development Workflow & Project Memory (`docs/`)
 
-- **Inputs & living specs:** Raw organizer PDFs (`docs/inputs/organizer-brief/`), UI assets (`docs/inputs/ui/`), and rough user notes (`docs/inputs/my-notes.md`) are distilled into `docs/01-brief.md`–`docs/05-plan.md` and `docs/tasks/TXX-*.md` (see `docs/README.md`).
-- **Read before coding:** Before working on any task, read `docs/04-decisions.md`, `docs/05-plan.md`, and the active `docs/tasks/TXX-*.md`.
+- **Inputs & living specs:** Project brief & challenge context live in `docs/PROJECT_KNOWLEDGE.md`; raw organizer PDFs (`docs/inputs/organizer-brief/`), UI assets (`docs/inputs/ui/`), and rough user notes (`docs/inputs/my-notes.md`) are distilled into `docs/01-brief.md`–`docs/05-plan.md` and `docs/tasks/TXX-*.md` (see `docs/README.md`).
+- **Read before coding:** Before working on any task, read `docs/PROJECT_KNOWLEDGE.md`, `docs/04-decisions.md`, `docs/05-plan.md`, and the active `docs/tasks/TXX-*.md`.
 - **Task status (single source of truth):** A task's state lives only in its `Status` field (`docs/tasks/TXX-*.md`), mirrored in the `docs/05-plan.md` table: `TODO` -> (`DESIGN_REVIEW` -> `DESIGN_READY`, UI tasks only) -> `IN_PROGRESS` -> `VERIFIED`, or `CANCELLED`. `UI Design Required` is just `Yes` / `No`.
 - **Per-task UI design gate:** For UI-facing tasks (`UI Design Required: Yes`), design the task's `## UI Design (Per-Task)` section (`hackathon-ui-design`, sets `DESIGN_REVIEW`) and get the user's explicit approval (sets `DESIGN_READY`) before writing UI code. `DESIGN_REVIEW` is never permission to implement.
 - **User-owned gates:** Only the user can approve a design (`DESIGN_READY`) or confirm manual verification (`VERIFIED`). Never set these statuses without the user's explicit confirmation in the conversation.

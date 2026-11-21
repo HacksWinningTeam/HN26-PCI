@@ -46,12 +46,20 @@ export function AppShell({ children }: { children: ReactNode }) {
             Django 5.2 LTS &middot; Django REST Framework &middot; drf-spectacular &middot;
             PostgreSQL 18 &middot; Next.js 16
           </span>
-          <Link
-            href="/settings/accessibility"
-            className="inline-flex min-h-11 items-center font-semibold text-[var(--color-accent-text)] underline decoration-2 underline-offset-2"
-          >
-            {t("Accessibility settings")}
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link
+              href="/design-system"
+              className="inline-flex min-h-11 items-center font-semibold text-[var(--color-accent-text)] underline decoration-2 underline-offset-2"
+            >
+              {t("Design system")}
+            </Link>
+            <Link
+              href="/settings/accessibility"
+              className="inline-flex min-h-11 items-center font-semibold text-[var(--color-accent-text)] underline decoration-2 underline-offset-2"
+            >
+              {t("Accessibility settings")}
+            </Link>
+          </div>
         </div>
       </footer>
 

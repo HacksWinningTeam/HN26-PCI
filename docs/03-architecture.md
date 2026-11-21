@@ -1,6 +1,6 @@
 # 03 — System Architecture
 
-> Living technical architecture for backend, API contract, frontend routes, and integrations. Updated by `hackathon-plan`, `hackathon-ui-design` (when UI requires new fields/endpoints), and `hackathon-update-plan`.
+> Living technical architecture for backend, API contract, frontend routes, and integrations. Domain contracts and MVP data models are specified in [`docs/PROJECT_KNOWLEDGE.md`](PROJECT_KNOWLEDGE.md) (Sections 4–7). Updated by `hackathon-plan`, `hackathon-ui-design` (when UI requires new fields/endpoints), and `hackathon-update-plan`.
 
 ## High-Level Data Flow
 
@@ -25,6 +25,8 @@ Browser (same-origin) -> Next.js 16 (src/proxy.ts / SSR via API_INTERNAL_URL) ->
 | Route | Component / Type | Purpose | API Endpoints Used | Task |
 | --- | --- | --- | --- | --- |
 | `/` | `src/app/page.tsx` (SSR `force-dynamic`) | Starter connectivity check | `GET /api/health/` | Starter |
+| `/design-system` | `src/app/design-system/page.tsx` | Design system tokens, foundations, and planned UI slots | None | `DEC-003` |
+| `/settings/accessibility` | `src/app/settings/accessibility/page.tsx` | WCAG 2.2 AA appearance, text scale, link underline, and read-aloud settings | None | `DEC-002` |
 
 ## Environment Variables & External Integrations
 
