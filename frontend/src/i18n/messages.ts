@@ -1,5 +1,12 @@
 /** English source phrases are stable message IDs. Never pass user content as a key. */
 export const polish = {
+  "Public navigation": "Nawigacja strony",
+  "Browse innovations": "Przeglądaj innowacje",
+  "Find a solution": "Znajdź rozwiązanie",
+  "Sign in": "Zaloguj się",
+  "Create account": "Załóż konto",
+  "Open navigation": "Otwórz nawigację",
+  "Close navigation": "Zamknij nawigację",
   "Settings": "Ustawienia",
   "Collapse sidebar": "Zwiń panel boczny",
   "Expand sidebar": "Rozwiń panel boczny",

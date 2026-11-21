@@ -32,6 +32,17 @@ export default function GalleryShell({ children }: { children: ReactNode }) {
   const navigationId = useId();
   const matching = filterGallerySections(query);
 
+  function searchField(id: string) {
+    return (
+      <div className="w-full">
+        <label htmlFor={id} className="sr-only">{t("Search sections")}</label>
+        <input id={id} type="search" value={query}
+          onChange={(event) => setQuery(event.target.value)} placeholder={t("Search sections")}
+          className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]" />
+      </div>
+    );
+  }
+
   useLayoutEffect(() => {
     if (!mobileMenuOpen) revealGalleryTarget(hash);
   }, [hash, mobileMenuOpen, navigationRequest]);
@@ -77,6 +88,7 @@ export default function GalleryShell({ children }: { children: ReactNode }) {
         contentId="main-content"
         navigationId={navigationId}
         mobileMenuOpen={mobileMenuOpen}
+        mobileSearch={searchField("design-system-search-mobile")}
         onClickCapture={handleNavigate}
         onKeyDown={(event) => {
           if (event.key === "Escape" && mobileMenuOpen) {
@@ -119,19 +131,7 @@ export default function GalleryShell({ children }: { children: ReactNode }) {
                   {mobileMenuOpen ? <CloseIcon size={20} /> : <MenuIcon size={20} />}
                 </IconButton>
               }
-              actions={
-                <div className="w-56 max-w-full">
-                  <label htmlFor="design-system-search" className="sr-only">{t("Search sections")}</label>
-                  <input
-                    id="design-system-search"
-                    type="search"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    placeholder={t("Search sections")}
-                    className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
-                  />
-                </div>
-              }
+              search={searchField("design-system-search")}
             />
             {query && (
               <p role="status" className="pt-2 text-xs text-[var(--color-text-muted)]">

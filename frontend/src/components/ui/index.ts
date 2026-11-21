@@ -15,6 +15,7 @@ export * from "./icons";
 export * from "./input";
 export * from "./list";
 export * from "./nav-bar";
+export * from "./public-nav-bar";
 export * from "./popover";
 export * from "./selection";
 export * from "./sheet";

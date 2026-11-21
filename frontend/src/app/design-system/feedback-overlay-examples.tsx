@@ -1,20 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { BrandLogo } from "@/components/BrandLogo";
 import AppShellExamples from "./app-shell-examples";
+import PublicNavBarExamples from "./public-nav-bar-examples";
 import {
   AlertDialog,
   AppFooter,
   Banner,
   Breadcrumbs,
   Button,
-  CloseIcon,
   ConfirmationDialog,
   EmptyState,
   ErrorState,
   LoadingState,
-  MenuIcon,
   SegmentedControl,
   UnsavedChangesDialog,
 } from "@/components/ui";
@@ -198,175 +196,13 @@ export function DialogExamples() {
   );
 }
 
-const NAV_PREVIEW_ITEMS = [
-  { key: "solve", label: "Szukaj problemu" },
-  { key: "innovations", label: "Katalog" },
-  { key: "compare", label: "Porównanie (2)" },
-  { key: "workspace", label: "Moje wdrożenia" },
-] as const;
-
 export function NavigationExamples() {
-  const [activeNav, setActiveNav] = useState<(typeof NAV_PREVIEW_ITEMS)[number]["key"]>("innovations");
-  const [navLayout, setNavLayout] = useState("desktop");
-  const [navAuth, setNavAuth] = useState("guest");
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(true);
   const [widthMode, setWidthMode] = useState("wide");
 
   return (
     <div className="space-y-8">
       <AppShellExamples />
-      {/* Main Top Navbar Showcase */}
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-bold text-[var(--color-text)]">
-              Główny pasek nawigacji z logo Praktoteka
-            </h3>
-            <p className="text-xs text-[var(--color-text-muted)]">
-              Nagłówek aplikacji z przezroczystym logo (auto Light/Dark), linkami sekcji, statusem sesji i menu mobilnym.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <SegmentedControl
-              label="Układ paska"
-              value={navLayout}
-              onValueChange={setNavLayout}
-              options={[
-                { value: "desktop", label: "Desktop" },
-                { value: "mobile", label: "Mobile" },
-              ]}
-            />
-            <SegmentedControl
-              label="Stan sesji"
-              value={navAuth}
-              onValueChange={setNavAuth}
-              options={[
-                { value: "guest", label: "Gość" },
-                { value: "user", label: "Zalogowany" },
-              ]}
-            />
-          </div>
-        </div>
-
-        <div
-          className={[
-            "overflow-hidden rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] shadow-xs transition-all",
-            navLayout === "mobile" ? "mx-auto max-w-sm" : "w-full",
-          ].join(" ")}
-        >
-          <div className="flex items-center justify-between gap-3 border-b border-[var(--color-border-subtle)] px-4 py-3 sm:px-5">
-            <a
-              href="#navigation-bars"
-              aria-label="Praktoteka — strona główna (podgląd)"
-              className="inline-flex min-h-11 items-center rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
-            >
-              <BrandLogo size="sm" />
-            </a>
-
-            {navLayout === "desktop" ? (
-              <>
-                <nav
-                  aria-label="Podgląd nawigacji głównej"
-                  className="flex flex-wrap items-center gap-1"
-                >
-                  {NAV_PREVIEW_ITEMS.map((item) => {
-                    const isActive = activeNav === item.key;
-                    return (
-                      <button
-                        key={item.key}
-                        type="button"
-                        aria-current={isActive ? "page" : undefined}
-                        onClick={() => setActiveNav(item.key)}
-                        className={`inline-flex min-h-11 cursor-pointer items-center rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
-                          isActive
-                            ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-                            : "text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    );
-                  })}
-                </nav>
-
-                <div className="flex items-center justify-end gap-2">
-                  {navAuth === "user" ? (
-                    <div className="flex items-center gap-2">
-                      <span className="max-w-[160px] truncate text-xs font-medium text-[var(--color-text-muted)]">
-                        jan.kowalski@gmina.pl
-                      </span>
-                      <button
-                        type="button"
-                        className="min-h-11 shrink-0 cursor-pointer rounded-md border border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)]"
-                      >
-                        Wyloguj
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="inline-flex min-h-11 shrink-0 items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 text-sm font-semibold text-[var(--color-text)]">
-                      Zaloguj się
-                    </span>
-                  )}
-                </div>
-              </>
-            ) : (
-              <button
-                type="button"
-                aria-expanded={mobileDrawerOpen}
-                aria-label={mobileDrawerOpen ? "Zamknij menu podglądu" : "Otwórz menu podglądu"}
-                onClick={() => setMobileDrawerOpen((v) => !v)}
-                className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] hover:border-[var(--color-accent)]"
-              >
-                {mobileDrawerOpen ? <CloseIcon size={18} /> : <MenuIcon size={18} />}
-              </button>
-            )}
-          </div>
-
-          {navLayout === "mobile" && mobileDrawerOpen ? (
-            <div className="bg-[var(--color-surface)] px-4 py-3">
-              <nav aria-label="Podgląd nawigacji mobilnej" className="flex flex-col gap-1">
-                {NAV_PREVIEW_ITEMS.map((item) => {
-                  const isActive = activeNav === item.key;
-                  return (
-                    <button
-                      key={item.key}
-                      type="button"
-                      aria-current={isActive ? "page" : undefined}
-                      onClick={() => setActiveNav(item.key)}
-                      className={`inline-flex min-h-11 cursor-pointer items-center rounded-md px-3 py-2 text-left text-sm font-semibold transition-colors ${
-                        isActive
-                          ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-                          : "text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  );
-                })}
-              </nav>
-              <div className="mt-3 border-t border-[var(--color-border-subtle)] pt-3">
-                {navAuth === "user" ? (
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="truncate text-xs font-medium text-[var(--color-text-muted)]">
-                      jan.kowalski@gmina.pl
-                    </span>
-                    <button
-                      type="button"
-                      className="min-h-11 shrink-0 cursor-pointer rounded-md border border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text)]"
-                    >
-                      Wyloguj
-                    </button>
-                  </div>
-                ) : (
-                  <span className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 text-sm font-semibold text-[var(--color-text)]">
-                    Zaloguj się
-                  </span>
-                )}
-              </div>
-            </div>
-          ) : null}
-        </div>
-      </div>
+      <PublicNavBarExamples />
 
       {/* Breadcrumbs Showcase */}
       <div className="space-y-4">

@@ -1,26 +1,34 @@
 import type { ReactNode } from "react";
 import { Breadcrumbs, type BreadcrumbItem } from "./breadcrumbs";
+import styles from "./nav-bar.module.css";
 
 export type NavBarProps = {
   title: string;
   breadcrumbs?: readonly BreadcrumbItem[];
   actions?: ReactNode;
+  mobileActions?: ReactNode;
+  search?: ReactNode;
   leading?: ReactNode;
+  layout?: "responsive" | "mobile";
   titleAs?: "h1" | "h2" | "h3" | "h4";
 };
 
 /** Page context on the left, optional actions on the right. */
-export function NavBar({ title, breadcrumbs, actions, leading, titleAs: Title = "h1" }: NavBarProps) {
+export function NavBar({ title, breadcrumbs, actions, mobileActions, search, leading, layout = "responsive", titleAs: Title = "h1" }: NavBarProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4 border-b border-[var(--color-border-subtle)] pb-5 pt-2">
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        {leading}
-        <div className="min-w-0 flex-1 space-y-1">
-          {breadcrumbs && breadcrumbs.length > 0 && <Breadcrumbs items={breadcrumbs} size="compact" />}
-          <Title className="text-xl font-semibold tracking-tight text-[var(--color-text)] [overflow-wrap:anywhere]">{title}</Title>
+    <div className={styles.bar} data-layout={layout} data-mobile-actions={mobileActions ? "true" : undefined}>
+      <div className={styles.layout}>
+        <div className={styles.context}>
+          {leading}
+          <div className={styles.heading}>
+            {breadcrumbs && breadcrumbs.length > 0 && <div className={styles.breadcrumbs}><Breadcrumbs items={breadcrumbs} size="compact" /></div>}
+            <Title className={styles.title}>{title}</Title>
+          </div>
         </div>
+        {search && <div className={styles.search}>{search}</div>}
+        {actions && <div className={styles.actions}>{actions}</div>}
+        {mobileActions && <div className={styles.mobileActions}>{mobileActions}</div>}
       </div>
-      {actions && <div className="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">{actions}</div>}
     </div>
   );
 }

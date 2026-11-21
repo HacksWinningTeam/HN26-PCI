@@ -27,6 +27,7 @@ export type SidebarProps = {
   collapsed?: boolean;
   defaultCollapsed?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
+  layout?: "responsive" | "mobile";
 };
 
 /** Route links in the app, selectable examples in the gallery. */
@@ -38,31 +39,27 @@ export function Sidebar({
   collapsed,
   defaultCollapsed = false,
   onCollapsedChange,
+  layout = "responsive",
 }: SidebarProps) {
   const t = useTranslations();
   const navigationId = useId();
   const [internalCollapsed, setInternalCollapsed] = useState(defaultCollapsed);
   const isCollapsed = collapsed ?? internalCollapsed;
   const toggleLabel = isCollapsed ? t("Expand sidebar") : t("Collapse sidebar");
-  const footerContent = footer === undefined ? <SidebarUtilities collapsed={isCollapsed} /> : footer;
+  const footerContent = footer === undefined ? <SidebarUtilities /> : footer;
 
   return (
-    <div className={styles.panel} data-collapsed={isCollapsed ? "true" : undefined}>
+    <div className={styles.panel} data-layout={layout} data-collapsed={isCollapsed ? "true" : undefined}>
       <div className={styles.brand}>
-        {!isCollapsed && <div className={styles.brandMark}>{brand}</div>}
-        <button
-          type="button"
-          className={styles.collapseButton}
-          aria-label={toggleLabel}
-          title={toggleLabel}
-          aria-expanded={!isCollapsed}
+        <div className={styles.brandMark}>{brand}</div>
+        <button type="button" className={styles.collapseButton}
+          aria-label={toggleLabel} title={toggleLabel} aria-expanded={!isCollapsed}
           aria-controls={navigationId}
           onClick={() => {
             const next = !isCollapsed;
             if (collapsed === undefined) setInternalCollapsed(next);
             onCollapsedChange?.(next);
-          }}
-        >
+          }}>
           {isCollapsed ? <ChevronRightIcon size={20} /> : <ChevronLeftIcon size={20} />}
         </button>
       </div>
@@ -71,10 +68,8 @@ export function Sidebar({
           {items.map((item) => {
             const content = (
               <>
-                {(item.icon || isCollapsed) && (
-                  <span className={styles.icon} aria-hidden="true">{item.icon ?? <MenuIcon size={20} />}</span>
-                )}
-                <span className={isCollapsed ? "sr-only" : "min-w-0 flex-1"}>{item.label}</span>
+                <span className={styles.icon} aria-hidden="true">{item.icon ?? <MenuIcon size={20} />}</span>
+                <span className={styles.label}>{item.label}</span>
               </>
             );
 

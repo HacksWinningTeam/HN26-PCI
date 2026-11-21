@@ -11,7 +11,9 @@
 
 ## App Shell & Navigation
 
-- **Global Layout (`frontend/src/app/layout.tsx`):** `<Header brand/nav, max-width container, footer>`
+- **Layout patterns:** sidebar + page-context `NavBar` for application views; a separate `PublicNavBar` for the landing page and future login/registration views (`DEC-008`). The public pattern is available in `/design-system#navigation-bars` before integration into product routes.
+- **Mobile application shell (`DEC-009`):** one header row holds the sidebar menu toggle, page title, and icon-only actions with accessible names. Breadcrumbs are hidden on mobile. Search stays in the navbar on desktop and appears inside the expanded sidebar menu on mobile, above its links; both inputs share the same query. Sidebar collapse/mini-rail behavior remains available on desktop only (`DEC-010`). Mobile always shows the full sidebar with labels and no collapse button, including after switching from a collapsed desktop sidebar; mobile menu disclosure remains. The Navigation bars gallery includes a forced mobile preview with working menu, search, actions, and Escape/focus restoration.
+- **Public navbar:** logo links home; landing links are `Przeglądaj innowacje` and `Znajdź rozwiązanie`; settings (language), accessibility (shared preferences sheet), and the accented `Zaloguj się` action sit on the right. Account variants omit discovery links: login offers `Załóż konto`, registration offers `Zaloguj się`. No separate “Powrót do strony głównej” link. On narrow containers, settings/accessibility remain visible as named icon buttons; a disclosure reveals navigation and the account action, closes with Escape, and restores focus. Semantic tokens, Polish/English labels, and 44px targets apply throughout.
 - **Primary Navigation Items:** `Szukaj rozwiązania`, `Innowacje`, `Porównaj`; po zalogowaniu także `Moje wdrożenia`; dla uprawnionego operatora `Panel PCI`. `Źródła` i `Trendy` mogą być drugorzędne.
 - **Public-to-Account Boundary:** katalog, wyszukiwanie problemu, karty i porównanie są publiczne. Rejestrację pokazujemy dopiero przy akcji wymagającej zapisu: generowanie planu, odsłonięcie dostępnych zweryfikowanych danych kontaktowych, zapis porównania albo śledzenie postępu.
 - **Audience Labels:** określenia takie jak `Seniorzy`, `Dzieci` lub `Osoby z niepełnosprawnościami` są tagami beneficjentów innowacji. Nie mogą być prezentowane jako role konta.
@@ -35,6 +37,7 @@ Track reusable components as tasks create or update them:
 | --- | --- | --- | --- |
 | `HealthStatusCard` | `frontend/src/components/HealthStatusCard.tsx` | Live API & DB connectivity banner pattern | Starter template |
 | `DesignSystemPage` & `GalleryShell` | `frontend/src/app/design-system/` | Interactive design system gallery (`/design-system`) with section search, hash navigation, foundations, and planned slots | `DEC-003` |
+| `PublicNavBar` | `frontend/src/components/ui/public-nav-bar.tsx` | Responsive public header with landing/login/register variants, settings and accessibility sheets; interactive previews in Navigation bars | `DEC-008` |
 | `Popover` | `frontend/src/components/ui/popover.tsx` | Anchored floating card with viewport placement, Escape/outside dismissal, and mobile modal dialog fallback | `DEC-006` |
 | `SimpleTable` & `DataTable` | `frontend/src/components/ui/simple-table.tsx`, `data-table.tsx` | Accessible lightweight presentation table (`SimpleTable`) and query/selection/detail-drawer table (`DataTable`) with scoped feature set | `DEC-006` |
 | `Brand*Icon` | `frontend/src/components/ui/brand-icons.tsx` | 24 custom SVG brand illustrations, status pills, and organic accents driven by `--brand-icon-*` tokens across light, dark, high-contrast, and grayscale themes | Design system |

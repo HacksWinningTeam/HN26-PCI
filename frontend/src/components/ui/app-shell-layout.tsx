@@ -3,6 +3,7 @@ import styles from "./app-shell-layout.module.css";
 
 export type AppShellLayoutProps = ComponentPropsWithoutRef<"div"> & {
   sidebar?: ReactNode;
+  mobileSearch?: ReactNode;
   navbar: ReactNode;
   footer?: ReactNode;
   contentAs?: "div" | "main";
@@ -17,6 +18,7 @@ export type AppShellLayoutProps = ComponentPropsWithoutRef<"div"> & {
 /** Floating sidebar on the left; page navbar and content in the right column. */
 export function AppShellLayout({
   sidebar,
+  mobileSearch,
   navbar,
   footer,
   contentAs: Content = "div",
@@ -38,7 +40,12 @@ export function AppShellLayout({
       data-menu-open={mobileMenuOpen ? "true" : undefined}
       data-app-shell-viewport={viewport ? "true" : undefined}
     >
-      {sidebar && <div id={navigationId} className={styles.navigation}>{sidebar}</div>}
+      {sidebar && (
+        <div id={navigationId} className={styles.navigation}>
+          {mobileSearch && <div className={styles.mobileSearch}>{mobileSearch}</div>}
+          {sidebar}
+        </div>
+      )}
       <div className={styles.column}>
         <div className={styles.navbar}>{navbar}</div>
         <Content id={contentId} tabIndex={Content === "main" ? -1 : undefined} className={styles.content}>

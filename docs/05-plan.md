@@ -10,6 +10,10 @@
 
 Design-system addition (`DEC-007`): themed brand icons and three organic photo frames are maintained in `/design-system`; user approved the supplied visual reference and requested a local commit. Existing template task statuses are unchanged.
 
+Design-system addition (`DEC-008`): `PublicNavBar` previews for landing/login/register live in Navigation bars alongside the application shell. Future product-screen tasks should use this header for public landing/account layouts. No task statuses changed.
+
+Design-system refinement (`DEC-009`): mobile app shell uses a single row for menu/title/icon actions, hides breadcrumbs, and puts search inside the expanded sidebar; desktop retains navbar search. Sidebar collapse remains on desktop only; mobile always uses the full labeled menu (`DEC-010`). The gallery and its mobile preview share these rules; no task statuses changed.
+
 Status lives in each task file's `Status` field; this table mirrors it.
 
 - `TODO` — Planned; ready for design (if UI-facing) or implementation (if backend/infra only, once dependencies are `VERIFIED`).

@@ -9,7 +9,7 @@ import { Sheet } from "./sheet";
 import styles from "./sidebar.module.css";
 
 /** Sidebar entry points for the application settings sheets. */
-export function SidebarUtilities({ collapsed = false }: { collapsed?: boolean }) {
+export function SidebarUtilities() {
   const t = useTranslations();
   const [panel, setPanel] = useState<"settings" | "accessibility" | null>(null);
 
@@ -23,11 +23,11 @@ export function SidebarUtilities({ collapsed = false }: { collapsed?: boolean })
               className={styles.item}
               aria-haspopup="dialog"
               aria-expanded={panel === "settings"}
-              title={collapsed ? t("Settings") : undefined}
+              title={t("Settings")}
               onClick={() => setPanel("settings")}
             >
               <SettingsIcon size={20} className={styles.icon} />
-              <span className={collapsed ? "sr-only" : undefined}>{t("Settings")}</span>
+              <span className={styles.label}>{t("Settings")}</span>
             </button>
           </li>
           <li>
@@ -36,11 +36,11 @@ export function SidebarUtilities({ collapsed = false }: { collapsed?: boolean })
               className={styles.item}
               aria-haspopup="dialog"
               aria-expanded={panel === "accessibility"}
-              title={collapsed ? t("Accessibility") : undefined}
+              title={t("Accessibility")}
               onClick={() => setPanel("accessibility")}
             >
               <AccessibilityIcon className="h-5 w-5 shrink-0" />
-              <span className={collapsed ? "sr-only" : undefined}>{t("Accessibility")}</span>
+              <span className={styles.label}>{t("Accessibility")}</span>
             </button>
           </li>
         </ul>

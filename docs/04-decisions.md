@@ -75,6 +75,27 @@
 - **Affected Docs & Tasks:** `docs/02-ui-system.md`, `docs/05-plan.md`, `frontend/src/components/ui/`, `frontend/src/app/design-system/`, `frontend/src/app/globals.css`, `frontend/public/design-system/`. No active TXX spec exists in the template plan.
 - **Verification:** Automated tests and build checks omitted at the user's explicit request (2026-11-21 23:52); do not treat this commit as verified.
 
+### `DEC-008` — Public Navbar for Landing and Account Pages
+- **Date:** 2026-11-22 00:24
+- **Status:** Accepted
+- **Context / New Info:** User requested a simple top navigation pattern for the landing page and future login/signup views, with settings, accessibility, and account access, showcased in the design system. User subsequently removed the explicit home-return link.
+- **Decision:** Add reusable `PublicNavBar` and replace the older application-header preview in Navigation bars with landing/login/register previews. Landing exposes catalog and solution-search links; account variants retain logo, settings, accessibility, and the opposite account action. Logo links home without an additional return link. Keep utility buttons visible on mobile; use an accessible disclosure for other links. Reuse existing sheets, language selection, accessibility controls, theme tokens, and localization. This bounded design-system request authorizes implementation in the gallery; product-route integration remains future work.
+- **Affected Docs & Tasks:** `docs/02-ui-system.md`, `docs/05-plan.md`, `frontend/src/components/ui/`, `frontend/src/app/design-system/`, `frontend/src/i18n/messages.ts`. No active TXX exists in the template plan; task statuses and approvals are unchanged.
+
+### `DEC-009` — Compact Mobile Application Shell
+- **Date:** 2026-11-22 00:29
+- **Status:** Superseded by DEC-010 (sidebar-collapse scope only; other mobile rules remain accepted)
+- **Context / New Info:** User requested a mobile shell without breadcrumbs, a single row for menu/title/icon actions, and removal of sidebar collapse. The initial request for search in a second row was corrected: mobile search belongs inside the expanded sidebar menu.
+- **Decision:** Keep desktop breadcrumbs and navbar search. On mobile, hide breadcrumbs, use named icon actions alongside menu/title, and show the shared search query within the expanded sidebar. Remove sidebar collapse props, toggle, and rail styles globally. Update the actual gallery shell and its interactive responsive/mobile example. This is the user's explicit design-system implementation request; no product routes or API contracts change.
+- **Affected Docs & Tasks:** `docs/02-ui-system.md`, `docs/05-plan.md`, `frontend/src/components/ui/{sidebar,sidebar-utilities,nav-bar,app-shell-layout}*`, `frontend/src/app/design-system/{gallery-shell,app-shell-examples}.tsx`, `frontend/src/i18n/messages.ts`. The master plan still has template tasks; no statuses or approvals changed.
+
+### `DEC-010` — Keep Desktop Sidebar Collapse
+- **Date:** 2026-11-22 00:31
+- **Status:** Accepted
+- **Context / New Info:** User clarified that removal of sidebar collapse applies only to mobile; its global removal in DEC-009 was an incorrect interpretation.
+- **Decision:** Restore desktop collapse controls, state/props, icon rail, and shell width adjustment. Hide the collapse control on mobile and always display full logo and labels there, regardless of remembered desktop state. Apply the same rule to the forced mobile gallery preview. Keep mobile breadcrumbs, icon actions, and search placement as established in DEC-009.
+- **Affected Docs & Tasks:** `docs/02-ui-system.md`, `docs/05-plan.md`, sidebar components/styles, shell styles, gallery preview, and localization. No task statuses changed.
+
 <!-- Template for new entries:
 ### `DEC-XXX` — `<Short Title>`
 - **Date:** `<YYYY-MM-DD HH:MM from date '+%Y-%m-%d %H:%M'>`

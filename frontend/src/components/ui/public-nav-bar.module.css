@@ -1,0 +1,83 @@
+.header {
+  container-type: inline-size;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "brand links utilities auth";
+  align-items: center;
+  gap: 12px;
+  max-width: 1280px;
+  margin-inline: auto;
+  padding: 16px 24px;
+}
+
+.navigation { display: contents; }
+.brand { grid-area: brand; display: inline-flex; align-items: center; min-height: 44px; border-radius: 8px; }
+.brand img { width: 148px; max-width: 100%; height: auto; }
+.links { grid-area: links; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.utilities { grid-area: utilities; display: flex; gap: 4px; }
+.auth { grid-area: auth; }
+.link, .authLink, .toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.link:hover, .toggle:hover { background: var(--color-surface-raised); }
+.authLink { background: var(--color-accent); color: var(--color-on-accent); }
+.authLink:hover { background: var(--color-accent-hover); }
+.toggle { display: none; grid-area: toggle; }
+.brand:focus-visible, .link:focus-visible, .authLink:focus-visible, .toggle:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+@container (max-width: 60rem) {
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-areas: "brand utilities toggle" "links links links" "auth auth auth";
+    gap: 4px;
+    padding: 12px;
+  }
+  .brand img { width: 138px; }
+  .utilities { gap: 0; }
+  .utilities .link { padding-inline: 10px; }
+  .utilityLabel { display: none; }
+  .toggle { display: inline-flex; }
+  .links, .auth { display: none; }
+  .header[data-menu-open] .links { display: flex; flex-direction: column; align-items: stretch; border-top: 1px solid var(--color-border-subtle); margin-top: 12px; padding-top: 12px; }
+  .header[data-menu-open] .auth { display: block; padding-top: 8px; }
+  .authLink { width: 100%; }
+  .links .link { justify-content: flex-start; }
+}
+
+.header[data-layout="mobile"] .row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas: "brand utilities toggle" "links links links" "auth auth auth";
+  gap: 4px;
+  padding: 12px;
+}
+.header[data-layout="mobile"] .brand img { width: 138px; }
+.header[data-layout="mobile"] .utilities { gap: 0; }
+.header[data-layout="mobile"] .utilities .link { padding-inline: 10px; }
+.header[data-layout="mobile"] .utilityLabel { display: none; }
+.header[data-layout="mobile"] .toggle { display: inline-flex; }
+.header[data-layout="mobile"] .links, .header[data-layout="mobile"] .auth { display: none; }
+.header[data-layout="mobile"][data-menu-open] .links { display: flex; flex-direction: column; align-items: stretch; border-top: 1px solid var(--color-border-subtle); margin-top: 12px; padding-top: 12px; }
+.header[data-layout="mobile"][data-menu-open] .auth { display: block; padding-top: 8px; }
+.header[data-layout="mobile"] .authLink { width: 100%; }
+.header[data-layout="mobile"] .links .link { justify-content: flex-start; }
