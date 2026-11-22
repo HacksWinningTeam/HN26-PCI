@@ -693,7 +693,7 @@ def test_real_default_feeds_preserve_custom_sources_and_seed_no_fake_failures():
     assert dict(SourceFeed.objects.values_list("name", "id")) == ids
     custom.refresh_from_db()
     assert custom.config == {"max_records": 7}
-    assert SourceFeed.objects.count() == 5
+    assert SourceFeed.objects.count() == len(DEFAULT_FEEDS) + 1
     assert not SourceFeed.objects.filter(status__in=["error", "stale"]).exists()
     assert not IngestionRun.objects.exists()
     for spec in DEFAULT_FEEDS:

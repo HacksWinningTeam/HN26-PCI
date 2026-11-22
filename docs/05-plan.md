@@ -51,6 +51,7 @@ Design-system refinement (`DEC-012`, `DEC-013`): sidebar stays left within a ful
 | --- | --- | --- | --- | --- | --- | --- |
 | `T09` | Source-grounded innovativeness, application potential and credibility assessments (DEC-029) | Backend | No (existing score/evidence presentation) | — (existing ingestion/catalog) | `IN_PROGRESS` | [T09](tasks/T09-innovation-assessments.md) |
 | `T10` | TRL/deployment provenance, honest Oslo 2018 assessment & full source refresh (DEC-030) | Full-Stack | Yes | — (existing ingestion, catalog & comparison) | `IN_PROGRESS` | [T10](tasks/T10-classification-oslo-refresh.md) |
+| `T11` | CTT technology offers and school innovation sources (DEC-031) | Backend | No | — (existing ingestion/source cards) | `IN_PROGRESS` | [T11](tasks/T11-ctt-school-sources.md) |
 
 ## Milestone 3 — Demo Polish & End-to-End Readiness
 

@@ -599,6 +599,12 @@ def fetch_feed_batch(
     max_records: int = 10, state: dict[str, Any] | None = None,
 ) -> FeedBatch:
     """Fetch a bounded live batch; persist offsets/tokens and revisit the head every 5 batches."""
+    if method.lower() == "html katalog":
+        from .catalogues import fetch_catalogue_batch
+
+        return fetch_catalogue_batch(
+            url=url, registry=registry, label=label, max_records=max_records, state=state,
+        )
     signature = hashlib.sha256(f"{method}|{url}|{max_records}".encode()).hexdigest()
     current = dict(state or {})
     if current.get("signature") != signature:

@@ -6,7 +6,7 @@ Dane o innowacjach trafiają do Praktoteki ze skonfigurowanych publicznych repoz
 
 ## Skonfigurowane kanały domyślne
 
-Konfiguracja startowa (`backend/apps/ingestion/default_feeds.py`) obejmuje cztery działające kanały publiczne (limit `10` kandydatów na partię):
+Konfiguracja startowa (`backend/apps/ingestion/default_feeds.py`) obejmuje sześć kanałów publicznych (limit `10` kandydatów na partię):
 
 | Kanał | Kategoria | Metoda / Adapter | Sposób pobierania |
 | --- | --- | --- | --- |
@@ -14,10 +14,16 @@ Konfiguracja startowa (`backend/apps/ingestion/default_feeds.py`) obejmuje czter
 | **RUJ UJ / Repozytoria Uczelniane (OAI-PMH)** | Nauka i patenty | `OAI-PMH` / `oai_pmh` | Protokół OAI-PMH (`ListRecords`, `metadataPrefix=oai_dc`); obsługa `resumptionToken` z automatycznym restartem po wygaśnięciu tokenu. |
 | **Nauka w Polsce — Technologie i Innowacje (RSS)** | Nauka i patenty | `RSS` / `rss` | Kanał RSS serwisu Nauka w Polsce (PAP); pobieranie tytułów, opisów i linków artykułów. |
 | **OpenAlex PL — Badania i innowacje** | Nauka i patenty | `API` / `openalex` | Publiczne API OpenAlex filtrowane na polskie instytucje (`institutions.country_code:pl,has_abstract:true`); rekonstrukcja abstraktów z `abstract_inverted_index`, paginacja do limitu 10 000 wyników API. |
+| **CTT UŁ — Oferta technologiczna dla biznesu** | Startupy i biznes | `HTML katalog` / `ctt_offers` | [Katalog CTT Uniwersytetu Łódzkiego](https://www.ctt.uni.lodz.pl/dla-biznesu/oferta-technologiczna): odkrywanie poszczególnych kart technologii, pobieranie opisu bez nawigacji/stopki, stronicowanie i offset; odczyt jawnego TRL także cyframi rzymskimi. |
+| **IBE — Innowacje pedagogiczne w szkołach** | Administracja i edukacja | `HTML katalog` / `ibe_school_pdf` | [Dobre praktyki IBE](https://www.ibe.edu.pl/pl/dobre-praktyki): odkrywanie PDF-ów wyłącznie z sekcji innowacji pedagogicznych, odczyt dokumentu i nazwy szkoły z formularza, tytuł z katalogu; pomijanie pozostałych materiałów/projektów. |
 
 Poza kanałami domyślnymi panel operatora PCI (`/admin`) pozwala:
 - dodawać własne kanały `SourceFeed` (JSON API w tym Dane.gov.pl JSON:API, OpenAlex i CORDIS, a także kanały RSS/Atom i OAI-PMH),
 - pobierać pojedyncze publiczne adresy URL (`scrape_url_and_ingest`) z automatycznym rozpoznawaniem HTML, JSON, XML oraz plików PDF (`pypdf`).
+
+Nowe katalogi nie są pojedynczymi ręcznie podanymi dokumentami: automat przy każdym przebiegu odkrywa aktualne odnośniki i pobiera konkretne opisy. Metoda `HTML katalog` obsługuje tylko dwa wskazane serwisy i ich znane ścieżki dokumentów; linki zewnętrzne oraz nawigacja są pomijane. Brak rozpoznanych kart lub niedostępny dokument powoduje rzeczywisty błąd kanału bez przesunięcia zapisanego kursora.
+
+CTT pokrywa oferty transferu dla biznesu, a IBE innowacje realizowane w szkołach (wydawca opisuje realizację w roku szkolnym 2024/2025). To poszerza przekrój do czterech grup źródeł z FAQ, ale nie oznacza pełnego monitorowania startupów, samorządów ani bezpośredniej integracji z urzędami patentowymi. Wartości ze źródła pozostają deklaracjami wydawcy do weryfikacji PCI. Lokalizacja szkoły pozostaje nieustalona, zamiast korzystać z powtarzanego w PDF adresu IBE w Warszawie.
 
 ---
 

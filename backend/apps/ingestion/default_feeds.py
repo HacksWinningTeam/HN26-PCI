@@ -45,6 +45,20 @@ DEFAULT_FEEDS = [
         "method": "API",
         "adapter": "openalex",
     },
+    {
+        "name": "CTT UŁ — Oferta technologiczna dla biznesu",
+        "category": "Startupy i biznes",
+        "url": "https://www.ctt.uni.lodz.pl/dla-biznesu/oferta-technologiczna",
+        "method": "HTML katalog",
+        "adapter": "ctt_offers",
+    },
+    {
+        "name": "IBE — Innowacje pedagogiczne w szkołach",
+        "category": "Administracja i edukacja",
+        "url": "https://www.ibe.edu.pl/pl/dobre-praktyki",
+        "method": "HTML katalog",
+        "adapter": "ibe_school_pdf",
+    },
 ]
 
 LEGACY_PLACEHOLDERS = [
