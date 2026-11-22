@@ -58,3 +58,4 @@ Design-system refinement (`DEC-012`, `DEC-013`): sidebar stays left within a ful
 | ID | Task | Layer | UI Design? | Depends On | Status | Spec |
 | --- | --- | --- | --- | --- | --- | --- |
 | `T12` | Impact Radar in PCI Panel & real deployment outcome loop (`DEC-033`) | Full-Stack | Yes | — (existing implementation plans & PCI panel) | `IN_PROGRESS` | [T12](tasks/T12-impact-radar.md) |
+| `T13` | Feedback loop survey, real results attachment & transfer pair in PCI Admin (`DEC-034`) | Full-Stack | Yes (explicit user screenshot + request) | `T12` | `IN_PROGRESS` | [T13](tasks/T13-feedback-loop-attachment.md) |

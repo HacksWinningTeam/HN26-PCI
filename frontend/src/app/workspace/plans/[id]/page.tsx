@@ -27,10 +27,12 @@ import {
   ErrorState,
   EyeIcon,
   IconButton,
+  InfoIcon,
   LoadingState,
   NumberInput,
   PdfIcon,
   ProgressBar,
+  RadioGroup,
   SpinnerIcon,
   StatusIndicator,
   TargetIcon,
@@ -46,22 +48,25 @@ import {
 } from "@/lib/implementation-plan";
 import { setNavBarOverride } from "@/lib/navbar-override";
 import {
+  deleteImplementationPlanAttachment,
   fetchImplementationPlan,
   updateImplementationPlanIssues,
   updateImplementationPlanReport,
   updateImplementationStep,
+  uploadImplementationPlanAttachment,
   type ImplementationPlan,
 } from "@/lib/radar-api";
 import { downloadCsvFile, formatImplementationPlanCsv } from "@/lib/radar-export";
 import {
-  ADOPTER_DEPLOYMENT_STATUS_LABELS,
   DEPLOYMENT_LABELS,
+  OUTCOME_VISIBILITY_LABELS,
   PCI_TRANSFER_STATUS_LABELS,
   PLAN_VARIANT_LABELS,
   PRIMARY_AREA_LABELS,
   STEP_STATUS_LABELS,
   VERIFICATION_LABELS,
   type AdopterDeploymentStatus,
+  type OutcomeVisibility,
   type PciTransferStatus,
   type PlanVariant,
   type StepStatus,
@@ -93,15 +98,54 @@ const STEP_STATUS_OPTIONS: ReadonlyArray<{ value: StepStatus; label: string }> =
   { value: "completed", label: STEP_STATUS_LABELS.completed },
 ];
 
-const ADOPTER_DEPLOYMENT_OPTIONS: ReadonlyArray<{
-  value: AdopterDeploymentStatus;
+const DEPLOYMENT_SURVEY_OPTIONS: ReadonlyArray<{
+  value: "none" | "in_pilot" | "deployed";
   label: string;
 }> = [
-  { value: "none", label: ADOPTER_DEPLOYMENT_STATUS_LABELS.none },
-  { value: "in_pilot", label: ADOPTER_DEPLOYMENT_STATUS_LABELS.in_pilot },
-  { value: "deployed", label: ADOPTER_DEPLOYMENT_STATUS_LABELS.deployed },
-  { value: "stopped", label: ADOPTER_DEPLOYMENT_STATUS_LABELS.stopped },
+  { value: "none", label: "Przygotowujemy się do pilotażu" },
+  { value: "in_pilot", label: "Rozpoczęliśmy pilotaż" },
+  { value: "deployed", label: "Zakończyliśmy wdrożenie" },
 ];
+
+const DEPLOYMENT_STAGE_META: Record<
+  AdopterDeploymentStatus,
+  { heading: string; description: string }
+> = {
+  none: {
+    heading: "Przygotowanie",
+    description:
+      "Organizacja analizuje wymagania, zasoby i możliwości rozpoczęcia działań.",
+  },
+  in_pilot: {
+    heading: "Pilotaż w trakcie",
+    description:
+      "Rozwiązanie jest testowane w organizacji z udziałem grupy odbiorców.",
+  },
+  deployed: {
+    heading: "Zakończone wdrożenie",
+    description:
+      "Wdrożenie zostało zakończone — wgraj załącznik rezultatów i zapisz raport dla panelu PCI.",
+  },
+  stopped: {
+    heading: "Wstrzymano",
+    description: "Prace nad wdrożeniem zostały tymczasowo zatrzymane.",
+  },
+};
+
+const OUTCOME_VISIBILITY_OPTIONS: ReadonlyArray<{
+  value: OutcomeVisibility;
+  label: string;
+}> = [
+  { value: "pci_only", label: OUTCOME_VISIBILITY_LABELS.pci_only },
+  { value: "public_summary", label: OUTCOME_VISIBILITY_LABELS.public_summary },
+];
+
+function formatAttachmentBytes(bytes: number | null | undefined): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 const PCI_TRANSFER_TONE: Record<PciTransferStatus, StatusTone> = {
   unverified: "warning",
@@ -122,11 +166,16 @@ function PlanWorkspaceDetailInner() {
   const [issuesDraft, setIssuesDraft] = useState("");
   const [deploymentStatusDraft, setDeploymentStatusDraft] =
     useState<AdopterDeploymentStatus>("none");
+  const [stageFormOpen, setStageFormOpen] = useState(false);
   const [deploymentStartDraft, setDeploymentStartDraft] = useState("");
   const [beneficiariesDraft, setBeneficiariesDraft] = useState("");
+  const [metricBeforeDraft, setMetricBeforeDraft] = useState("");
+  const [metricAfterDraft, setMetricAfterDraft] = useState("");
   const [outcomeDraft, setOutcomeDraft] = useState("");
+  const [visibilityDraft, setVisibilityDraft] = useState<OutcomeVisibility>("pci_only");
   const [evidenceUrlDraft, setEvidenceUrlDraft] = useState("");
   const [savingReport, setSavingReport] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
@@ -149,6 +198,11 @@ function PlanWorkspaceDetailInner() {
         setError("");
         setIssuesDraft(data.user_reported_issues || "");
         setDeploymentStatusDraft(data.adopter_deployment_status || "none");
+        setStageFormOpen(
+          data.adopter_deployment_status === "deployed" ||
+            Boolean(data.outcome_attachment_name) ||
+            Boolean(data.outcome_summary),
+        );
         setDeploymentStartDraft(data.deployment_started_on || "");
         setBeneficiariesDraft(
           data.reached_beneficiaries_count !== null &&
@@ -156,7 +210,10 @@ function PlanWorkspaceDetailInner() {
             ? String(data.reached_beneficiaries_count)
             : "",
         );
+        setMetricBeforeDraft(data.metric_before || "");
+        setMetricAfterDraft(data.metric_after || "");
         setOutcomeDraft(data.outcome_summary || "");
+        setVisibilityDraft(data.outcome_visibility || "pci_only");
         setEvidenceUrlDraft(data.evidence_url || "");
         const drafts: Record<number, string> = {};
         for (const s of data.steps) drafts[s.id] = s.notes || "";
@@ -342,12 +399,17 @@ function PlanWorkspaceDetailInner() {
         adopter_deployment_status: deploymentStatusDraft,
         deployment_started_on: deploymentStartDraft.trim() || null,
         reached_beneficiaries_count: parsedCount,
+        metric_before: metricBeforeDraft.trim(),
+        metric_after: metricAfterDraft.trim(),
         outcome_summary: outcomeDraft.trim(),
+        outcome_visibility: visibilityDraft,
         evidence_url: evidenceUrlDraft.trim(),
       });
       setPlan(updated);
       setStatusMessage(
-        "Zapisano raport z wdrożenia i efektów — dane zasilają Impact Radar PCI do weryfikacji.",
+        deploymentStatusDraft === "deployed"
+          ? "Zapisano zakończenie wdrożenia i rezultaty — sukces widoczny w panelu PCI."
+          : "Zapisano status wdrożenia i dane etapu dla Impact Radaru PCI.",
       );
     } catch (err) {
       setError(
@@ -357,6 +419,53 @@ function PlanWorkspaceDetailInner() {
       );
     } finally {
       setSavingReport(false);
+    }
+  }
+
+  async function handleUploadAttachment(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !plan) return;
+    setError("");
+    setUploadingAttachment(true);
+    try {
+      if (plan.adopter_deployment_status !== deploymentStatusDraft) {
+        await updateImplementationPlanReport(plan.id, {
+          adopter_deployment_status: deploymentStatusDraft,
+        });
+      }
+      const updated = await uploadImplementationPlanAttachment(plan.id, file);
+      setPlan(updated);
+      setStatusMessage(
+        `Wgrano załącznik rezultatów „${updated.outcome_attachment_name}” — widoczny w panelu PCI.`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Nie udało się wgrać załącznika rezultatów.",
+      );
+    } finally {
+      setUploadingAttachment(false);
+    }
+  }
+
+  async function handleDeleteAttachment() {
+    if (!plan) return;
+    setError("");
+    setUploadingAttachment(true);
+    try {
+      const updated = await deleteImplementationPlanAttachment(plan.id);
+      setPlan(updated);
+      setStatusMessage("Usunięto załącznik rezultatów.");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Nie udało się usunąć załącznika rezultatów.",
+      );
+    } finally {
+      setUploadingAttachment(false);
     }
   }
 
@@ -784,102 +893,6 @@ function PlanWorkspaceDetailInner() {
             </ol>
           </section>
 
-          {/* Deployment & Outcome Reporting for Impact Radar */}
-          <section
-            aria-labelledby="plan-outcome-heading"
-            className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6 print:hidden"
-          >
-            <form onSubmit={handleSaveDeploymentReport} className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <h2
-                  id="plan-outcome-heading"
-                  className="text-base font-extrabold tracking-tight text-[var(--color-text)]"
-                >
-                  Raport z wdrożenia i efektów
-                </h2>
-                <Badge tone={PCI_TRANSFER_TONE[plan.pci_transfer_status]} size="compact">
-                  {PCI_TRANSFER_STATUS_LABELS[plan.pci_transfer_status]}
-                </Badge>
-              </div>
-
-              {plan.pci_transfer_note ? (
-                <Banner
-                  tone={
-                    plan.pci_transfer_status === "needs_clarification"
-                      ? "warning"
-                      : "info"
-                  }
-                  appearance="tinted"
-                  title="Informacja od operatora PCI"
-                >
-                  {plan.pci_transfer_note}
-                </Banner>
-              ) : null}
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Dropdown
-                  id="deployment-status-select"
-                  label="Etap wdrożenia w organizacji"
-                  options={ADOPTER_DEPLOYMENT_OPTIONS}
-                  value={deploymentStatusDraft}
-                  onValueChange={(val) =>
-                    setDeploymentStatusDraft(val as AdopterDeploymentStatus)
-                  }
-                />
-
-                <TextInput
-                  id="deployment-start-date"
-                  type="date"
-                  label="Data rozpoczęcia pilotażu lub wdrożenia"
-                  value={deploymentStartDraft}
-                  onChange={(e) => setDeploymentStartDraft(e.target.value)}
-                />
-
-                <NumberInput
-                  id="reached-beneficiaries"
-                  label="Liczba objętych odbiorców"
-                  min={0}
-                  max={10000000}
-                  placeholder="np. 120"
-                  value={beneficiariesDraft}
-                  onChange={(e) => setBeneficiariesDraft(e.target.value)}
-                />
-
-                <TextInput
-                  id="evidence-url"
-                  type="url"
-                  label="Link do potwierdzenia lub raportu (opcjonalnie)"
-                  placeholder="https://bip.gmina.pl/... lub strona projektu"
-                  value={evidenceUrlDraft}
-                  onChange={(e) => setEvidenceUrlDraft(e.target.value)}
-                />
-              </div>
-
-              <TextArea
-                id="outcome-summary"
-                label="Zmierzone efekty względem mierników sukcesu"
-                hint="Opisz konkretne rezultaty z Fazy 4–5 (np. ilu odbiorców skorzystało, co się poprawiło, decyzja o skalowaniu)."
-                rows={3}
-                autoGrow
-                maxRows={8}
-                value={outcomeDraft}
-                onChange={(e) => setOutcomeDraft(e.target.value)}
-                placeholder="np. Wdrożono usługę w urzędzie gminy, obsłużono 145 seniorów, czas rejestracji skrócił się o 40%…"
-              />
-
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span className="text-xs text-[var(--color-text-muted)]">
-                  {plan.deployment_reported_at
-                    ? `Ostatni raport zapisano: ${formatPlanDate(plan.deployment_reported_at)}`
-                    : "Po zapisaniu zgłoszenie pojawi się w kolejce Impact Radar PCI."}
-                </span>
-                <Button type="submit" variant="filled" loading={savingReport}>
-                  {savingReport ? "Zapisywanie…" : "Zapisz raport wdrożeniowy"}
-                </Button>
-              </div>
-            </form>
-          </section>
-
           {/* Reported Issues / Gaps for PCI */}
           <section
             aria-labelledby="plan-issues-heading"
@@ -931,6 +944,221 @@ function PlanWorkspaceDetailInner() {
                   disabled={!isIssuesDirty && !savingIssues}
                 >
                   {isIssuesDirty ? "Zapisz zgłoszenie" : "Zapisano"}
+                </Button>
+              </div>
+            </form>
+          </section>
+
+          {/* Deployment Status Survey & Results Attachment (End of Progress Flow) */}
+          <section
+            aria-labelledby="plan-outcome-heading"
+            className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6 print:hidden"
+          >
+            <form onSubmit={handleSaveDeploymentReport} className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2
+                  id="plan-outcome-heading"
+                  className="text-base font-extrabold tracking-tight text-[var(--color-text)]"
+                >
+                  Jak przebiega Twoje wdrożenie?
+                </h2>
+                <Badge tone={PCI_TRANSFER_TONE[plan.pci_transfer_status]} size="compact">
+                  {PCI_TRANSFER_STATUS_LABELS[plan.pci_transfer_status]}
+                </Badge>
+              </div>
+
+              {plan.pci_transfer_note ? (
+                <Banner
+                  tone={
+                    plan.pci_transfer_status === "needs_clarification"
+                      ? "warning"
+                      : "info"
+                  }
+                  appearance="tinted"
+                  title="Informacja od operatora PCI"
+                >
+                  {plan.pci_transfer_note}
+                </Banner>
+              ) : null}
+
+              <RadioGroup
+                label="Aktualny status wdrożenia"
+                name="deployment-status-survey"
+                options={DEPLOYMENT_SURVEY_OPTIONS}
+                value={
+                  deploymentStatusDraft === "stopped" ? "none" : deploymentStatusDraft
+                }
+                onValueChange={(val) => {
+                  const next = val as AdopterDeploymentStatus;
+                  setDeploymentStatusDraft(next);
+                  if (next === "deployed") {
+                    setStageFormOpen(true);
+                  }
+                }}
+              />
+
+              <div className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] p-3.5 text-sm">
+                <div className="flex items-center gap-2 font-bold text-[var(--color-text)]">
+                  {deploymentStatusDraft === "deployed" ? (
+                    <CheckCircleIcon
+                      size={16}
+                      weight="bold"
+                      className="text-[var(--color-success-text)]"
+                    />
+                  ) : (
+                    <InfoIcon
+                      size={16}
+                      weight="bold"
+                      className="text-[var(--color-accent-text)]"
+                    />
+                  )}
+                  <span>{DEPLOYMENT_STAGE_META[deploymentStatusDraft].heading}</span>
+                </div>
+                <p className="mt-1 text-xs leading-relaxed text-[var(--color-text-muted)]">
+                  {DEPLOYMENT_STAGE_META[deploymentStatusDraft].description}
+                </p>
+              </div>
+
+              <Button
+                type="button"
+                variant="outline"
+                aria-expanded={stageFormOpen}
+                onClick={() => setStageFormOpen((prev) => !prev)}
+                className="w-full"
+              >
+                {stageFormOpen
+                  ? "Zwiń formularz tego etapu"
+                  : "Rozwiń formularz tego etapu"}
+              </Button>
+
+              {stageFormOpen ? (
+                <div className="space-y-4 border-t border-[var(--color-border-subtle)] pt-4">
+                  {deploymentStatusDraft === "deployed" ? (
+                    <div className="space-y-2.5 rounded-xl border border-[var(--color-success-border)] bg-[var(--color-success-bg)] p-4">
+                      <label
+                        htmlFor="outcome-attachment-input"
+                        className="block text-xs font-bold text-[var(--color-success-text)]"
+                      >
+                        Załącznik rezultatów wdrożenia (PDF, DOCX, XLSX, CSV, obrazek, max 10 MB)
+                      </label>
+                      <input
+                        id="outcome-attachment-input"
+                        type="file"
+                        accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.md,.png,.jpg,.jpeg,.webp"
+                        disabled={uploadingAttachment}
+                        onChange={(e) => void handleUploadAttachment(e)}
+                        className="block min-h-11 w-full cursor-pointer rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-xs text-[var(--color-text)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--color-surface-raised)] file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-[var(--color-text)]"
+                      />
+                      {uploadingAttachment ? (
+                        <p className="text-xs font-semibold text-[var(--color-success-text)]">
+                          Przesyłanie pliku…
+                        </p>
+                      ) : plan.outcome_attachment_url ? (
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--color-success-text)]">
+                          <a
+                            href={plan.outcome_attachment_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-bold underline"
+                          >
+                            {plan.outcome_attachment_name} (
+                            {formatAttachmentBytes(plan.outcome_attachment_size)}) ↗
+                          </a>
+                          <Button
+                            type="button"
+                            size="compact"
+                            variant="outline"
+                            tone="destructive"
+                            onClick={() => void handleDeleteAttachment()}
+                          >
+                            Usuń załącznik
+                          </Button>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-[var(--color-success-text)]">
+                          Wgraj protokół, raport lub zestawienie wyników — pojawi się od razu przy
+                          zakończonym wdrożeniu w panelu PCI.
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <TextInput
+                      id="deployment-start-date"
+                      type="date"
+                      label="Data rozpoczęcia"
+                      value={deploymentStartDraft}
+                      onChange={(e) => setDeploymentStartDraft(e.target.value)}
+                    />
+
+                    <NumberInput
+                      id="reached-beneficiaries"
+                      label="Liczba objętych użytkowników (puste = brak danych)"
+                      min={0}
+                      max={10000000}
+                      placeholder="brak danych"
+                      value={beneficiariesDraft}
+                      onChange={(e) => setBeneficiariesDraft(e.target.value)}
+                    />
+
+                    <TextInput
+                      id="metric-before"
+                      label="Wartość miernika przed"
+                      placeholder="np. 45 min / wniosek (lub brak danych)"
+                      value={metricBeforeDraft}
+                      onChange={(e) => setMetricBeforeDraft(e.target.value)}
+                    />
+
+                    <TextInput
+                      id="metric-after"
+                      label="Wartość miernika po"
+                      placeholder="np. 12 min / wniosek"
+                      value={metricAfterDraft}
+                      onChange={(e) => setMetricAfterDraft(e.target.value)}
+                    />
+
+                    <TextInput
+                      id="evidence-url"
+                      type="url"
+                      label="Odnośnik do raportu (opcjonalnie)"
+                      placeholder="https://bip.gmina.pl/..."
+                      value={evidenceUrlDraft}
+                      onChange={(e) => setEvidenceUrlDraft(e.target.value)}
+                    />
+
+                    <Dropdown
+                      id="outcome-visibility-select"
+                      label="Kontrola widoczności danych"
+                      options={OUTCOME_VISIBILITY_OPTIONS}
+                      value={visibilityDraft}
+                      onValueChange={(val) =>
+                        setVisibilityDraft(val as OutcomeVisibility)
+                      }
+                    />
+                  </div>
+
+                  <TextArea
+                    id="outcome-summary"
+                    label="Opis rezultatów (opcjonalnie)"
+                    rows={3}
+                    autoGrow
+                    maxRows={8}
+                    value={outcomeDraft}
+                    onChange={(e) => setOutcomeDraft(e.target.value)}
+                    placeholder="np. Rozwiązanie wdrożone w jednostce, skrócono czas obsługi i objęto 145 osób…"
+                  />
+                </div>
+              ) : null}
+
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--color-border-subtle)] pt-3">
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  {plan.deployment_reported_at
+                    ? `Ostatnia aktualizacja statusu: ${formatPlanDate(plan.deployment_reported_at)}`
+                    : "Zapisz status, aby zaktualizować postęp w panelu PCI."}
+                </span>
+                <Button type="submit" variant="filled" loading={savingReport}>
+                  {savingReport ? "Zapisywanie…" : "Zapisz status wdrożenia"}
                 </Button>
               </div>
             </form>

@@ -32,6 +32,7 @@ def is_awaiting_pci_review(plan: ImplementationPlan) -> bool:
         or plan.outcome_summary.strip()
         or plan.reached_beneficiaries_count is not None
         or plan.evidence_url.strip()
+        or plan.outcome_attachment_name.strip()
     )
 
 
@@ -41,12 +42,12 @@ def derive_transfer_stage(
 ) -> tuple[str, str]:
     """Classify the current real transfer stage for a plan."""
     if plan.pci_transfer_status == "effect_verified":
-        return "effect_verified", "Zweryfikowany efekt"
+        return "effect_verified", "Sukces · Zweryfikowany efekt"
     if (
         plan.pci_transfer_status == "deployment_confirmed"
         or plan.adopter_deployment_status == "deployed"
     ):
-        return "deployed", "Wdrożenie"
+        return "deployed", "Sukces · Zakończone wdrożenie"
     if plan.adopter_deployment_status == "stopped":
         return "stopped", "Wstrzymano"
     if has_started_pilot(plan, steps):
@@ -55,7 +56,13 @@ def derive_transfer_stage(
         return "pilot", "Pilotaż"
     if plan.variant == "validation":
         return "validation", "Walidacja"
-    return "planning", "Przygotowanie planu"
+    return "planning", "Planowane · Przygotowanie"
+
+
+def build_attachment_url(plan: ImplementationPlan) -> str:
+    if not plan.outcome_attachment_name:
+        return ""
+    return f"/api/implementation-plans/{plan.id}/attachment/"
 
 
 def serialize_transfer_row(plan: ImplementationPlan) -> dict[str, Any]:
@@ -78,6 +85,7 @@ def serialize_transfer_row(plan: ImplementationPlan) -> dict[str, Any]:
         "organization_name": snap.get("organization_name") or "Niepodana",
         "organization_type": snap.get("organization_type") or "",
         "deployment_location": snap.get("deployment_location") or "",
+        "source_organization_name": plan.innovation.organization_name,
         "innovation_slug": plan.innovation.slug,
         "innovation_title": plan.innovation.title_pl,
         "primary_area": plan.innovation.primary_area,
@@ -91,8 +99,15 @@ def serialize_transfer_row(plan: ImplementationPlan) -> dict[str, Any]:
         "adopter_deployment_status": plan.adopter_deployment_status,
         "deployment_started_on": plan.deployment_started_on,
         "reached_beneficiaries_count": plan.reached_beneficiaries_count,
+        "metric_before": plan.metric_before,
+        "metric_after": plan.metric_after,
         "outcome_summary": plan.outcome_summary,
+        "outcome_visibility": plan.outcome_visibility,
         "evidence_url": plan.evidence_url,
+        "outcome_attachment_name": plan.outcome_attachment_name,
+        "outcome_attachment_size": plan.outcome_attachment_size,
+        "outcome_attachment_uploaded_at": plan.outcome_attachment_uploaded_at,
+        "outcome_attachment_url": build_attachment_url(plan),
         "deployment_reported_at": plan.deployment_reported_at,
         "pci_transfer_status": plan.pci_transfer_status,
         "pci_transfer_note": plan.pci_transfer_note,
@@ -122,7 +137,10 @@ def build_impact_radar_payload() -> dict[str, Any]:
         rows.append(row)
         if has_started_pilot(plan, list(plan.steps.all())):
             started_pilots += 1
-        if plan.pci_transfer_status in {"deployment_confirmed", "effect_verified"}:
+        if (
+            plan.pci_transfer_status in {"deployment_confirmed", "effect_verified"}
+            or plan.adopter_deployment_status == "deployed"
+        ):
             confirmed_deployments += 1
             if plan.reached_beneficiaries_count:
                 total_reached_beneficiaries += plan.reached_beneficiaries_count

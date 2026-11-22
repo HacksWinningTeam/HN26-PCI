@@ -17,10 +17,14 @@ class ImplementationPlan(models.Model):
         ("partnership", "Nawiązanie partnerstwa"),
     ]
     ADOPTER_DEPLOYMENT_STATUS_CHOICES = [
-        ("none", "Nie zgłoszono etapu wdrożenia"),
-        ("in_pilot", "Trwa pilotaż lub walidacja"),
-        ("deployed", "Wdrożono w praktyce"),
+        ("none", "Przygotowujemy się do pilotażu"),
+        ("in_pilot", "Rozpoczęliśmy pilotaż"),
+        ("deployed", "Zakończyliśmy wdrożenie"),
         ("stopped", "Zakończono lub wstrzymano"),
+    ]
+    OUTCOME_VISIBILITY_CHOICES = [
+        ("pci_only", "Tylko zespół PCI"),
+        ("public_summary", "Widoczne w podsumowaniu efektów"),
     ]
     PCI_TRANSFER_STATUS_CHOICES = [
         ("unverified", "Oczekuje na weryfikację"),
@@ -65,8 +69,20 @@ class ImplementationPlan(models.Model):
     )
     deployment_started_on = models.DateField(null=True, blank=True)
     reached_beneficiaries_count = models.PositiveIntegerField(null=True, blank=True)
+    metric_before = models.CharField(max_length=160, blank=True, default="")
+    metric_after = models.CharField(max_length=160, blank=True, default="")
     outcome_summary = models.TextField(blank=True, default="")
+    outcome_visibility = models.CharField(
+        max_length=24,
+        choices=OUTCOME_VISIBILITY_CHOICES,
+        default="pci_only",
+    )
     evidence_url = models.URLField(max_length=500, blank=True, default="")
+    outcome_attachment_name = models.CharField(max_length=255, blank=True, default="")
+    outcome_attachment_content_type = models.CharField(max_length=120, blank=True, default="")
+    outcome_attachment_size = models.PositiveIntegerField(null=True, blank=True)
+    outcome_attachment_data = models.BinaryField(null=True, blank=True)
+    outcome_attachment_uploaded_at = models.DateTimeField(null=True, blank=True)
     deployment_reported_at = models.DateTimeField(null=True, blank=True)
     pci_transfer_status = models.CharField(
         max_length=32,

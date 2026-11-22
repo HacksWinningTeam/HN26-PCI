@@ -243,14 +243,17 @@ def test_impact_radar_real_collection_and_pci_verification(settings):
     row_pilot = next(r for r in radar_pilot.data["transfers"] if r["plan_id"] == plan_id)
     assert row_pilot["pilot_started_at"] is not None
 
-    # Adopter submits real deployment & outcome report
+    # Adopter submits real deployment & outcome report with before/after metrics + file attachment
     report_res = adopter.patch(
         f"/api/implementation-plans/{plan_id}/",
         {
             "adopter_deployment_status": "deployed",
             "deployment_started_on": "2026-11-20",
             "reached_beneficiaries_count": 145,
+            "metric_before": "45 min / wniosek",
+            "metric_after": "12 min / wniosek",
             "outcome_summary": "Wdrożono obsługę elektroniczną dla 145 rodziców i seniorów.",
+            "outcome_visibility": "public_summary",
             "evidence_url": "https://bip.rzeszow.pl/raport-wdrozenia",
         },
         format="json",
@@ -258,15 +261,60 @@ def test_impact_radar_real_collection_and_pci_verification(settings):
     assert report_res.status_code == 200
     assert report_res.data["adopter_deployment_status"] == "deployed"
     assert report_res.data["reached_beneficiaries_count"] == 145
+    assert report_res.data["metric_before"] == "45 min / wniosek"
+    assert report_res.data["metric_after"] == "12 min / wniosek"
+    assert report_res.data["outcome_visibility"] == "public_summary"
     assert report_res.data["deployment_reported_at"] is not None
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    bad_file = SimpleUploadedFile("virus.exe", b"MZ", content_type="application/octet-stream")
+    bad_upload = adopter.post(
+        f"/api/implementation-plans/{plan_id}/attachment/",
+        {"file": bad_file},
+        format="multipart",
+    )
+    assert bad_upload.status_code == 400
+
+    pdf_file = SimpleUploadedFile(
+        "raport-efektow.pdf",
+        b"%PDF-1.4\nReal outcome report\n%%EOF",
+        content_type="application/pdf",
+    )
+    upload_res = adopter.post(
+        f"/api/implementation-plans/{plan_id}/attachment/",
+        {"file": pdf_file},
+        format="multipart",
+    )
+    assert upload_res.status_code == 200
+    assert upload_res.data["outcome_attachment_name"] == "raport-efektow.pdf"
+    assert (
+        upload_res.data["outcome_attachment_url"]
+        == f"/api/implementation-plans/{plan_id}/attachment/"
+    )
+
+    # PCI Admin can download the real attachment and sees completed deployment & transfer pair
+    dl_res = admin_client.get(f"/api/implementation-plans/{plan_id}/attachment/")
+    assert dl_res.status_code == 200
+    assert b"Real outcome report" in dl_res.content
 
     radar_awaiting = admin_client.get("/api/admin/impact-radar/")
     assert (
         radar_awaiting.data["funnel"]["awaiting_pci_review"]
         == base_funnel["awaiting_pci_review"] + 1
     )
+    assert (
+        radar_awaiting.data["funnel"]["confirmed_deployments"]
+        == base_funnel["confirmed_deployments"] + 1
+    )
     row_awaiting = next(r for r in radar_awaiting.data["transfers"] if r["plan_id"] == plan_id)
     assert row_awaiting["awaiting_pci_review"] is True
+    assert row_awaiting["stage_key"] == "deployed"
+    assert "Sukces" in row_awaiting["stage_label"]
+    assert row_awaiting["source_organization_name"]
+    assert row_awaiting["outcome_attachment_name"] == "raport-efektow.pdf"
+    assert row_awaiting["metric_before"] == "45 min / wniosek"
+    assert row_awaiting["metric_after"] == "12 min / wniosek"
 
     # needs_clarification requires a note
     bad_clarify = admin_client.post(

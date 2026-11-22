@@ -38,6 +38,7 @@ class ImplementationStepUpdateSerializer(serializers.Serializer):
 class ImplementationPlanSerializer(serializers.ModelSerializer):
     innovation = InnovationRegisteredDetailSerializer(read_only=True)
     steps = ImplementationStepSerializer(many=True, read_only=True)
+    outcome_attachment_url = serializers.SerializerMethodField()
 
     class Meta:
         model = ImplementationPlan
@@ -62,8 +63,16 @@ class ImplementationPlanSerializer(serializers.ModelSerializer):
             "adopter_deployment_status",
             "deployment_started_on",
             "reached_beneficiaries_count",
+            "metric_before",
+            "metric_after",
             "outcome_summary",
+            "outcome_visibility",
             "evidence_url",
+            "outcome_attachment_name",
+            "outcome_attachment_content_type",
+            "outcome_attachment_size",
+            "outcome_attachment_uploaded_at",
+            "outcome_attachment_url",
             "deployment_reported_at",
             "pci_transfer_status",
             "pci_transfer_note",
@@ -72,6 +81,11 @@ class ImplementationPlanSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
+    def get_outcome_attachment_url(self, obj: ImplementationPlan) -> str:
+        if not obj.outcome_attachment_name:
+            return ""
+        return f"/api/implementation-plans/{obj.id}/attachment/"
 
 
 class ImplementationPlanCreateSerializer(serializers.Serializer):
@@ -96,12 +110,22 @@ class ImplementationPlanUpdateSerializer(serializers.Serializer):
         min_value=0,
         max_value=10_000_000,
     )
+    metric_before = serializers.CharField(required=False, allow_blank=True, max_length=160)
+    metric_after = serializers.CharField(required=False, allow_blank=True, max_length=160)
     outcome_summary = serializers.CharField(required=False, allow_blank=True)
+    outcome_visibility = serializers.ChoiceField(
+        choices=ImplementationPlan.OUTCOME_VISIBILITY_CHOICES,
+        required=False,
+    )
     evidence_url = serializers.URLField(
         required=False,
         allow_blank=True,
         max_length=500,
     )
+
+
+class ImplementationAttachmentUploadSerializer(serializers.Serializer):
+    file = serializers.FileField()
 
 
 class AdminImplementationOverviewSerializer(serializers.Serializer):
@@ -111,6 +135,7 @@ class AdminImplementationOverviewSerializer(serializers.Serializer):
     organization_name = serializers.CharField()
     organization_type = serializers.CharField()
     deployment_location = serializers.CharField()
+    source_organization_name = serializers.CharField()
     innovation_slug = serializers.SlugField()
     innovation_title = serializers.CharField()
     comparison_slugs = serializers.ListField(child=serializers.SlugField())
@@ -122,6 +147,14 @@ class AdminImplementationOverviewSerializer(serializers.Serializer):
     completed_titles = serializers.ListField(child=serializers.CharField())
     user_reported_issues = serializers.CharField()
     step_notes = serializers.ListField(child=serializers.CharField())
+    adopter_deployment_status = serializers.CharField()
+    pci_transfer_status = serializers.CharField()
+    reached_beneficiaries_count = serializers.IntegerField(allow_null=True)
+    metric_before = serializers.CharField()
+    metric_after = serializers.CharField()
+    outcome_summary = serializers.CharField()
+    outcome_attachment_name = serializers.CharField()
+    outcome_attachment_url = serializers.CharField()
     updated_at = serializers.DateTimeField()
 
 
@@ -141,6 +174,7 @@ class AdminImpactTransferSerializer(serializers.Serializer):
     organization_name = serializers.CharField()
     organization_type = serializers.CharField()
     deployment_location = serializers.CharField()
+    source_organization_name = serializers.CharField()
     innovation_slug = serializers.SlugField()
     innovation_title = serializers.CharField()
     primary_area = serializers.CharField()
@@ -154,8 +188,15 @@ class AdminImpactTransferSerializer(serializers.Serializer):
     adopter_deployment_status = serializers.CharField()
     deployment_started_on = serializers.DateField(allow_null=True)
     reached_beneficiaries_count = serializers.IntegerField(allow_null=True)
+    metric_before = serializers.CharField()
+    metric_after = serializers.CharField()
     outcome_summary = serializers.CharField()
+    outcome_visibility = serializers.CharField()
     evidence_url = serializers.CharField()
+    outcome_attachment_name = serializers.CharField()
+    outcome_attachment_size = serializers.IntegerField(allow_null=True)
+    outcome_attachment_uploaded_at = serializers.DateTimeField(allow_null=True)
+    outcome_attachment_url = serializers.CharField()
     deployment_reported_at = serializers.DateTimeField(allow_null=True)
     pci_transfer_status = serializers.CharField()
     pci_transfer_note = serializers.CharField()

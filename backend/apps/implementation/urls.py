@@ -4,6 +4,7 @@ from .views import (
     AdminImpactRadarView,
     AdminImplementationOverviewView,
     AdminTransferVerifyView,
+    ImplementationPlanAttachmentView,
     ImplementationPlanDetailView,
     ImplementationPlanExportView,
     ImplementationPlanListCreateView,
@@ -20,6 +21,11 @@ urlpatterns = [
         "implementation-plans/<int:pk>/",
         ImplementationPlanDetailView.as_view(),
         name="implementation-plan-detail",
+    ),
+    path(
+        "implementation-plans/<int:pk>/attachment/",
+        ImplementationPlanAttachmentView.as_view(),
+        name="implementation-plan-attachment",
     ),
     path(
         "implementation-plans/<int:pk>/export/",

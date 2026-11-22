@@ -13,6 +13,7 @@ export type OrgType =
 export type PlanVariant = "validation" | "pilot" | "transfer_deployment";
 export type StepStatus = "not_started" | "in_progress" | "completed";
 export type AdopterDeploymentStatus = "none" | "in_pilot" | "deployed" | "stopped";
+export type OutcomeVisibility = "pci_only" | "public_summary";
 export type PciTransferStatus =
   | "unverified"
   | "deployment_confirmed"
@@ -119,10 +120,15 @@ export const STEP_STATUS_LABELS: Record<StepStatus, string> = {
 };
 
 export const ADOPTER_DEPLOYMENT_STATUS_LABELS: Record<AdopterDeploymentStatus, string> = {
-  none: "Nie zgłoszono etapu wdrożenia",
-  in_pilot: "Trwa pilotaż lub walidacja",
-  deployed: "Wdrożono w praktyce",
+  none: "Przygotowujemy się do pilotażu",
+  in_pilot: "Rozpoczęliśmy pilotaż",
+  deployed: "Zakończyliśmy wdrożenie",
   stopped: "Zakończono lub wstrzymano",
+};
+
+export const OUTCOME_VISIBILITY_LABELS: Record<OutcomeVisibility, string> = {
+  pci_only: "Tylko zespół PCI",
+  public_summary: "Widoczne w podsumowaniu efektów",
 };
 
 export const PCI_TRANSFER_STATUS_LABELS: Record<PciTransferStatus, string> = {

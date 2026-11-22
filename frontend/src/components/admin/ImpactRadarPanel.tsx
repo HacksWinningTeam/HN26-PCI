@@ -27,6 +27,7 @@ import type {
 import {
   ADOPTER_DEPLOYMENT_STATUS_LABELS,
   ORG_TYPE_LABELS,
+  OUTCOME_VISIBILITY_LABELS,
   PCI_TRANSFER_STATUS_LABELS,
   PLAN_VARIANT_LABELS,
   type OrgType,
@@ -38,7 +39,7 @@ const STAGE_TONE: Record<TransferStageKey, StatusTone> = {
   planning: "neutral",
   validation: "info",
   pilot: "info",
-  deployed: "lime",
+  deployed: "success",
   effect_verified: "success",
   stopped: "warning",
 };
@@ -51,11 +52,11 @@ const PCI_STATUS_TONE: Record<PciTransferStatus, StatusTone> = {
 };
 
 const STAGE_OPTIONS: ReadonlyArray<{ value: TransferStageKey; label: string }> = [
-  { value: "planning", label: "Przygotowanie planu" },
+  { value: "planning", label: "Planowane · Przygotowanie" },
   { value: "validation", label: "Walidacja" },
   { value: "pilot", label: "Pilotaż" },
-  { value: "deployed", label: "Wdrożenie" },
-  { value: "effect_verified", label: "Zweryfikowany efekt" },
+  { value: "deployed", label: "Sukces · Zakończone wdrożenie" },
+  { value: "effect_verified", label: "Sukces · Zweryfikowany efekt" },
   { value: "stopped", label: "Wstrzymano" },
 ];
 
@@ -79,6 +80,13 @@ function formatDateOnly(iso: string | null | undefined): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
   return date.toLocaleDateString("pl-PL", { dateStyle: "medium" });
+}
+
+function formatFileSize(bytes: number | null | undefined): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function TransferVerificationForm({
@@ -119,10 +127,11 @@ function TransferVerificationForm({
       targetStatus === "effect_verified" &&
       !row.outcome_summary.trim() &&
       row.reached_beneficiaries_count === null &&
+      !row.outcome_attachment_name &&
       !trimmed
     ) {
       setLocalError(
-        "Weryfikacja efektu wymaga opisu rezultatów / liczby odbiorców albo notatki PCI.",
+        "Weryfikacja efektu wymaga opisu rezultatów, załącznika, liczby odbiorców albo notatki PCI.",
       );
       return;
     }
@@ -148,13 +157,25 @@ function TransferVerificationForm({
     <div className="space-y-4 border-t border-[var(--color-border-subtle)] pt-4">
       <dl className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
         <div>
+          <dt className="text-[var(--color-text-muted)]">Organizacja poszukująca</dt>
+          <dd className="mt-0.5 font-semibold text-[var(--color-text)]">
+            {row.organization_name}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[var(--color-text-muted)]">Organizacja wdrażająca / źródło</dt>
+          <dd className="mt-0.5 font-semibold text-[var(--color-text)]">
+            {row.source_organization_name}
+          </dd>
+        </div>
+        <div>
           <dt className="text-[var(--color-text-muted)]">Postęp checklisty</dt>
           <dd className="mt-0.5 font-mono font-semibold text-[var(--color-text)]">
             Faza {row.current_phase}/5 ({row.completed_steps_count}/{row.total_steps_count})
           </dd>
         </div>
         <div>
-          <dt className="text-[var(--color-text-muted)]">Deklaracja organizacji</dt>
+          <dt className="text-[var(--color-text-muted)]">Deklaracja wdrożenia</dt>
           <dd className="mt-0.5 font-semibold text-[var(--color-text)]">
             {ADOPTER_DEPLOYMENT_STATUS_LABELS[row.adopter_deployment_status]}
           </dd>
@@ -172,7 +193,21 @@ function TransferVerificationForm({
           <dd className="mt-0.5 font-mono font-semibold text-[var(--color-text)]">
             {row.reached_beneficiaries_count !== null
               ? row.reached_beneficiaries_count
-              : "—"}
+              : "brak danych"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[var(--color-text-muted)]">Miernik (przed → po)</dt>
+          <dd className="mt-0.5 font-mono text-[var(--color-text)]">
+            {row.metric_before || row.metric_after
+              ? `${row.metric_before || "brak danych"} → ${row.metric_after || "brak danych"}`
+              : "brak danych"}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-[var(--color-text-muted)]">Widoczność rezultatów</dt>
+          <dd className="mt-0.5 text-[var(--color-text)]">
+            {OUTCOME_VISIBILITY_LABELS[row.outcome_visibility] ?? row.outcome_visibility}
           </dd>
         </div>
       </dl>
@@ -185,6 +220,20 @@ function TransferVerificationForm({
       </div>
 
       <div className="flex flex-wrap gap-4 text-xs">
+        {row.outcome_attachment_url ? (
+          <a
+            href={row.outcome_attachment_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-[var(--color-accent-text)] underline"
+          >
+            Pobierz załącznik rezultatów: {row.outcome_attachment_name}
+            {row.outcome_attachment_size
+              ? ` (${formatFileSize(row.outcome_attachment_size)})`
+              : ""}{" "}
+            ↗
+          </a>
+        ) : null}
         {row.evidence_url ? (
           <a
             href={row.evidence_url}
@@ -192,7 +241,7 @@ function TransferVerificationForm({
             rel="noopener noreferrer"
             className="font-semibold break-all text-[var(--color-accent-text)] underline"
           >
-            Link do dowodu ↗
+            Link do raportu ↗
           </a>
         ) : null}
         <Link
@@ -284,9 +333,11 @@ export function ImpactRadarPanel({
       [
         row.innovation_title,
         row.organization_name,
+        row.source_organization_name,
         row.deployment_location,
         row.stage_label,
         row.outcome_summary,
+        row.outcome_attachment_name,
         row.user_email,
       ]
         .join(" ")
@@ -353,7 +404,7 @@ export function ImpactRadarPanel({
     {
       id: "innovation",
       label: "Innowacja",
-      minWidth: 220,
+      minWidth: 210,
       value: (row) => row.innovation_title,
       sortable: true,
       filter: "text",
@@ -370,15 +421,16 @@ export function ImpactRadarPanel({
     },
     {
       id: "organization",
-      label: "Organizacja",
-      minWidth: 200,
-      value: (row) => `${row.organization_name} ${row.deployment_location}`,
+      label: "Transfer między organizacjami",
+      minWidth: 260,
+      value: (row) =>
+        `${row.organization_name} ${row.source_organization_name} ${row.deployment_location}`,
       sortable: true,
       filter: "text",
       render: (row) => (
         <div className="space-y-0.5">
           <div className="font-semibold text-[var(--color-text)]">
-            {row.organization_name}
+            {row.organization_name} ↔ {row.source_organization_name}
           </div>
           <div className="text-xs text-[var(--color-text-muted)]">
             {ORG_TYPE_LABELS[row.organization_type as OrgType] ??
@@ -390,36 +442,64 @@ export function ImpactRadarPanel({
     },
     {
       id: "stage",
-      label: "Etap",
-      minWidth: 140,
+      label: "Etap / wynik",
+      minWidth: 190,
       value: (row) => row.stage_key,
       sortable: true,
       filter: "category",
       options: STAGE_OPTIONS,
       render: (row) => (
-        <Badge tone={STAGE_TONE[row.stage_key]} size="compact">
+        <Badge
+          tone={STAGE_TONE[row.stage_key]}
+          size="compact"
+          leadingIcon={
+            row.stage_key === "deployed" || row.stage_key === "effect_verified" ? (
+              <CheckCircleIcon size={12} weight="bold" />
+            ) : undefined
+          }
+        >
           {row.stage_label}
         </Badge>
       ),
     },
     {
       id: "report",
-      label: "Postęp / Odbiorcy",
-      minWidth: 180,
+      label: "Rezultaty / załącznik",
+      minWidth: 210,
       value: (row) =>
-        row.reached_beneficiaries_count !== null
-          ? `${row.reached_beneficiaries_count} ${row.outcome_summary}`
-          : row.outcome_summary || `Faza ${row.current_phase}/5`,
+        [
+          row.reached_beneficiaries_count ?? "",
+          row.metric_before,
+          row.metric_after,
+          row.outcome_attachment_name,
+          row.outcome_summary,
+        ]
+          .filter(Boolean)
+          .join(" ") || `Faza ${row.current_phase}/5`,
       render: (row) => (
-        <div className="text-xs">
-          <span className="font-mono font-semibold text-[var(--color-text)]">
+        <div className="space-y-0.5 text-xs">
+          <div className="font-mono font-semibold text-[var(--color-text)]">
             Faza {row.current_phase}/5
-          </span>
-          {row.reached_beneficiaries_count !== null ? (
-            <span className="text-[var(--color-text-muted)]">
-              {" "}
-              · {row.reached_beneficiaries_count} odbiorców
-            </span>
+            {row.reached_beneficiaries_count !== null
+              ? ` · ${row.reached_beneficiaries_count} odbiorców`
+              : ""}
+          </div>
+          {row.metric_before || row.metric_after ? (
+            <div className="font-mono text-[var(--color-text-muted)]">
+              {row.metric_before || "—"} → {row.metric_after || "—"}
+            </div>
+          ) : null}
+          {row.outcome_attachment_url ? (
+            <div>
+              <a
+                href={row.outcome_attachment_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-[var(--color-accent-text)] underline"
+              >
+                {row.outcome_attachment_name} ↗
+              </a>
+            </div>
           ) : null}
         </div>
       ),
@@ -471,7 +551,7 @@ export function ImpactRadarPanel({
           </h2>
           {funnel.total_reached_beneficiaries > 0 ? (
             <span className="font-mono text-xs text-[var(--color-text-muted)]">
-              Potwierdzeni odbiorcy: {funnel.total_reached_beneficiaries}
+              Objęci odbiorcy: {funnel.total_reached_beneficiaries}
             </span>
           ) : null}
         </div>
@@ -516,7 +596,7 @@ export function ImpactRadarPanel({
       {/* Active Transfers Table */}
       <CardSurface className="space-y-4 p-5 sm:p-6">
         <h2 className="text-base font-bold text-[var(--color-text)]">
-          Aktywne transfery
+          Aktywne i zakończone transfery
         </h2>
 
         <DataTable
@@ -539,9 +619,10 @@ export function ImpactRadarPanel({
             />
           }
           rowDetails={{
-            title: (row) => `${row.innovation_title} — ${row.organization_name}`,
+            title: (row) =>
+              `${row.organization_name} ↔ ${row.source_organization_name}`,
             description: (row) =>
-              `${row.user_email} · aktualizacja ${formatDateTime(row.updated_at)}`,
+              `${row.innovation_title} · ${row.user_email} · ${formatDateTime(row.updated_at)}`,
             render: (row) => (
               <TransferVerificationForm
                 key={row.plan_id}

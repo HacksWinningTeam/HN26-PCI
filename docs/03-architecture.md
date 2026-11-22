@@ -32,6 +32,7 @@ Browser (same-origin) -> Next.js 16 (src/proxy.ts / SSR via API_INTERNAL_URL) ->
 | `GET/PATCH /api/profile/` | `apps.accounts` | Implementation-context questionnaire | Registered | TBD |
 | `POST /api/implementation-plans/` | `apps.implementation` | Generate a personalized five-step plan | Registered | TBD |
 | `GET /api/implementation-plans/`, `PATCH /api/implementation-steps/{id}/` | `apps.implementation` | View plans and update checklist progress | Registered | TBD |
+| `GET/POST/DELETE /api/implementation-plans/{id}/attachment/` | `apps.implementation` | Upload/download/delete real deployment results file stored in PostgreSQL | Registered (owner) / PCI Admin (GET) | `T13` |
 | `GET/PATCH /api/admin/innovations/` | `apps.ingestion` | Verify records and resolve quality issues | PCI Admin | TBD |
 | `GET /api/admin/implementations/` | `apps.implementation` | PCI overview of adoption progress | PCI Admin | TBD |
 | `GET /api/admin/impact-radar/` | `apps.implementation` | Live 4-stage transfer funnel KPIs and active transfer pipeline (zero mock data) | PCI Admin | `T12` |

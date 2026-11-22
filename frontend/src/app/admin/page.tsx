@@ -65,9 +65,11 @@ import {
 } from "@/lib/radar-api";
 import { ImpactRadarPanel } from "@/components/admin/ImpactRadarPanel";
 import {
+  ADOPTER_DEPLOYMENT_STATUS_LABELS,
   DEPLOYMENT_LABELS,
   getProvenanceMeta,
   ORG_TYPE_LABELS,
+  PCI_TRANSFER_STATUS_LABELS,
   PLAN_VARIANT_LABELS,
   VERIFICATION_LABELS,
   type DeploymentLevel,
@@ -1708,97 +1710,154 @@ export default function AdminPage() {
                 />
               ) : null}
 
-              {displayedActivity.map((row) => (
-                <article
-                  key={row.plan_id}
-                  className="space-y-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 text-sm"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="space-y-1">
-                      <Badge tone="info" size="compact">
-                        {PLAN_VARIANT_LABELS[row.variant]}
-                      </Badge>
-                      <h2 className="text-lg font-bold text-[var(--color-text)]">
-                        {row.user_name} ({row.organization_name}) →{" "}
-                        <Link
-                          href={`/innovations/${row.innovation_slug}`}
-                          className="text-[var(--color-accent-text)] hover:underline"
-                        >
-                          {row.innovation_title}
-                        </Link>
-                      </h2>
-                      <p className="text-xs text-[var(--color-text-muted)]">
-                        {row.user_email} ·{" "}
-                        {ORG_TYPE_LABELS[row.organization_type as OrgType] ?? row.organization_type}{" "}
-                        · {row.deployment_location || "brak lokalizacji"}
-                      </p>
-                    </div>
-
-                    <div className="text-right text-xs">
-                      <div className="font-mono font-bold">
-                        Etap {row.current_phase}/5 · Ukończono {row.completed_steps_count}/
-                        {row.total_steps_count}
-                      </div>
-                      <div className="mt-1.5 flex justify-end gap-1" aria-hidden="true">
-                        {[1, 2, 3, 4, 5].map((phase) => {
-                          const done = phase <= row.completed_steps_count;
-                          const current = phase === row.current_phase && !done;
-                          return (
-                            <span
-                              key={phase}
-                              className={`h-2 w-7 rounded-full ${
-                                done
-                                  ? "bg-[var(--color-success-badge)]"
-                                  : current
-                                    ? "bg-[var(--color-accent)]"
-                                    : "bg-[var(--color-surface-raised)]"
-                              }`}
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
-                    <div>
-                      <strong>Ukończone kroki:</strong>{" "}
-                      {row.completed_titles.join(", ") || "Brak"}
-                    </div>
-                    <div>
-                      <strong>Wykonane porównanie:</strong>{" "}
-                      {row.comparison_slugs.length >= 2 ? (
-                        <Link
-                          href="/compare"
-                          onClick={() => setCompareSlugs(row.comparison_slugs)}
-                          className="font-semibold text-[var(--color-accent-text)] underline"
-                        >
-                          {row.comparison_slugs.join(" vs ")} →
-                        </Link>
-                      ) : (
-                        <span className="text-[var(--color-text-muted)]">
-                          Brak porównania (wybrano bezpośrednio)
-                        </span>
-                      )}
-                    </div>
-                  </div>
-
-                  {row.user_reported_issues || row.step_notes.length > 0 ? (
-                    <div className="space-y-1 rounded-lg border border-[var(--color-warn-border)] bg-[var(--color-warn-bg)] p-3 text-xs text-[var(--color-warn-text)]">
-                      {row.user_reported_issues ? (
-                        <div>
-                          <strong>Zgłoszone braki/problemy:</strong> {row.user_reported_issues}
+              {displayedActivity.map((row) => {
+                const isCompletedTransfer =
+                  row.adopter_deployment_status === "deployed" ||
+                  row.pci_transfer_status === "deployment_confirmed" ||
+                  row.pci_transfer_status === "effect_verified";
+                return (
+                  <article
+                    key={row.plan_id}
+                    className="space-y-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 text-sm"
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge tone="info" size="compact">
+                            {PLAN_VARIANT_LABELS[row.variant]}
+                          </Badge>
+                          <Badge
+                            tone={isCompletedTransfer ? "success" : "neutral"}
+                            size="compact"
+                          >
+                            {isCompletedTransfer
+                              ? "Sukces · Zakończone wdrożenie"
+                              : ADOPTER_DEPLOYMENT_STATUS_LABELS[
+                                  row.adopter_deployment_status
+                                ]}
+                          </Badge>
+                          <Badge tone="neutral" variant="outline" size="compact">
+                            {PCI_TRANSFER_STATUS_LABELS[row.pci_transfer_status]}
+                          </Badge>
                         </div>
-                      ) : null}
-                      {row.step_notes.length > 0 ? (
-                        <div>
-                          <strong>Notatki użytkownika:</strong> {row.step_notes.join(" | ")}
+                        <h2 className="text-lg font-bold text-[var(--color-text)]">
+                          {row.organization_name} ↔ {row.source_organization_name} ·{" "}
+                          <Link
+                            href={`/innovations/${row.innovation_slug}`}
+                            className="text-[var(--color-accent-text)] hover:underline"
+                          >
+                            {row.innovation_title}
+                          </Link>
+                        </h2>
+                        <p className="text-xs text-[var(--color-text-muted)]">
+                          {row.user_name} ({row.user_email}) ·{" "}
+                          {ORG_TYPE_LABELS[row.organization_type as OrgType] ??
+                            row.organization_type}{" "}
+                          · {row.deployment_location || "brak lokalizacji"}
+                        </p>
+                      </div>
+
+                      <div className="text-right text-xs">
+                        <div className="font-mono font-bold">
+                          Etap {row.current_phase}/5 · Ukończono {row.completed_steps_count}/
+                          {row.total_steps_count}
                         </div>
-                      ) : null}
+                        <div className="mt-1.5 flex justify-end gap-1" aria-hidden="true">
+                          {[1, 2, 3, 4, 5].map((phase) => {
+                            const done = phase <= row.completed_steps_count;
+                            const current = phase === row.current_phase && !done;
+                            return (
+                              <span
+                                key={phase}
+                                className={`h-2 w-7 rounded-full ${
+                                  done
+                                    ? "bg-[var(--color-success-badge)]"
+                                    : current
+                                      ? "bg-[var(--color-accent)]"
+                                      : "bg-[var(--color-surface-raised)]"
+                                }`}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
                     </div>
-                  ) : null}
-                </article>
-              ))}
+
+                    <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
+                      <div>
+                        <strong>Ukończone kroki:</strong>{" "}
+                        {row.completed_titles.join(", ") || "Brak"}
+                      </div>
+                      <div>
+                        <strong>Wykonane porównanie:</strong>{" "}
+                        {row.comparison_slugs.length >= 2 ? (
+                          <Link
+                            href="/compare"
+                            onClick={() => setCompareSlugs(row.comparison_slugs)}
+                            className="font-semibold text-[var(--color-accent-text)] underline"
+                          >
+                            {row.comparison_slugs.join(" vs ")} →
+                          </Link>
+                        ) : (
+                          <span className="text-[var(--color-text-muted)]">
+                            Brak porównania (wybrano bezpośrednio)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {row.outcome_summary ||
+                    row.outcome_attachment_url ||
+                    row.metric_before ||
+                    row.metric_after ||
+                    row.reached_beneficiaries_count !== null ? (
+                      <div className="space-y-1 rounded-lg border border-[var(--color-success-border)] bg-[var(--color-success-bg)] p-3 text-xs text-[var(--color-success-text)]">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <strong>Rezultaty wdrożenia:</strong>
+                          {row.reached_beneficiaries_count !== null ? (
+                            <span className="font-mono">
+                              Odbiorcy: {row.reached_beneficiaries_count}
+                            </span>
+                          ) : null}
+                          {row.metric_before || row.metric_after ? (
+                            <span className="font-mono">
+                              Miernik: {row.metric_before || "—"} →{" "}
+                              {row.metric_after || "—"}
+                            </span>
+                          ) : null}
+                          {row.outcome_attachment_url ? (
+                            <a
+                              href={row.outcome_attachment_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-bold underline"
+                            >
+                              Pobierz załącznik ({row.outcome_attachment_name}) ↗
+                            </a>
+                          ) : null}
+                        </div>
+                        {row.outcome_summary ? <p className="m-0">{row.outcome_summary}</p> : null}
+                      </div>
+                    ) : null}
+
+                    {row.user_reported_issues || row.step_notes.length > 0 ? (
+                      <div className="space-y-1 rounded-lg border border-[var(--color-warn-border)] bg-[var(--color-warn-bg)] p-3 text-xs text-[var(--color-warn-text)]">
+                        {row.user_reported_issues ? (
+                          <div>
+                            <strong>Zgłoszone braki/problemy:</strong>{" "}
+                            {row.user_reported_issues}
+                          </div>
+                        ) : null}
+                        {row.step_notes.length > 0 ? (
+                          <div>
+                            <strong>Notatki użytkownika:</strong> {row.step_notes.join(" | ")}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
+                  </article>
+                );
+              })}
             </section>
           ) : null}
         </div>

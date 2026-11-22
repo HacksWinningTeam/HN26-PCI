@@ -5,6 +5,7 @@ import type {
   EvidenceKind,
   InnovationCharacter,
   OrgType,
+  OutcomeVisibility,
   PciTransferStatus,
   PlanVariant,
   PrimaryArea,
@@ -177,8 +178,16 @@ export interface ImplementationPlan {
   adopter_deployment_status: AdopterDeploymentStatus;
   deployment_started_on: string | null;
   reached_beneficiaries_count: number | null;
+  metric_before: string;
+  metric_after: string;
   outcome_summary: string;
+  outcome_visibility: OutcomeVisibility;
   evidence_url: string;
+  outcome_attachment_name: string;
+  outcome_attachment_content_type: string;
+  outcome_attachment_size: number | null;
+  outcome_attachment_uploaded_at: string | null;
+  outcome_attachment_url: string;
   deployment_reported_at: string | null;
   pci_transfer_status: PciTransferStatus;
   pci_transfer_note: string;
@@ -284,6 +293,7 @@ export interface AdminImplementationOverview {
   organization_name: string;
   organization_type: string;
   deployment_location: string;
+  source_organization_name: string;
   innovation_slug: string;
   innovation_title: string;
   comparison_slugs: string[];
@@ -294,6 +304,14 @@ export interface AdminImplementationOverview {
   completed_titles: string[];
   user_reported_issues: string;
   step_notes: string[];
+  adopter_deployment_status: AdopterDeploymentStatus;
+  pci_transfer_status: PciTransferStatus;
+  reached_beneficiaries_count: number | null;
+  metric_before: string;
+  metric_after: string;
+  outcome_summary: string;
+  outcome_attachment_name: string;
+  outcome_attachment_url: string;
   updated_at: string;
 }
 
@@ -313,6 +331,7 @@ export interface AdminImpactTransfer {
   organization_name: string;
   organization_type: string;
   deployment_location: string;
+  source_organization_name: string;
   innovation_slug: string;
   innovation_title: string;
   primary_area: PrimaryArea;
@@ -326,8 +345,16 @@ export interface AdminImpactTransfer {
   adopter_deployment_status: AdopterDeploymentStatus;
   deployment_started_on: string | null;
   reached_beneficiaries_count: number | null;
+  metric_before: string;
+  metric_after: string;
   outcome_summary: string;
+  outcome_visibility: OutcomeVisibility;
   evidence_url: string;
+  outcome_attachment_name: string;
+  outcome_attachment_content_type: string;
+  outcome_attachment_size: number | null;
+  outcome_attachment_uploaded_at: string | null;
+  outcome_attachment_url: string;
   deployment_reported_at: string | null;
   pci_transfer_status: PciTransferStatus;
   pci_transfer_note: string;
@@ -487,13 +514,31 @@ export function updateImplementationPlanReport(
     adopter_deployment_status?: AdopterDeploymentStatus;
     deployment_started_on?: string | null;
     reached_beneficiaries_count?: number | null;
+    metric_before?: string;
+    metric_after?: string;
     outcome_summary?: string;
+    outcome_visibility?: OutcomeVisibility;
     evidence_url?: string;
   },
 ) {
   return apiRequest<ImplementationPlan>(`/api/implementation-plans/${id}/`, {
     method: "PATCH",
     body: JSON.stringify(payload),
+  });
+}
+
+export function uploadImplementationPlanAttachment(id: number, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return apiRequest<ImplementationPlan>(`/api/implementation-plans/${id}/attachment/`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export function deleteImplementationPlanAttachment(id: number) {
+  return apiRequest<ImplementationPlan>(`/api/implementation-plans/${id}/attachment/`, {
+    method: "DELETE",
   });
 }
 

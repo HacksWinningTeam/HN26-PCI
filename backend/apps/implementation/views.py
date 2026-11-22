@@ -1,9 +1,13 @@
+import os
+import re
+
 from django.http import HttpResponse
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -24,18 +28,35 @@ from .planner import (
     select_plan_variant,
     select_recommendation_path,
 )
-from .radar import build_impact_radar_payload, serialize_transfer_row
+from .radar import build_attachment_url, build_impact_radar_payload, serialize_transfer_row
 from .serializers import (
     AdminImpactRadarSerializer,
     AdminImpactTransferSerializer,
     AdminImplementationOverviewSerializer,
     AdminTransferVerifySerializer,
+    ImplementationAttachmentUploadSerializer,
     ImplementationPlanCreateSerializer,
     ImplementationPlanSerializer,
     ImplementationPlanUpdateSerializer,
     ImplementationStepSerializer,
     ImplementationStepUpdateSerializer,
 )
+
+MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
+ALLOWED_ATTACHMENT_EXTENSIONS = {
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".xls",
+    ".xlsx",
+    ".csv",
+    ".txt",
+    ".md",
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".webp",
+}
 
 
 class ImplementationPlanListCreateView(APIView):
@@ -162,7 +183,10 @@ class ImplementationPlanDetailView(APIView):
             "adopter_deployment_status",
             "deployment_started_on",
             "reached_beneficiaries_count",
+            "metric_before",
+            "metric_after",
             "outcome_summary",
+            "outcome_visibility",
             "evidence_url",
         )
         report_changed = False
@@ -229,6 +253,127 @@ class ImplementationStepUpdateView(APIView):
         return Response(ImplementationStepSerializer(step).data)
 
 
+class ImplementationPlanAttachmentView(APIView):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    @extend_schema(
+        tags=["Implementation"],
+        responses={(200, "application/octet-stream"): OpenApiTypes.BINARY},
+        summary="Download implementation results attachment (owner or PCI Admin)",
+    )
+    def get(self, request, pk: int):
+        plan = ImplementationPlan.objects.filter(pk=pk).first()
+        if not plan or not plan.outcome_attachment_data or not plan.outcome_attachment_name:
+            return Response(
+                {"detail": "Nie znaleziono załącznika."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        is_owner = plan.user_id == request.user.id
+        is_admin = IsPCIAdmin().has_permission(request, self)
+        if not is_owner and not is_admin:
+            return Response({"detail": "Brak dostępu."}, status=status.HTTP_403_FORBIDDEN)
+
+        safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", plan.outcome_attachment_name).strip("._")
+        if not safe_name:
+            safe_name = f"rezultaty-plan-{pk}"
+        resp = HttpResponse(
+            bytes(plan.outcome_attachment_data),
+            content_type=plan.outcome_attachment_content_type or "application/octet-stream",
+        )
+        resp["Content-Disposition"] = f'attachment; filename="{safe_name}"'
+        return resp
+
+    @extend_schema(
+        tags=["Implementation"],
+        request={"multipart/form-data": ImplementationAttachmentUploadSerializer},
+        responses={200: ImplementationPlanSerializer},
+        summary="Upload real deployment results attachment for a completed implementation",
+    )
+    def post(self, request, pk: int):
+        plan = (
+            ImplementationPlan.objects.filter(pk=pk, user=request.user)
+            .select_related("innovation")
+            .prefetch_related("steps", "innovation__sources", "innovation__evidences")
+            .first()
+        )
+        if not plan:
+            return Response({"detail": "Nie znaleziono planu."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = ImplementationAttachmentUploadSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        uploaded = serializer.validated_data["file"]
+
+        filename = os.path.basename(getattr(uploaded, "name", "") or "rezultaty")
+        _, ext = os.path.splitext(filename.lower())
+        if ext not in ALLOWED_ATTACHMENT_EXTENSIONS:
+            return Response(
+                {
+                    "detail": (
+                        "Nieobsługiwany format pliku. Dozwolone: PDF, DOC/DOCX, XLS/XLSX, "
+                        "CSV, TXT, MD, PNG, JPG, WEBP."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if uploaded.size > MAX_ATTACHMENT_BYTES:
+            return Response(
+                {"detail": "Maksymalny rozmiar załącznika to 10 MB."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        raw_bytes = uploaded.read()
+        now = timezone.now()
+        plan.outcome_attachment_name = filename[:255]
+        plan.outcome_attachment_content_type = (
+            getattr(uploaded, "content_type", "") or "application/octet-stream"
+        )[:120]
+        plan.outcome_attachment_size = len(raw_bytes)
+        plan.outcome_attachment_data = raw_bytes
+        plan.outcome_attachment_uploaded_at = now
+        plan.deployment_reported_at = now
+        if plan.pilot_started_at is None:
+            plan.pilot_started_at = now
+        if plan.pci_transfer_status == "needs_clarification":
+            plan.pci_transfer_status = "unverified"
+        plan.save()
+
+        return Response(ImplementationPlanSerializer(plan).data)
+
+    @extend_schema(
+        tags=["Implementation"],
+        responses={200: ImplementationPlanSerializer},
+        summary="Delete deployment results attachment",
+    )
+    def delete(self, request, pk: int):
+        plan = (
+            ImplementationPlan.objects.filter(pk=pk, user=request.user)
+            .select_related("innovation")
+            .prefetch_related("steps", "innovation__sources", "innovation__evidences")
+            .first()
+        )
+        if not plan:
+            return Response({"detail": "Nie znaleziono planu."}, status=status.HTTP_404_NOT_FOUND)
+
+        plan.outcome_attachment_name = ""
+        plan.outcome_attachment_content_type = ""
+        plan.outcome_attachment_size = None
+        plan.outcome_attachment_data = None
+        plan.outcome_attachment_uploaded_at = None
+        plan.save(
+            update_fields=[
+                "outcome_attachment_name",
+                "outcome_attachment_content_type",
+                "outcome_attachment_size",
+                "outcome_attachment_data",
+                "outcome_attachment_uploaded_at",
+                "updated_at",
+            ]
+        )
+        return Response(ImplementationPlanSerializer(plan).data)
+
+
 class AdminImplementationOverviewView(APIView):
     authentication_classes = [SessionAuthentication]
     permission_classes = [IsPCIAdmin]
@@ -259,6 +404,7 @@ class AdminImplementationOverviewView(APIView):
                     "organization_name": snap.get("organization_name") or "Niepodana",
                     "organization_type": snap.get("organization_type") or "",
                     "deployment_location": snap.get("deployment_location") or "",
+                    "source_organization_name": plan.innovation.organization_name,
                     "innovation_slug": plan.innovation.slug,
                     "innovation_title": plan.innovation.title_pl,
                     "comparison_slugs": plan.comparison_slugs or [],
@@ -272,6 +418,14 @@ class AdminImplementationOverviewView(APIView):
                     "step_notes": [
                         f"Faza {s.phase_number}: {s.notes}" for s in steps if s.notes.strip()
                     ],
+                    "adopter_deployment_status": plan.adopter_deployment_status,
+                    "pci_transfer_status": plan.pci_transfer_status,
+                    "reached_beneficiaries_count": plan.reached_beneficiaries_count,
+                    "metric_before": plan.metric_before,
+                    "metric_after": plan.metric_after,
+                    "outcome_summary": plan.outcome_summary,
+                    "outcome_attachment_name": plan.outcome_attachment_name,
+                    "outcome_attachment_url": build_attachment_url(plan),
                     "updated_at": plan.updated_at,
                 }
             )
