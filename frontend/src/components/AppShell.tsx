@@ -9,7 +9,6 @@ import { SkipToContentLink } from "@/components/SkipToContentLink";
 import {
   AppFooter,
   AppShellLayout,
-  Badge,
   CheckCircleIcon,
   CloseIcon,
   CompareIcon,
@@ -100,9 +99,6 @@ function ShellAuthButtons({
 
   return (
     <div className="flex items-center gap-2">
-      <Badge tone="neutral" size="compact">
-        Tryb publiczny
-      </Badge>
       <Link
         href={registerHref}
         className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2 text-xs font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"

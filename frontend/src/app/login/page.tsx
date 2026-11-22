@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { AuthShell } from "@/components/AuthShell";
 import { useSession } from "@/components/SessionProvider";
-import { ArrowRightIcon, Banner } from "@/components/ui";
+import { ArrowRightIcon, Banner, TextInput } from "@/components/ui";
 import { loginAccount } from "@/lib/radar-api";
 import { sanitizeNextUrl } from "@/lib/route-access";
 
@@ -73,43 +73,29 @@ function LoginFormInner() {
           }}
           className="space-y-4"
         >
-          <div>
-            <label
-              htmlFor="login-email"
-              className="mb-1.5 block text-xs font-semibold text-[var(--color-text)]"
-            >
-              Adres e-mail
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="imie@organizacja.pl"
-              className="min-h-11 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
-            />
-          </div>
+          <TextInput
+            id="login-email"
+            label="Adres e-mail"
+            type="email"
+            autoComplete="email"
+            required
+            disabled={loading}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="imie@organizacja.pl"
+          />
 
-          <div>
-            <label
-              htmlFor="login-pass"
-              className="mb-1.5 block text-xs font-semibold text-[var(--color-text)]"
-            >
-              Hasło
-            </label>
-            <input
-              id="login-pass"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Wpisz hasło"
-              className="min-h-11 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
-            />
-          </div>
+          <TextInput
+            id="login-pass"
+            label="Hasło"
+            type="password"
+            autoComplete="current-password"
+            required
+            disabled={loading}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Wpisz hasło"
+          />
 
           {error ? (
             <Banner tone="error" appearance="tinted" announcement="assertive">

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "@/components/SessionProvider";
+import { Banner, Button, TextInput } from "@/components/ui";
 import { createMatchNotification } from "@/lib/radar-api";
 
 export function NotifyMeBox({
@@ -37,47 +38,37 @@ export function NotifyMeBox({
 
   if (status === "saved") {
     return (
-      <p
-        role="status"
-        className="rounded-lg border border-[var(--color-success-border)] bg-[var(--color-success-bg)] p-3 text-sm font-semibold text-[var(--color-success-text)]"
-      >
+      <Banner tone="success" appearance="tinted" announcement="polite">
         Powiadomienie zapisane. Wyślemy wiadomość na{" "}
-        {auth.authenticated && auth.user ? auth.user.email : email}, gdy pojawią się pasujące innowacje.
-      </p>
+        <strong>{auth.authenticated && auth.user ? auth.user.email : email}</strong>, gdy pojawią się pasujące innowacje.
+      </Banner>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2">
+    <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
       {auth.authenticated && auth.user ? (
         <p className="text-xs text-[var(--color-text-muted)]">
           Powiadomienie zostanie wysłane na adres konta:{" "}
           <strong className="text-[var(--color-text)]">{auth.user.email}</strong>
         </p>
       ) : (
-        <div>
-          <label htmlFor="notify-email" className="mb-1 block text-xs font-semibold">
-            Adres e-mail
-          </label>
-          <input
-            id="notify-email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="twoj@email.pl"
-            className="min-h-11 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-          />
-        </div>
+        <TextInput
+          id="notify-email"
+          label="Adres e-mail"
+          type="email"
+          required
+          value={email}
+          disabled={status === "saving"}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="twoj@email.pl"
+          className="min-w-56 flex-1"
+        />
       )}
 
-      <button
-        type="submit"
-        disabled={status === "saving"}
-        className="min-h-11 cursor-pointer rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-[var(--color-on-accent)] disabled:opacity-60"
-      >
+      <Button type="submit" loading={status === "saving"}>
         {status === "saving" ? "Zapisywanie…" : "Powiadom mnie"}
-      </button>
+      </Button>
 
       {status === "error" ? (
         <p role="alert" className="w-full text-xs font-semibold text-[var(--color-error-text)]">

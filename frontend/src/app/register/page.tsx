@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { AuthShell } from "@/components/AuthShell";
 import { useSession } from "@/components/SessionProvider";
-import { ArrowRightIcon, Banner } from "@/components/ui";
+import { ArrowRightIcon, Banner, TextInput } from "@/components/ui";
 import { registerAccount } from "@/lib/radar-api";
 import { sanitizeNextUrl } from "@/lib/route-access";
 
@@ -70,62 +70,41 @@ function RegisterFormInner() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label
-              htmlFor="reg-fullname"
-              className="mb-1.5 block text-xs font-semibold text-[var(--color-text)]"
-            >
-              Imię i nazwisko
-            </label>
-            <input
-              id="reg-fullname"
-              autoComplete="name"
-              required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Jan Kowalski"
-              className="min-h-11 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
-            />
-          </div>
+          <TextInput
+            id="reg-fullname"
+            label="Imię i nazwisko"
+            autoComplete="name"
+            required
+            disabled={loading}
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Jan Kowalski"
+          />
 
-          <div>
-            <label
-              htmlFor="reg-email"
-              className="mb-1.5 block text-xs font-semibold text-[var(--color-text)]"
-            >
-              Adres e-mail
-            </label>
-            <input
-              id="reg-email"
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="imie@organizacja.pl"
-              className="min-h-11 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
-            />
-          </div>
+          <TextInput
+            id="reg-email"
+            label="Adres e-mail"
+            type="email"
+            autoComplete="email"
+            required
+            disabled={loading}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="imie@organizacja.pl"
+          />
 
-          <div>
-            <label
-              htmlFor="reg-password"
-              className="mb-1.5 block text-xs font-semibold text-[var(--color-text)]"
-            >
-              Hasło (min. 6 znaków)
-            </label>
-            <input
-              id="reg-password"
-              type="password"
-              autoComplete="new-password"
-              minLength={6}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimum 6 znaków"
-              className="min-h-11 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
-            />
-          </div>
+          <TextInput
+            id="reg-password"
+            label="Hasło (min. 6 znaków)"
+            type="password"
+            autoComplete="new-password"
+            minLength={6}
+            required
+            disabled={loading}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Minimum 6 znaków"
+          />
 
           {error ? (
             <Banner tone="error" appearance="tinted" announcement="assertive">
