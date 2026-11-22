@@ -40,6 +40,7 @@ Design-system refinement (`DEC-012`, `DEC-013`): sidebar stays left within a ful
 | `T03` | Unified innovation discovery · horizontal filters (DEC-015) | Frontend | Yes | — (existing endpoints) | `IN_PROGRESS` | [T03](tasks/T03-unified-discovery.md) |
 | `T04` | PCI admin cleanup · delivered subset retained; broader redesign cancelled (DEC-026) | Frontend | Yes | — (existing endpoints) | `CANCELLED` | [T04](tasks/T04-admin-cleanup.md) |
 | `T05` | Demo PCI login opens admin (DEC-019) | Frontend | No | — | `IN_PROGRESS` | [T05](tasks/T05-demo-pci-redirect.md) |
+| `T06` | Redesign innovation comparison screen (DEC-023) | Frontend | Yes | — (existing endpoints) | `VERIFIED` | [T06](tasks/T06-compare-redesign.md) |
 
 ## Milestone 2 — Core Features
 

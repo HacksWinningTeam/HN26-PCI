@@ -186,6 +186,34 @@
 - **Decision:** Replace `SimpleTable` with the existing `DataTable`. Enable sorting by innovation, status and verification date; text filters for innovation/origin and issues, a labeled status category filter, pagination, page-size and visible-column controls. Retain one shell search, existing quality-category filters, record priority as the unsorted default, and all row actions. Reset page when shell query/category changes; a whole-filter reset clears table state too. No row selection/bulk operations or detail drawer required for this bounded replacement. Existing API/model contracts and T04's pending broader cleanup design are unchanged. The user's correction explicitly authorizes this component/configuration change.
 - **Affected Docs & Tasks:** T04, `docs/05-plan.md`, `frontend/src/app/admin/page.tsx`. DEC-021 superseded; no changes to shared components or dependencies.
 
+### `DEC-023` — Innovation Comparison Screen Redesign Proposal (`/compare`)
+- **Date:** 2026-11-22 02:42
+- **Status:** Accepted (design proposal scope; awaits user approval before implementation)
+- **Context / New Info:** User requested bringing the final unpolished screen — `/compare` (`frontend/src/app/compare/page.tsx`) — up to the design system and accessibility quality of the rest of the application.
+- **Decision:** Create `T06` (`docs/tasks/T06-compare-redesign.md`) at `DESIGN_REVIEW` for a bounded frontend redesign of `/compare` reusing `@/components/ui` (`Dropdown`, `Button`, `Badge`, `StatusIndicator`, `Banner`, `CardSurface`, `Switch`, `LoadingState`, `EmptyState`, `ErrorState`) without backend/API changes or new global UI primitives. Add slot duplicate prevention, loading/error recovery, 40/20/20/20 match breakdown visibility, origin location, required resources, a „Tylko różnice” filter, and non-color leader badges (`CheckCircleIcon` + text). Implementation awaits explicit user approval of the UI design (`DESIGN_READY`).
+- **Affected Docs & Tasks:** `docs/05-plan.md`, new `docs/tasks/T06-compare-redesign.md`. No API, model, route, or shared primitive changes.
+
+### `DEC-024` — Simplify `/compare` Layout & Align with Praktoteka Visual Pattern
+- **Date:** 2026-11-22 02:48
+- **Status:** Accepted
+- **Context / New Info:** After reviewing the redesigned `/compare` screen, user noted it looked good overall, asked for it to be simpler ("ogolnie to jest spoko ale moze byc prosciej"), and aligned neatly with the rest of the Praktoteka application ("ma być ładnie, schludnie i praktotetycznie tak jak cała reszta aplikacji").
+- **Decision:** Combine the top summary/actions and the 3-slot `Dropdown` selector into one signature Praktoteka hero card (`rounded-2xl`, `BrandBlobSoftBlueIcon`, `BrandBlobLimeIcon`, `BrandScalesIcon` + `BrandLimeBurstIcon` tile, clean action buttons) matching `/workspace` and `/innovations`. Remove the extra „Tylko różnice” `Switch`/hidden-row badge, redundant clear buttons beside `Dropdown`s, table section-banner rows, `Wymagane zasoby` row, and mini progress bars in score cells. Keep the flat, rounded-2xl comparison matrix with area badges in column headers, `origin_location`, 40/20/20/20 match breakdown, `StatusIndicator`, and non-color `Najwyższy` score leader `Badge`.
+- **Affected Docs & Tasks:** `docs/tasks/T06-compare-redesign.md`, `frontend/src/app/compare/page.tsx`, `frontend/src/lib/compare-helpers.ts`, `frontend/src/lib/compare-helpers.test.mjs`. No API, model, route, or shared primitive changes.
+
+### `DEC-025` — Hide Unauthenticated Save CTA on `/compare`
+- **Date:** 2026-11-22 02:49
+- **Status:** Accepted
+- **Context / New Info:** User explicitly asked to remove the „Zaloguj się, aby zapisać” button from `/compare`.
+- **Decision:** Render the „Zapisz porównanie” action only when `auth.authenticated` is true, leaving CSV and PDF export actions for unauthenticated visitors (who still have login/register controls in the application header).
+- **Affected Docs & Tasks:** `frontend/src/app/compare/page.tsx`, `docs/tasks/T06-compare-redesign.md`. No API, model, or shared primitive changes.
+
+### `DEC-025` — Hide Unauthenticated Save CTA on `/compare`
+- **Date:** 2026-11-22 02:49
+- **Status:** Accepted
+- **Context / New Info:** User explicitly asked to remove the „Zaloguj się, aby zapisać” button from `/compare`.
+- **Decision:** Render the „Zapisz porównanie” action only when `auth.authenticated` is true, leaving CSV and PDF export actions for unauthenticated visitors (who still have login/register controls in the application header).
+- **Affected Docs & Tasks:** `frontend/src/app/compare/page.tsx`, `docs/tasks/T06-compare-redesign.md`. No API, model, or shared primitive changes.
+
 ### `DEC-026` — Close Admin Work and Save Local Checkpoint
 - **Date:** 2026-11-22 02:43
 - **Status:** Accepted
