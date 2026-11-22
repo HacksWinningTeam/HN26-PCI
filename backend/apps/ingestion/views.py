@@ -202,11 +202,34 @@ class AdminInnovationUpdateView(APIView):
         serializer = AdminInnovationPatchSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         changes: dict[str, dict[str, object]] = {}
+        provenance = dict(innovation.classification_provenance or {})
+        provenance_updated = False
         for field, value in serializer.validated_data.items():
             old_val = getattr(innovation, field)
             if old_val != value:
                 changes[field] = {"old": old_val, "new": value}
             setattr(innovation, field, value)
+            if field in {"deployment_level", "trl", "oslo_compliant"}:
+                next_prov = "unknown" if (field == "trl" and value is None) else "pci_verified"
+                if provenance.get(field) != next_prov:
+                    provenance[field] = next_prov
+                    provenance_updated = True
+        if provenance_updated and "classification_provenance" not in serializer.validated_data:
+            innovation.classification_provenance = provenance
+        if (
+            "oslo_compliant" in serializer.validated_data
+            and "oslo_assessment" not in serializer.validated_data
+        ):
+            oslo_val = bool(serializer.validated_data["oslo_compliant"])
+            oslo_data = dict(innovation.oslo_assessment or {})
+            oslo_data["status"] = "compliant" if oslo_val else "non_compliant"
+            oslo_data["method"] = "pci_verified"
+            oslo_data["compliant"] = oslo_val
+            if oslo_val:
+                oslo_data["limitations"] = [
+                    "Zgodność z Oslo Manual 2018 potwierdzona przez operatora PCI."
+                ]
+            innovation.oslo_assessment = oslo_data
         if serializer.validated_data.get("verification_status") == "verified":
             innovation.last_verified_at = timezone.localdate()
             if not innovation.verification_method:

@@ -58,6 +58,7 @@ import {
   BENEFICIARY_LABELS,
   CHARACTER_LABELS,
   DEPLOYMENT_LABELS,
+  getProvenanceMeta,
   ORG_TYPE_LABELS,
   PRIMARY_AREA_LABELS,
   SECTOR_LABELS,
@@ -413,23 +414,37 @@ function InnovationSearchInner({ initialQuery, initialProblemMode }: { initialQu
     {
       id: "readiness",
       label: "Gotowość / TRL",
-      minWidth: 165,
-      render: (item) => (
-        <div className="space-y-1 text-xs">
-          <div className="font-semibold text-[var(--color-text)]">
-            {DEPLOYMENT_LABELS[item.deployment_level]}
+      minWidth: 195,
+      render: (item) => {
+        const deploymentProv = getProvenanceMeta(
+          item.classification_provenance,
+          "deployment_level",
+        );
+        const trlProv = getProvenanceMeta(
+          item.classification_provenance,
+          "trl",
+          item.trl !== null,
+        );
+        return (
+          <div className="space-y-1 text-xs">
+            <div className="font-semibold text-[var(--color-text)]">
+              {DEPLOYMENT_LABELS[item.deployment_level]}
+            </div>
+            <div className="text-[11px] text-[var(--color-text-muted)]">
+              {deploymentProv.label}
+            </div>
+            <div>
+              {item.trl !== null ? (
+                <Badge tone={trlProv.tone} size="compact">
+                  TRL {item.trl}/9 · {trlProv.shortLabel}
+                </Badge>
+              ) : (
+                <span className="text-[var(--color-text-muted)]">TRL nie określono</span>
+              )}
+            </div>
           </div>
-          <div>
-            {item.trl !== null ? (
-              <Badge tone="neutral" size="compact">
-                TRL {item.trl}/9
-              </Badge>
-            ) : (
-              <span className="text-[var(--color-text-muted)]">TRL nie dotyczy</span>
-            )}
-          </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       id: "potential",

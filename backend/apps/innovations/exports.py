@@ -10,6 +10,19 @@ from typing import Any
 from .models import Innovation
 from .serializers import InnovationDetailSerializer
 
+PROVENANCE_EXPORT_LABELS = {
+    "source": "ze źródła",
+    "pci_verified": "potwierdzone przez PCI",
+    "rule_based": "szacunek regułowy",
+    "ai_suggested": "szacunek AI",
+    "unknown": "brak danych",
+}
+
+
+def _prov_label(provenance: dict[str, Any] | None, field: str) -> str:
+    val = (provenance or {}).get(field) or "unknown"
+    return PROVENANCE_EXPORT_LABELS.get(str(val), str(val))
+
 
 def build_innovation_export_dict(innovation: Innovation) -> dict[str, Any]:
     """Return public level-2 card payload safe for external export (no private contacts)."""
@@ -18,14 +31,25 @@ def build_innovation_export_dict(innovation: Innovation) -> dict[str, Any]:
 
 def render_innovation_markdown(innovation: Innovation) -> str:
     data = build_innovation_export_dict(innovation)
+    prov = data.get("classification_provenance") or {}
+    oslo = data.get("oslo_assessment") or {}
+    trl_val = f"TRL {data['trl']}/9" if data.get("trl") is not None else "nie określono"
+    oslo_status = oslo.get("status") or (
+        "compliant" if data.get("oslo_compliant") else "needs_verification"
+    )
     lines = [
         f"# {data['title_pl']}",
         "",
         f"**Organizacja:** {data['organization_name']} ({data['origin_location']})",
         (
             f"**Obszar:** {data['primary_area']} | "
-            f"**Poziom wdrożenia:** {data['deployment_level']} | "
-            f"**TRL:** {data.get('trl') or 'nd.'}"
+            f"**Poziom wdrożenia:** {data['deployment_level']} "
+            f"({_prov_label(prov, 'deployment_level')}) | "
+            f"**TRL:** {trl_val} ({_prov_label(prov, 'trl')})"
+        ),
+        (
+            f"**Zgodność z Oslo Manual 2018:** {oslo_status} "
+            f"({_prov_label(prov, 'oslo_compliant')})"
         ),
         (
             f"**Status weryfikacji:** {data['verification_status']} "
@@ -69,6 +93,7 @@ def render_innovation_markdown(innovation: Innovation) -> str:
 
 def render_innovation_csv(innovation: Innovation) -> str:
     data = build_innovation_export_dict(innovation)
+    prov = data.get("classification_provenance") or {}
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow(
@@ -84,7 +109,11 @@ def render_innovation_csv(innovation: Innovation) -> str:
             "organization_name",
             "origin_location",
             "deployment_level",
+            "deployment_level_provenance",
             "trl",
+            "trl_provenance",
+            "oslo_compliant",
+            "oslo_status",
             "verification_status",
             "last_verified_at",
             "sources",
@@ -107,7 +136,11 @@ def render_innovation_csv(innovation: Innovation) -> str:
             data["organization_name"],
             data["origin_location"],
             data["deployment_level"],
-            data.get("trl") or "",
+            _prov_label(prov, "deployment_level"),
+            data.get("trl") if data.get("trl") is not None else "",
+            _prov_label(prov, "trl"),
+            data.get("oslo_compliant", False),
+            (data.get("oslo_assessment") or {}).get("status", ""),
             data["verification_status"],
             data["last_verified_at"],
             "; ".join(src["url"] for src in data.get("sources", [])),

@@ -67,7 +67,11 @@ import {
   CHARACTER_LABELS,
   DEPLOYMENT_LABELS,
   EVIDENCE_KIND_LABELS,
+  getOsloDisplay,
+  getProvenanceMeta,
   ORG_TYPE_LABELS,
+  OSLO_CRITERION_LABELS,
+  OSLO_CRITERION_TONE,
   PLAN_VARIANT_LABELS,
   PRIMARY_AREA_LABELS,
   SECTOR_LABELS,
@@ -497,6 +501,20 @@ function InnovationDetailInner() {
     detail.deployment_level,
     detail.trl,
   );
+  const deploymentProv = getProvenanceMeta(
+    detail.classification_provenance,
+    "deployment_level",
+  );
+  const trlProv = getProvenanceMeta(
+    detail.classification_provenance,
+    "trl",
+    detail.trl !== null,
+  );
+  const osloDisplay = getOsloDisplay(
+    detail.oslo_compliant,
+    detail.oslo_assessment,
+    detail.classification_provenance,
+  );
 
   return (
     <div className="space-y-6">
@@ -522,11 +540,9 @@ function InnovationDetailInner() {
                 </Badge>
               }
               bottomLeft={
-                detail.oslo_compliant ? (
-                  <Badge tone="neutral" size="compact">
-                    Zgodność z metodologią Oslo
-                  </Badge>
-                ) : null
+                <Badge tone={osloDisplay.tone} size="compact">
+                  {osloDisplay.badgeLabel}
+                </Badge>
               }
             />
           </div>
@@ -541,9 +557,13 @@ function InnovationDetailInner() {
                   {CHARACTER_LABELS[c]}
                 </Badge>
               ))}
-              <Badge tone="neutral">
-                {DEPLOYMENT_LABELS[detail.deployment_level]}
-                {detail.trl !== null ? ` · TRL ${detail.trl}/9` : " · TRL nie dotyczy"}
+              <Badge tone={deploymentProv.tone}>
+                {DEPLOYMENT_LABELS[detail.deployment_level]} · {deploymentProv.shortLabel}
+              </Badge>
+              <Badge tone={trlProv.tone}>
+                {detail.trl !== null
+                  ? `TRL ${detail.trl}/9 · ${trlProv.shortLabel}`
+                  : "TRL nie określono"}
               </Badge>
             </div>
 
@@ -701,8 +721,14 @@ function InnovationDetailInner() {
             <div className="mt-0.5 truncate text-base font-bold text-[var(--color-text)]">
               {DEPLOYMENT_LABELS[detail.deployment_level]}
             </div>
-            <div className="text-[11px] text-[var(--color-text-muted)]">
-              {detail.trl !== null ? `TRL ${detail.trl}/9` : "TRL nie dotyczy"}
+            <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-[var(--color-text-muted)]">
+              <span>{deploymentProv.label}</span>
+              <span aria-hidden="true">·</span>
+              <span>
+                {detail.trl !== null
+                  ? `TRL ${detail.trl}/9 (${trlProv.label})`
+                  : "TRL nie określono (brak w źródle)"}
+              </span>
             </div>
           </div>
         </div>
@@ -986,6 +1012,61 @@ function InnovationDetailInner() {
                 },
               ]}
             />
+
+            <div className="space-y-3 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-base font-bold text-[var(--color-text)]">
+                  Ocena zgodności z Oslo Manual 2018
+                </h3>
+                <Badge tone={osloDisplay.tone} size="compact">
+                  {osloDisplay.badgeLabel}
+                </Badge>
+              </div>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                Metoda: <strong className="text-[var(--color-text)]">{osloDisplay.methodLabel}</strong>
+              </p>
+              <div className="space-y-2.5 border-t border-[var(--color-border-subtle)] pt-3 text-xs">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold text-[var(--color-text)]">
+                      1. Nowość lub istotne ulepszenie
+                    </span>
+                    <Badge tone={OSLO_CRITERION_TONE[osloDisplay.noveltyStatus]} size="compact">
+                      {OSLO_CRITERION_LABELS[osloDisplay.noveltyStatus]}
+                    </Badge>
+                  </div>
+                  <p className="leading-relaxed text-[var(--color-text-muted)]">
+                    {osloDisplay.noveltyReason}
+                  </p>
+                  {osloDisplay.noveltyExcerpt ? (
+                    <blockquote className="border-l-2 border-[var(--color-border)] pl-2.5 text-[11px] italic text-[var(--color-text-muted)]">
+                      „{osloDisplay.noveltyExcerpt}”
+                    </blockquote>
+                  ) : null}
+                </div>
+                <div className="space-y-1 border-t border-[var(--color-border-subtle)] pt-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-semibold text-[var(--color-text)]">
+                      2. Udostępnienie użytkownikom lub wdrożenie
+                    </span>
+                    <Badge
+                      tone={OSLO_CRITERION_TONE[osloDisplay.availabilityStatus]}
+                      size="compact"
+                    >
+                      {OSLO_CRITERION_LABELS[osloDisplay.availabilityStatus]}
+                    </Badge>
+                  </div>
+                  <p className="leading-relaxed text-[var(--color-text-muted)]">
+                    {osloDisplay.availabilityReason}
+                  </p>
+                </div>
+              </div>
+              {osloDisplay.limitations.length > 0 ? (
+                <p className="border-t border-[var(--color-border-subtle)] pt-2.5 text-[11px] leading-relaxed text-[var(--color-text-muted)]">
+                  Ograniczenie: {osloDisplay.limitations.join(" ")}
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <div className="space-y-3 lg:col-span-7">

@@ -9,6 +9,8 @@ import {
   CHARACTER_LABELS,
   DEPLOYMENT_LABELS,
   EVIDENCE_KIND_LABELS,
+  getOsloDisplay,
+  getProvenanceMeta,
   PLAN_VARIANT_LABELS,
   PRIMARY_AREA_LABELS,
   SECTOR_LABELS,
@@ -105,11 +107,24 @@ export function formatInnovationCardCsv(
     ],
     ["Autor / Organizacja", detail.organization_name, "Fakt potwierdzony"],
     ["Lokalizacja pochodzenia", detail.origin_location, "Fakt potwierdzony"],
-    ["Poziom wdrożenia", DEPLOYMENT_LABELS[detail.deployment_level], "Obliczenie systemu"],
+    [
+      "Poziom wdrożenia",
+      DEPLOYMENT_LABELS[detail.deployment_level],
+      getProvenanceMeta(detail.classification_provenance, "deployment_level").label,
+    ],
     [
       "TRL",
-      detail.trl !== null ? `${detail.trl}/9` : "Nie dotyczy",
-      "Obliczenie systemu",
+      detail.trl !== null ? `${detail.trl}/9` : "Nie określono",
+      getProvenanceMeta(detail.classification_provenance, "trl", detail.trl !== null).label,
+    ],
+    [
+      "Zgodność z Oslo Manual 2018",
+      getOsloDisplay(
+        detail.oslo_compliant,
+        detail.oslo_assessment,
+        detail.classification_provenance,
+      ).badgeLabel,
+      getProvenanceMeta(detail.classification_provenance, "oslo_compliant").label,
     ],
     ["Status weryfikacji", VERIFICATION_LABELS[detail.verification_status], detail.verification_method],
     ["Data pozyskania", detail.fetched_at, "Obliczenie systemu"],
@@ -162,7 +177,14 @@ export function formatComparisonCsv(
       ),
     ],
     ["Poziom wdrożenia", ...details.map((d) => DEPLOYMENT_LABELS[d.deployment_level])],
-    ["TRL", ...details.map((d) => (d.trl !== null ? `TRL ${d.trl}/9` : "Nie dotyczy"))],
+    [
+      "TRL",
+      ...details.map((d) =>
+        d.trl !== null
+          ? `TRL ${d.trl}/9 (${getProvenanceMeta(d.classification_provenance, "trl").shortLabel})`
+          : "Nie określono",
+      ),
+    ],
     [
       "Zgodność z potrzebą użytkownika",
       ...details.map((d) => {

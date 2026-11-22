@@ -47,6 +47,7 @@ import {
   BENEFICIARY_LABELS,
   CHARACTER_LABELS,
   DEPLOYMENT_LABELS,
+  getProvenanceMeta,
   PRIMARY_AREA_LABELS,
   SECTOR_LABELS,
   VERIFICATION_LABELS,
@@ -350,20 +351,40 @@ export default function ComparePage() {
       {
         id: "deployment",
         label: "Poziom wdrożenia",
-        renderCell: (d) => (
-          <Badge tone="neutral" variant="soft" size="compact">
-            {DEPLOYMENT_LABELS[d.deployment_level]}
-          </Badge>
-        ),
+        renderCell: (d) => {
+          const prov = getProvenanceMeta(d.classification_provenance, "deployment_level");
+          return (
+            <div className="space-y-1">
+              <Badge tone="neutral" variant="soft" size="compact">
+                {DEPLOYMENT_LABELS[d.deployment_level]}
+              </Badge>
+              <div className="text-[11px] font-medium text-[var(--color-text-muted)]">
+                {prov.label}
+              </div>
+            </div>
+          );
+        },
       },
       {
         id: "trl",
         label: "TRL",
-        renderCell: (d) => (
-          <span className="font-mono font-semibold tabular-nums text-[var(--color-text)]">
-            {d.trl !== null ? `TRL ${d.trl}/9` : "Nie dotyczy"}
-          </span>
-        ),
+        renderCell: (d) => {
+          const trlProv = getProvenanceMeta(
+            d.classification_provenance,
+            "trl",
+            d.trl !== null,
+          );
+          return (
+            <div className="space-y-1">
+              <span className="block font-mono font-semibold tabular-nums text-[var(--color-text)]">
+                {d.trl !== null ? `TRL ${d.trl}/9` : "Nie określono"}
+              </span>
+              <Badge tone={trlProv.tone} size="compact">
+                {trlProv.label}
+              </Badge>
+            </div>
+          );
+        },
       },
       {
         id: "match",

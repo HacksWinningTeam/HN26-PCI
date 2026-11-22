@@ -155,6 +155,16 @@ class AdminInnovationPatchSerializer(serializers.Serializer):
         choices=Innovation.PATENT_STATUS_CHOICES,
         required=False,
     )
+    deployment_level = serializers.ChoiceField(
+        choices=Innovation.DEPLOYMENT_LEVEL_CHOICES,
+        required=False,
+    )
+    trl = serializers.IntegerField(
+        min_value=1,
+        max_value=9,
+        required=False,
+        allow_null=True,
+    )
     oslo_compliant = serializers.BooleanField(required=False)
     oslo_assessment = serializers.DictField(required=False)
     classification_provenance = serializers.DictField(required=False)

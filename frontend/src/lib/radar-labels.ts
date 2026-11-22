@@ -104,3 +104,182 @@ export const STEP_STATUS_LABELS: Record<StepStatus, string> = {
   in_progress: "Rozpoczęty",
   completed: "Ukończony",
 };
+
+export type ClassificationProvenance =
+  | "pci_verified"
+  | "source"
+  | "rule_based"
+  | "ai_suggested"
+  | "unknown";
+
+export const PROVENANCE_LABELS: Record<ClassificationProvenance, string> = {
+  pci_verified: "Potwierdzone przez PCI",
+  source: "Ze źródła",
+  rule_based: "Szacunek regułowy",
+  ai_suggested: "Szacunek AI",
+  unknown: "Brak danych",
+};
+
+export const PROVENANCE_SHORT_LABELS: Record<ClassificationProvenance, string> = {
+  pci_verified: "Fakt PCI",
+  source: "Źródło",
+  rule_based: "Szacunek: reguły",
+  ai_suggested: "Szacunek: AI",
+  unknown: "Brak danych",
+};
+
+export const PROVENANCE_TONE: Record<
+  ClassificationProvenance,
+  "success" | "info" | "warning" | "neutral"
+> = {
+  pci_verified: "success",
+  source: "info",
+  rule_based: "warning",
+  ai_suggested: "warning",
+  unknown: "neutral",
+};
+
+export type OsloStatus = "compliant" | "partial" | "needs_verification" | "non_compliant";
+export type OsloCriterionStatus = "met" | "partial" | "unknown" | "not_met";
+
+export const OSLO_CRITERION_LABELS: Record<OsloCriterionStatus, string> = {
+  met: "Spełnione",
+  partial: "Częściowe",
+  unknown: "Nieustalone",
+  not_met: "Niespełnione",
+};
+
+export const OSLO_CRITERION_TONE: Record<
+  OsloCriterionStatus,
+  "success" | "warning" | "neutral" | "error"
+> = {
+  met: "success",
+  partial: "warning",
+  unknown: "neutral",
+  not_met: "error",
+};
+
+export function getProvenanceMeta(
+  provenance: Record<string, string> | undefined,
+  field: string,
+  hasValue = true,
+) {
+  const raw = provenance?.[field];
+  const key: ClassificationProvenance =
+    !hasValue
+      ? "unknown"
+      : raw === "pci_verified" ||
+          raw === "source" ||
+          raw === "rule_based" ||
+          raw === "ai_suggested" ||
+          raw === "unknown"
+        ? raw
+        : "rule_based";
+  return {
+    key,
+    label: PROVENANCE_LABELS[key],
+    shortLabel: PROVENANCE_SHORT_LABELS[key],
+    tone: PROVENANCE_TONE[key],
+    isFact: key === "pci_verified" || key === "source",
+  };
+}
+
+export interface OsloAssessmentInput {
+  status?: string;
+  method?: string;
+  compliant?: boolean;
+  novelty_status?: string;
+  novelty_reason?: string;
+  novelty_excerpt?: string;
+  availability_status?: string;
+  availability_reason?: string;
+  novelty?: string;
+  implementation_or_availability?: string;
+  limitations?: string[];
+}
+
+function normalizeCriterionStatus(raw: string | undefined): OsloCriterionStatus {
+  if (raw === "met" || raw === "partial" || raw === "unknown" || raw === "not_met") {
+    return raw;
+  }
+  return "unknown";
+}
+
+export function getOsloDisplay(
+  osloCompliant: boolean | undefined,
+  osloAssessment: OsloAssessmentInput | undefined,
+  provenance?: Record<string, string>,
+) {
+  const method = osloAssessment?.method;
+  const provKey = provenance?.oslo_compliant;
+  const isPciVerified = method === "pci_verified" || provKey === "pci_verified";
+
+  let status: OsloStatus;
+  if (
+    osloAssessment?.status === "compliant" ||
+    osloAssessment?.status === "partial" ||
+    osloAssessment?.status === "needs_verification" ||
+    osloAssessment?.status === "non_compliant"
+  ) {
+    status = osloAssessment.status;
+  } else if (osloCompliant && isPciVerified) {
+    status = "compliant";
+  } else if (osloCompliant && osloAssessment?.novelty && osloAssessment?.implementation_or_availability) {
+    status = "partial";
+  } else if (osloCompliant === false && method === "pci_verified") {
+    status = "non_compliant";
+  } else {
+    status = "needs_verification";
+  }
+
+  const badgeLabel =
+    status === "compliant" && isPciVerified
+      ? "Oslo 2018: potwierdzone przez PCI"
+      : status === "compliant"
+        ? "Oslo 2018: wstępnie spełnione (szacunek)"
+        : status === "partial"
+          ? "Oslo 2018: spełnione częściowo"
+          : status === "non_compliant"
+            ? "Oslo 2018: niespełnione"
+            : "Oslo 2018: wymaga weryfikacji";
+
+  const tone: "success" | "info" | "warning" | "neutral" =
+    status === "compliant" && isPciVerified
+      ? "success"
+      : status === "compliant"
+        ? "info"
+        : status === "partial" || status === "needs_verification"
+          ? "warning"
+          : "neutral";
+
+  const methodLabel =
+    isPciVerified
+      ? "Potwierdzone przez PCI"
+      : method === "ai_estimate" || provKey === "ai_suggested"
+        ? "Szacunek AI"
+        : "Klasyfikacja regułowa";
+
+  return {
+    status,
+    badgeLabel,
+    tone,
+    methodLabel,
+    noveltyStatus: normalizeCriterionStatus(osloAssessment?.novelty_status),
+    noveltyReason:
+      osloAssessment?.novelty_reason ||
+      osloAssessment?.novelty ||
+      "Brak szczegółowego uzasadnienia nowości lub ulepszenia w źródle.",
+    noveltyExcerpt: osloAssessment?.novelty_excerpt || "",
+    availabilityStatus: normalizeCriterionStatus(osloAssessment?.availability_status),
+    availabilityReason:
+      osloAssessment?.availability_reason ||
+      osloAssessment?.implementation_or_availability ||
+      "Brak potwierdzenia udostępnienia użytkownikom lub wdrożenia w praktyce.",
+    limitations:
+      osloAssessment?.limitations && osloAssessment.limitations.length > 0
+        ? osloAssessment.limitations
+        : [
+            "Zgodność z Oslo Manual 2018 wymaga jednoczesnego potwierdzenia nowości/ulepszenia oraz udostępnienia lub wdrożenia.",
+          ],
+  };
+}

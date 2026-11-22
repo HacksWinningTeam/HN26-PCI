@@ -51,6 +51,7 @@ export interface InnovationSummary {
   origin_location: string;
   deployment_level: DeploymentLevel;
   trl: number | null;
+  classification_provenance?: Record<string, string>;
   verification_status: VerificationStatus;
   last_verified_at: string;
   updated_at: string;
@@ -59,10 +60,26 @@ export interface InnovationSummary {
   suggested_next_step: string;
 }
 
+export interface OsloAssessment {
+  status?: "compliant" | "partial" | "needs_verification" | "non_compliant";
+  method?: "ai_estimate" | "rule_based" | "pci_verified";
+  compliant?: boolean;
+  novelty_status?: string;
+  novelty_reason?: string;
+  novelty_excerpt?: string;
+  availability_status?: string;
+  availability_reason?: string;
+  novelty?: string;
+  implementation_or_availability?: string;
+  value_rationale?: string;
+  limitations?: string[];
+}
+
 export interface InnovationDetail extends InnovationSummary {
   solution_pl: string;
   solution_en: string;
   oslo_compliant: boolean;
+  oslo_assessment?: OsloAssessment;
   verification_method: string;
   fetched_at: string;
   strengths: string[];
@@ -181,6 +198,9 @@ export interface AdminInnovationItem {
   primary_area: PrimaryArea;
   deployment_level: DeploymentLevel;
   trl: number | null;
+  oslo_compliant?: boolean;
+  oslo_assessment?: OsloAssessment;
+  classification_provenance?: Record<string, string>;
   verification_status: VerificationStatus;
   verification_method: string;
   last_verified_at: string;

@@ -40,6 +40,8 @@ const {
   ORG_TYPE_LABELS,
   PLAN_VARIANT_LABELS,
   PRIMARY_AREA_LABELS,
+  getOsloDisplay,
+  getProvenanceMeta,
 } = require("./radar-labels.ts");
 
 test("taxonomy labels match the 13-point domain specification", () => {
@@ -59,4 +61,26 @@ test("taxonomy labels match the 13-point domain specification", () => {
   assert.equal(Object.keys(ORG_TYPE_LABELS).length, 7);
   assert.equal(Object.keys(PLAN_VARIANT_LABELS).length, 3);
   assert.equal(Object.keys(EVIDENCE_KIND_LABELS).length, 5);
+});
+
+test("getProvenanceMeta distinguishes facts from estimates and unknown TRL", () => {
+  assert.equal(getProvenanceMeta({ trl: "pci_verified" }, "trl").label, "Potwierdzone przez PCI");
+  assert.equal(getProvenanceMeta({ trl: "pci_verified" }, "trl").isFact, true);
+  assert.equal(getProvenanceMeta({ trl: "ai_suggested" }, "trl").shortLabel, "Szacunek: AI");
+  assert.equal(getProvenanceMeta({ trl: "ai_suggested" }, "trl").isFact, false);
+  assert.equal(getProvenanceMeta({ trl: "rule_based" }, "trl", false).key, "unknown");
+});
+
+test("getOsloDisplay avoids overclaiming compliance when assessment is partial or unverified", () => {
+  const legacy = getOsloDisplay(true, undefined, { oslo_compliant: "rule_based" });
+  assert.equal(legacy.status, "needs_verification");
+  assert.match(legacy.badgeLabel, /wymaga weryfikacji/);
+
+  const pci = getOsloDisplay(
+    true,
+    { status: "compliant", method: "pci_verified" },
+    { oslo_compliant: "pci_verified" },
+  );
+  assert.equal(pci.status, "compliant");
+  assert.equal(pci.badgeLabel, "Oslo 2018: potwierdzone przez PCI");
 });

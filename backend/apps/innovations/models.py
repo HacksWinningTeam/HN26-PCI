@@ -69,7 +69,7 @@ class Innovation(models.Model):
 
     deployment_level = models.CharField(max_length=32, choices=DEPLOYMENT_LEVEL_CHOICES)
     trl = models.PositiveSmallIntegerField(null=True, blank=True)
-    oslo_compliant = models.BooleanField(default=True)
+    oslo_compliant = models.BooleanField(default=False)
     oslo_assessment = models.JSONField(default=dict)
     classification_provenance = models.JSONField(default=dict)
     radar_user_types = models.JSONField(default=list)

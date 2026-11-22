@@ -26,6 +26,7 @@ import {
   BENEFICIARY_LABELS,
   CHARACTER_LABELS,
   DEPLOYMENT_LABELS,
+  getProvenanceMeta,
   PRIMARY_AREA_LABELS,
   SECTOR_LABELS,
   VERIFICATION_LABELS,
@@ -101,6 +102,16 @@ export function InnovationCardCompact({
     }
   }
 
+  const deploymentProv = getProvenanceMeta(
+    innovation.classification_provenance,
+    "deployment_level",
+  );
+  const trlProv = getProvenanceMeta(
+    innovation.classification_provenance,
+    "trl",
+    innovation.trl !== null,
+  );
+
   const favoriteLabel = !auth.authenticated
     ? `Zaloguj się, aby dodać do ulubionych: ${innovation.title_pl}`
     : saved
@@ -169,8 +180,8 @@ export function InnovationCardCompact({
                 </Badge>
               ))}
               {innovation.trl !== null ? (
-                <Badge tone="neutral" size="compact">
-                  TRL {innovation.trl}/9
+                <Badge tone={trlProv.tone} size="compact">
+                  TRL {innovation.trl}/9 · {trlProv.shortLabel}
                 </Badge>
               ) : null}
             </div>
@@ -218,8 +229,13 @@ export function InnovationCardCompact({
               </div>
               <div>
                 <dt className="text-[var(--color-text-muted)]">Gotowość</dt>
-                <dd className="truncate font-semibold text-[var(--color-text)]">
-                  {DEPLOYMENT_LABELS[innovation.deployment_level]}
+                <dd className="font-semibold text-[var(--color-text)]">
+                  <span className="block truncate">
+                    {DEPLOYMENT_LABELS[innovation.deployment_level]}
+                  </span>
+                  <span className="block text-[11px] font-medium text-[var(--color-text-muted)]">
+                    {deploymentProv.label}
+                  </span>
                 </dd>
               </div>
               <div>

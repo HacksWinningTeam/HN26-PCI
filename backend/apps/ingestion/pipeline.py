@@ -13,6 +13,7 @@ from datetime import timedelta
 from typing import Any
 from urllib.parse import urlparse
 
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.text import slugify
 
@@ -116,30 +117,143 @@ def ingest_raw_record(
     if existing_source is not None:
         inv = existing_source.innovation
         conflicts = list(inv.conflicting_info or [])
+        old_prov = dict(inv.classification_provenance or {})
+        new_prov = dict(extracted.get("classification_provenance") or {})
+        other_sources_count = inv.sources.exclude(pk=existing_source.pk).count()
+        deployment_order = {
+            "concept": 1,
+            "prototype": 2,
+            "tests": 3,
+            "pilot": 4,
+            "deployed": 5,
+        }
         outcome = "updated"
-        if (
-            extracted["trl"] is not None
-            and inv.trl is not None
-            and extracted["trl"] != inv.trl
-        ):
-            conflict_msg = (
-                f"Źródło {record.registry} wskazuje TRL {extracted['trl']}, "
-                f"podczas gdy w rekordzie zapisano TRL {inv.trl}."
-            )
-            if conflict_msg not in conflicts:
-                conflicts.append(conflict_msg)
-            inv.verification_status = "conflict"
-            outcome = "conflict"
-
         changes: dict[str, Any] = {
             "source_content_hash": {"old": existing_source.content_hash, "new": new_hash}
         }
-        if extracted["short_summary_pl"] and extracted["short_summary_pl"] != inv.short_summary_pl:
-            changes["short_summary_pl"] = {
-                "old": inv.short_summary_pl,
-                "new": extracted["short_summary_pl"],
-            }
-            inv.short_summary_pl = extracted["short_summary_pl"]
+
+        def _apply_field(field: str, new_val: Any) -> None:
+            old_val = getattr(inv, field)
+            if old_val != new_val:
+                changes[field] = {"old": old_val, "new": new_val}
+                setattr(inv, field, new_val)
+
+        # TRL: progression within one source updates; regression or multi-source conflict flags.
+        extracted_trl = extracted["trl"]
+        if extracted_trl is not None and inv.trl is not None and extracted_trl != inv.trl:
+            if other_sources_count > 0 or extracted_trl < inv.trl:
+                conflict_msg = (
+                    f"Źródło {record.registry} wskazuje TRL {extracted_trl}, "
+                    f"podczas gdy w rekordzie zapisano TRL {inv.trl}."
+                )
+                if conflict_msg not in conflicts:
+                    conflicts.append(conflict_msg)
+                inv.verification_status = "conflict"
+                outcome = "conflict"
+            else:
+                _apply_field("trl", extracted_trl)
+                old_prov["trl"] = new_prov.get("trl", "rule_based")
+        elif inv.trl is None and extracted_trl is not None:
+            _apply_field("trl", extracted_trl)
+            old_prov["trl"] = new_prov.get("trl", "rule_based")
+        elif (
+            inv.trl is not None
+            and extracted_trl is None
+            and other_sources_count == 0
+            and old_prov.get("trl") in {"rule_based", "ai_suggested", "", None}
+        ):
+            _apply_field("trl", None)
+            old_prov["trl"] = "unknown"
+
+        # Deployment level: refresh on source change (conflict only on multi-source PCI mismatch).
+        new_level = extracted["deployment_level"]
+        if new_level != inv.deployment_level:
+            if (
+                other_sources_count > 0
+                and old_prov.get("deployment_level") == "pci_verified"
+                and deployment_order.get(new_level, 0)
+                < deployment_order.get(inv.deployment_level, 0)
+            ):
+                conflict_msg = (
+                    f"Źródło {record.registry} wskazuje poziom wdrożenia „{new_level}”, "
+                    f"podczas gdy w rekordzie potwierdzono „{inv.deployment_level}”."
+                )
+                if conflict_msg not in conflicts:
+                    conflicts.append(conflict_msg)
+                inv.verification_status = "conflict"
+                outcome = "conflict"
+            else:
+                _apply_field("deployment_level", new_level)
+                old_prov["deployment_level"] = new_prov.get("deployment_level", "rule_based")
+
+        # Refresh text and classification fields, keeping PCI-verified locks.
+        for text_field in (
+            "title_pl",
+            "title_en",
+            "short_summary_pl",
+            "short_summary_en",
+            "problem_pl",
+            "problem_en",
+            "solution_pl",
+            "solution_en",
+        ):
+            val = extracted.get(text_field)
+            if val:
+                _apply_field(text_field, val[:255] if text_field.startswith("title_") else val)
+
+        for cls_field in (
+            "primary_area",
+            "innovation_character",
+            "sectors",
+            "beneficiary_groups",
+            "target_org_types",
+            "tags",
+            "organization_type",
+            "origin_location",
+            "radar_user_types",
+            "patent_status",
+        ):
+            if old_prov.get(cls_field) == "pci_verified":
+                continue
+            val = extracted.get(cls_field)
+            if cls_field == "origin_location" and val:
+                val = val[:120]
+            _apply_field(cls_field, val)
+            if cls_field in new_prov:
+                old_prov[cls_field] = new_prov[cls_field]
+
+        if old_prov.get("oslo_compliant") != "pci_verified" or "deployment_level" in changes:
+            _apply_field("oslo_compliant", extracted["oslo_compliant"])
+            _apply_field("oslo_assessment", extracted["oslo_assessment"])
+            old_prov["oslo_compliant"] = new_prov.get("oslo_compliant", "rule_based")
+
+        _apply_field("missing_info", extracted["missing_info"])
+        _apply_field("is_incomplete", extracted["is_incomplete"])
+        _apply_field("classification_provenance", old_prov)
+
+        classification_changed = any(
+            k in changes
+            for k in (
+                "primary_area",
+                "innovation_character",
+                "sectors",
+                "beneficiary_groups",
+                "deployment_level",
+                "trl",
+                "oslo_compliant",
+            )
+        )
+        if outcome != "conflict":
+            if inv.verification_status == "stale":
+                inv.verification_status = "pending_review"
+                inv.verification_method = f"Odświeżono automatycznie ze źródła {record.registry}"
+            elif inv.verification_status == "verified" and classification_changed:
+                inv.verification_status = "pending_review"
+                inv.verification_method = (
+                    f"Zaktualizowano klasyfikację ze źródła {record.registry} "
+                    "— wymaga ponownej weryfikacji PCI"
+                )
+
         inv.conflicting_info = conflicts
         inv.fetched_at = today
         inv.save()
@@ -151,15 +265,31 @@ def ingest_raw_record(
         existing_source.is_available = True
         existing_source.save()
 
+        # Refresh auto-extracted evidences while preserving PCI verified_fact entries.
+        Evidence.objects.filter(innovation=inv, assessment_key="").filter(
+            Q(source=existing_source)
+            | Q(source__isnull=True, kind__in=["source_declaration", "ai_estimate", "missing_info"])
+        ).delete()
+        for ev in extracted["evidences"]:
+            Evidence.objects.create(
+                innovation=inv,
+                kind=ev["kind"],
+                text_pl=ev["text_pl"],
+                text_en=ev["text_en"],
+                source=existing_source if ev["kind"] == "source_declaration" else None,
+                confidence=ev.get("confidence", ""),
+                limitation_note=ev.get("limitation_note", ""),
+            )
+
         assess_innovation(inv, qualitative=extracted.get("quality_assessment", {}))
 
         InnovationAuditLog.objects.create(
             innovation=inv,
-            action="ingest",
+            action="classification_update" if classification_changed else "ingest",
             actor=actor,
             verification_method=f"Automatyczna aktualizacja ze źródła {record.registry}",
             changes=changes,
-            note="Wykryto zmianę treści w materiale źródłowym.",
+            note="Odświeżono klasyfikację oraz dowody na podstawie zmienionego źródła.",
         )
         return inv, outcome
 

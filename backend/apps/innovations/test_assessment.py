@@ -96,7 +96,8 @@ def test_import_uses_same_extraction_call_and_invalidates_on_source_change(setti
     assert inv.assessment["assessed_at"] == original
     record.text = "Zmiana: brak danych porównawczych. Prototyp nowego narzędzia."
     inv, outcome = ingest_raw_record(record)
-    assert outcome == "conflict" and len(calls) == 2
+    assert outcome == "updated" and len(calls) == 2
+    assert inv.deployment_level == "prototype"
     assert "innovativeness" not in inv.scores and "application_potential" not in inv.scores
     assert inv.evidences.exclude(assessment_key="").count() == 3
 

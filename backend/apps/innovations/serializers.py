@@ -38,6 +38,27 @@ class InnovationAssessmentSerializer(serializers.Serializer):
     dimensions = AssessmentDimensionsSerializer(required=False)
 
 
+class OsloAssessmentSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(
+        choices=["compliant", "partial", "needs_verification", "non_compliant"],
+        required=False,
+    )
+    method = serializers.ChoiceField(
+        choices=["ai_estimate", "rule_based", "pci_verified"],
+        required=False,
+    )
+    compliant = serializers.BooleanField(required=False)
+    novelty_status = serializers.CharField(required=False, allow_blank=True)
+    novelty_reason = serializers.CharField(required=False, allow_blank=True)
+    novelty_excerpt = serializers.CharField(required=False, allow_blank=True)
+    availability_status = serializers.CharField(required=False, allow_blank=True)
+    availability_reason = serializers.CharField(required=False, allow_blank=True)
+    novelty = serializers.CharField(required=False, allow_blank=True)
+    implementation_or_availability = serializers.CharField(required=False, allow_blank=True)
+    value_rationale = serializers.CharField(required=False, allow_blank=True)
+    limitations = serializers.ListField(child=serializers.CharField(), required=False)
+
+
 class InnovationSourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = InnovationSource
@@ -120,6 +141,7 @@ class InnovationSummarySerializer(serializers.ModelSerializer):
 
 class InnovationDetailSerializer(serializers.ModelSerializer):
     assessment = InnovationAssessmentSerializer(read_only=True)
+    oslo_assessment = OsloAssessmentSerializer(read_only=True)
     sources = InnovationSourceSerializer(many=True, read_only=True)
     evidences = EvidenceSerializer(many=True, read_only=True)
 

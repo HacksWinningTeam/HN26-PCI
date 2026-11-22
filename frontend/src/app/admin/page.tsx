@@ -60,9 +60,12 @@ import {
   type SourceFeedItem,
 } from "@/lib/radar-api";
 import {
+  DEPLOYMENT_LABELS,
+  getProvenanceMeta,
   ORG_TYPE_LABELS,
   PLAN_VARIANT_LABELS,
   VERIFICATION_LABELS,
+  type DeploymentLevel,
   type OrgType,
   type VerificationStatus,
 } from "@/lib/radar-labels";
@@ -153,6 +156,9 @@ export default function AdminPage() {
   const [editLocation, setEditLocation] = useState("");
   const [editMethod, setEditMethod] = useState("");
   const [editSummary, setEditSummary] = useState("");
+  const [editDeploymentLevel, setEditDeploymentLevel] = useState<DeploymentLevel>("concept");
+  const [editTrl, setEditTrl] = useState("");
+  const [editOsloCompliant, setEditOsloCompliant] = useState<"true" | "false">("false");
   const [clearConflicts, setClearConflicts] = useState(false);
   const [clearMissing, setClearMissing] = useState(false);
 
@@ -383,6 +389,9 @@ export default function AdminPage() {
     setEditLocation(item.origin_location);
     setEditMethod(item.verification_method);
     setEditSummary(item.short_summary_pl);
+    setEditDeploymentLevel(item.deployment_level);
+    setEditTrl(item.trl !== null ? String(item.trl) : "");
+    setEditOsloCompliant(item.oslo_compliant ? "true" : "false");
     setClearConflicts(false);
     setClearMissing(false);
     window.requestAnimationFrame(() => {
@@ -395,6 +404,16 @@ export default function AdminPage() {
     if (!editing) return;
     setMessage("");
     setError("");
+    const trimmedTrl = editTrl.trim();
+    let parsedTrl: number | null = null;
+    if (trimmedTrl !== "") {
+      const n = Number(trimmedTrl);
+      if (!Number.isInteger(n) || n < 1 || n > 9) {
+        setError("Poziom TRL musi być liczbą całkowitą od 1 do 9 (albo pusty).");
+        return;
+      }
+      parsedTrl = n;
+    }
     try {
       await patchAdminInnovation(editing.slug, {
         title_pl: editTitle,
@@ -402,6 +421,9 @@ export default function AdminPage() {
         verification_status: editStatus,
         verification_method: editMethod,
         origin_location: editLocation,
+        deployment_level: editDeploymentLevel,
+        trl: parsedTrl,
+        oslo_compliant: editOsloCompliant === "true",
         ...(clearConflicts ? { conflicting_info: [] } : {}),
         ...(clearMissing ? { missing_info: [] } : {}),
       });
@@ -974,6 +996,86 @@ export default function AdminPage() {
                         onChange={(e) => setEditSummary(e.target.value)}
                         className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
                       />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div>
+                      <label htmlFor="ed-deployment" className="mb-1 block text-xs font-semibold">
+                        Poziom wdrożenia
+                      </label>
+                      <select
+                        id="ed-deployment"
+                        aria-describedby="ed-deployment-hint"
+                        value={editDeploymentLevel}
+                        onChange={(e) =>
+                          setEditDeploymentLevel(e.target.value as DeploymentLevel)
+                        }
+                        className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                      >
+                        {Object.entries(DEPLOYMENT_LABELS).map(([k, v]) => (
+                          <option key={k} value={k}>
+                            {v}
+                          </option>
+                        ))}
+                      </select>
+                      <p id="ed-deployment-hint" className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                        Obecnie:{" "}
+                        {
+                          getProvenanceMeta(editing.classification_provenance, "deployment_level")
+                            .label
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <label htmlFor="ed-trl" className="mb-1 block text-xs font-semibold">
+                        Poziom TRL (1–9, opcjonalnie)
+                      </label>
+                      <input
+                        id="ed-trl"
+                        type="number"
+                        min={1}
+                        max={9}
+                        aria-describedby="ed-trl-hint"
+                        placeholder="Brak / nie dotyczy"
+                        value={editTrl}
+                        onChange={(e) => setEditTrl(e.target.value)}
+                        className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                      />
+                      <p id="ed-trl-hint" className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                        Obecnie:{" "}
+                        {
+                          getProvenanceMeta(
+                            editing.classification_provenance,
+                            "trl",
+                            editing.trl !== null,
+                          ).label
+                        }
+                      </p>
+                    </div>
+                    <div>
+                      <label htmlFor="ed-oslo" className="mb-1 block text-xs font-semibold">
+                        Zgodność z Oslo Manual 2018
+                      </label>
+                      <select
+                        id="ed-oslo"
+                        aria-describedby="ed-oslo-hint"
+                        value={editOsloCompliant}
+                        onChange={(e) =>
+                          setEditOsloCompliant(e.target.value as "true" | "false")
+                        }
+                        className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                      >
+                        <option value="false">Wymaga weryfikacji / niespełniona</option>
+                        <option value="true">Potwierdzona zgodność (Oslo 2018)</option>
+                      </select>
+                      <p id="ed-oslo-hint" className="mt-1 text-[11px] text-[var(--color-text-muted)]">
+                        Obecnie:{" "}
+                        {
+                          getProvenanceMeta(editing.classification_provenance, "oslo_compliant")
+                            .label
+                        }
+                      </p>
                     </div>
                   </div>
 
