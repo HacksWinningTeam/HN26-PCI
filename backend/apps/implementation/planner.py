@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import json
 import logging
-import urllib.error
-import urllib.request
 from typing import Any
 
 from django.conf import settings
 
 from apps.accounts.models import AdopterProfile
+from apps.core.gemini import call_gemini_json
 from apps.innovations.models import Innovation
 
 logger = logging.getLogger(__name__)
@@ -280,16 +279,9 @@ def personalize_phases_with_gemini(
     recommendation_path: str,
 ) -> tuple[list[dict], bool]:
     """Optionally tailor step wording via Gemini without changing rules, contacts, or facts."""
-    api_key = getattr(settings, "GEMINI_API_KEY", "").strip()
-    if not api_key:
+    if not getattr(settings, "GEMINI_API_KEY", "").strip():
         return phases, False
 
-    model = getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
-    timeout = int(getattr(settings, "GEMINI_TIMEOUT_SECONDS", 15) or 15)
-    endpoint = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-        f"?key={api_key}"
-    )
     prompt = (
         "Dopasuj język listy działań w 5 fazach planu do kontekstu organizacji, "
         "zachowując dokładnie wszystkie fakty, kontakty, wariant planu i liczby. "
@@ -301,23 +293,12 @@ def personalize_phases_with_gemini(
         f"użytkownicy: {profile.potential_users_count}, ograniczenia: {profile.key_constraints}\n"
         f"Fazy bazowe: {json.dumps(phases, ensure_ascii=False)}"
     )
-    req = urllib.request.Request(
-        endpoint,
-        data=json.dumps(
-            {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {"temperature": 0.2, "responseMimeType": "application/json"},
-            }
-        ).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
+    parsed = call_gemini_json(prompt, temperature=0.2)
+    if parsed is None:
+        return phases, False
+
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            raw_body = resp.read().decode("utf-8")
-        data = json.loads(raw_body)
-        parsed = json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
-        ai_phases = parsed.get("phases")
+        ai_phases = parsed.get("phases") if isinstance(parsed, dict) else parsed
         if not isinstance(ai_phases, list) or len(ai_phases) != 5:
             return phases, False
         actions_by_num = {
@@ -333,13 +314,6 @@ def personalize_phases_with_gemini(
                 return phases, False
             updated.append({**base, "actions": custom_actions[:5]})
         return updated, True
-    except (
-        urllib.error.URLError,
-        TimeoutError,
-        KeyError,
-        IndexError,
-        ValueError,
-        TypeError,
-    ) as exc:
-        logger.warning("Gemini plan personalization failed, keeping rule-based phases: %s", exc)
+    except (KeyError, IndexError, ValueError, TypeError) as exc:
+        logger.warning("Gemini plan personalization parse failed, using rules: %s", exc)
         return phases, False

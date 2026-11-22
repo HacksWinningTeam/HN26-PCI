@@ -128,9 +128,31 @@ STORAGES = {
 }
 WHITENOISE_MANIFEST_STRICT = False
 
-GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
-GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-2.5-flash")
-GEMINI_TIMEOUT_SECONDS = env.int("GEMINI_TIMEOUT_SECONDS", default=15)
+
+def _read_root_env_var(name: str, default: str = "") -> str:
+    val = os.environ.get(name)
+    if val is not None:
+        return val
+    env_file = BASE_DIR.parent / ".env"
+    if env_file.is_file():
+        for raw_line in env_file.read_text(encoding="utf-8").splitlines():
+            line = raw_line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, v = line.split("=", 1)
+            if k.strip() == name:
+                return v.strip().strip('"').strip("'")
+    return default
+
+
+GEMINI_API_KEY = _read_root_env_var("GEMINI_API_KEY", "")
+GEMINI_MODEL = _read_root_env_var("GEMINI_MODEL", "gemini-3.8-flash") or "gemini-3.8-flash"
+GEMINI_TIMEOUT_SECONDS = int(_read_root_env_var("GEMINI_TIMEOUT_SECONDS", "45") or "45")
+GOOGLE_GENAI_ENTERPRISE = (
+    _read_root_env_var("GOOGLE_GENAI_ENTERPRISE", "false").lower() == "true"
+)
+GOOGLE_CLOUD_PROJECT = _read_root_env_var("GOOGLE_CLOUD_PROJECT", "")
+GOOGLE_CLOUD_LOCATION = _read_root_env_var("GOOGLE_CLOUD_LOCATION", "global") or "global"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

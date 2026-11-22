@@ -143,7 +143,7 @@ def test_gemini_plan_personalization_and_fallback(settings, monkeypatch):
         ]
     }
     monkeypatch.setattr(
-        "apps.implementation.planner.urllib.request.urlopen",
+        "apps.core.gemini.urllib.request.urlopen",
         lambda req, timeout=15: _FakeGeminiHTTPResponse(fake_gemini),
     )
 
@@ -160,7 +160,7 @@ def test_gemini_plan_personalization_and_fallback(settings, monkeypatch):
     def _fail_urlopen(req, timeout=15):
         raise urllib.error.URLError("offline")
 
-    monkeypatch.setattr("apps.implementation.planner.urllib.request.urlopen", _fail_urlopen)
+    monkeypatch.setattr("apps.core.gemini.urllib.request.urlopen", _fail_urlopen)
     fallback_plan = client.post(
         "/api/implementation-plans/",
         {"innovation_slug": "e-urzad-senior"},

@@ -83,7 +83,7 @@ def test_gemini_extraction_and_graceful_fallback(settings, monkeypatch):
         ]
     }
     monkeypatch.setattr(
-        "apps.ingestion.ai_service.urllib.request.urlopen",
+        "apps.core.gemini.urllib.request.urlopen",
         lambda req, timeout=15: _FakeHTTPResponse(fake_gemini),
     )
 
@@ -103,7 +103,7 @@ def test_gemini_extraction_and_graceful_fallback(settings, monkeypatch):
     def _fail_urlopen(req, timeout=15):
         raise urllib.error.URLError("timeout")
 
-    monkeypatch.setattr("apps.ingestion.ai_service.urllib.request.urlopen", _fail_urlopen)
+    monkeypatch.setattr("apps.core.gemini.urllib.request.urlopen", _fail_urlopen)
     fallback = extract_and_classify_innovation(
         "System wsparcia seniorów w gminie.",
         title_hint="Pomocnik Seniora",

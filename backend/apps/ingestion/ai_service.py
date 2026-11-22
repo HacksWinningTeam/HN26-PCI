@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import unicodedata
-import urllib.error
-import urllib.request
 from typing import Any
 
 from django.conf import settings
+
+from apps.core.gemini import call_gemini_json
 
 logger = logging.getLogger(__name__)
 
@@ -351,40 +350,9 @@ def _rule_based_extract(
 
 
 def _call_gemini_structured(prompt: str) -> dict[str, Any] | None:
-    """Invoke Google Gemini REST API requesting structured JSON output."""
-    api_key = getattr(settings, "GEMINI_API_KEY", "").strip()
-    if not api_key:
-        return None
-
-    model = getattr(settings, "GEMINI_MODEL", "gemini-2.5-flash").strip() or "gemini-2.5-flash"
-    timeout = int(getattr(settings, "GEMINI_TIMEOUT_SECONDS", 15) or 15)
-    endpoint = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-        f"?key={api_key}"
-    )
-    payload = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {
-            "temperature": 0.2,
-            "responseMimeType": "application/json",
-        },
-    }
-    req = urllib.request.Request(
-        endpoint,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            raw_body = resp.read().decode("utf-8")
-        data = json.loads(raw_body)
-        text = data["candidates"][0]["content"]["parts"][0]["text"]
-        parsed = json.loads(text)
-        return parsed if isinstance(parsed, dict) else None
-    except (urllib.error.URLError, TimeoutError, KeyError, IndexError, json.JSONDecodeError) as exc:
-        logger.warning("Gemini API call failed, falling back to rules: %s", exc)
-        return None
+    """Invoke Gemini requesting structured JSON output."""
+    parsed = call_gemini_json(prompt, temperature=0.2)
+    return parsed if isinstance(parsed, dict) else None
 
 
 def extract_and_classify_innovation(
