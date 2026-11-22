@@ -11,6 +11,11 @@ import {
   ArrowRightIcon,
   Badge,
   Banner,
+  BrandBlobLimeIcon,
+  BrandBlobSoftBlueIcon,
+  BrandChecklistIcon,
+  BrandLimeBurstIcon,
+  BuildingsIcon,
   Button,
   ChartBarIcon,
   CheckIcon,
@@ -18,11 +23,13 @@ import {
   CompareIcon,
   CsvIcon,
   DefinitionList,
+  Dropdown,
   EmptyState,
   ErrorState,
   GaugeIcon,
   IconButton,
   LoadingState,
+  NumberInput,
   PdfIcon,
   Popover,
   ShareIcon,
@@ -30,7 +37,13 @@ import {
   StarIcon,
   StarSlashedIcon,
   TargetIcon,
+  TextArea,
+  TextInput,
 } from "@/components/ui";
+import {
+  parseUsersCountInput,
+  resolvePlanVariantPreview,
+} from "@/lib/implementation-plan";
 import { scoreToFiveScale } from "@/lib/innovation-metrics";
 import { setNavBarOverride } from "@/lib/navbar-override";
 import {
@@ -61,8 +74,20 @@ import {
   VERIFICATION_LABELS,
   type EvidenceKind,
   type OrgType,
+  type PlanVariant,
   type PrimaryArea,
 } from "@/lib/radar-labels";
+
+const PLAN_VARIANT_TONE: Record<PlanVariant, "info" | "lime" | "success"> = {
+  validation: "info",
+  pilot: "lime",
+  transfer_deployment: "success",
+};
+
+const ORG_TYPE_OPTIONS = Object.entries(ORG_TYPE_LABELS).map(([value, label]) => ({
+  value,
+  label,
+}));
 
 const EVIDENCE_BADGE_TONE: Record<
   EvidenceKind,
@@ -129,13 +154,15 @@ function InnovationDetailInner() {
   const [orgName, setOrgName] = useState("");
   const [roleTitle, setRoleTitle] = useState("");
   const [deploymentLocation, setDeploymentLocation] = useState("");
-  const [usersCount, setUsersCount] = useState(250);
+  const [usersCountDraft, setUsersCountDraft] = useState("250");
+  const [usersCountError, setUsersCountError] = useState("");
   const [currentApproach, setCurrentApproach] = useState("");
   const [availableResources, setAvailableResources] = useState("");
   const [teamCompetencies, setTeamCompetencies] = useState("");
   const [targetTimeline, setTargetTimeline] = useState("");
   const [keyConstraints, setKeyConstraints] = useState("");
   const [submittingPlan, setSubmittingPlan] = useState(false);
+  const [planError, setPlanError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -203,9 +230,16 @@ function InnovationDetailInner() {
         setDeploymentLocation(
           solveContext.deployment_location || p?.deployment_location || "",
         );
-        setUsersCount(
-          parseScaleCount(solveContext.problem_scale, p?.potential_users_count || 250),
+        setUsersCountDraft(
+          String(
+            parseScaleCount(
+              solveContext.problem_scale,
+              p?.potential_users_count || 250,
+            ),
+          ),
         );
+        setUsersCountError("");
+        setPlanError("");
         setCurrentApproach(p?.current_approach || "");
         setAvailableResources(p?.available_resources || "");
         setTeamCompetencies(p?.team_competencies || "");
@@ -270,6 +304,8 @@ function InnovationDetailInner() {
       );
       return;
     }
+    setPlanError("");
+    setUsersCountError("");
     setDeploySheetOpen(true);
   }, [auth.authenticated, router, slug]);
 
@@ -371,20 +407,26 @@ function InnovationDetailInner() {
   async function handleGeneratePlan(e: React.FormEvent) {
     e.preventDefault();
     if (!detail) return;
+    const parsedUsersCount = parseUsersCountInput(usersCountDraft);
+    if (parsedUsersCount === null) {
+      setUsersCountError("Podaj dodatnią liczbę odbiorców (np. 250).");
+      return;
+    }
+    setUsersCountError("");
     setSubmittingPlan(true);
-    setError("");
+    setPlanError("");
     try {
       await updateProfile({
         organization_type: orgType,
-        organization_name: orgName,
-        role_title: roleTitle,
-        deployment_location: deploymentLocation,
-        potential_users_count: Number(usersCount) || 100,
-        current_approach: currentApproach,
-        available_resources: availableResources,
-        team_competencies: teamCompetencies,
-        target_timeline: targetTimeline,
-        key_constraints: keyConstraints,
+        organization_name: orgName.trim(),
+        role_title: roleTitle.trim(),
+        deployment_location: deploymentLocation.trim(),
+        potential_users_count: parsedUsersCount,
+        current_approach: currentApproach.trim(),
+        available_resources: availableResources.trim(),
+        team_competencies: teamCompetencies.trim(),
+        target_timeline: targetTimeline.trim(),
+        key_constraints: keyConstraints.trim(),
       });
       await saveInnovation(detail.slug);
       const plan = await createImplementationPlan({
@@ -394,7 +436,7 @@ function InnovationDetailInner() {
       await refreshAuth();
       router.push(`/workspace/plans/${plan.id}`);
     } catch (err) {
-      setError(
+      setPlanError(
         err instanceof Error ? err.message : "Nie udało się wygenerować planu.",
       );
     } finally {
@@ -451,6 +493,10 @@ function InnovationDetailInner() {
       solveContext.problem_scale,
   );
   const potentialRating = scoreToFiveScale(detail.scores?.application_potential);
+  const variantPreview = resolvePlanVariantPreview(
+    detail.deployment_level,
+    detail.trl,
+  );
 
   return (
     <div className="space-y-6">
@@ -1082,215 +1128,334 @@ function InnovationDetailInner() {
       {/* Deployment Planning Sheet */}
       <Sheet
         open={deploySheetOpen}
-        onClose={() => setDeploySheetOpen(false)}
+        onClose={() => {
+          if (submittingPlan) return;
+          setPlanError("");
+          setUsersCountError("");
+          setDeploySheetOpen(false);
+        }}
         title="Zaplanuj wdrożenie"
         busy={submittingPlan}
+        closeOnBackdrop={!submittingPlan}
         detents={["medium", "large"]}
-        confirmAction={{
-          label: submittingPlan ? "Generowanie planu…" : "Wygeneruj plan w 5 fazach",
-          form: "org-questionnaire-form",
-          loading: submittingPlan,
-        }}
+        initialDetent="large"
       >
-        <div className="space-y-5">
+        <div className="space-y-4">
+          {/* Praktoteka Hero Context Card */}
+          <div className="relative overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] p-4">
+            <BrandBlobSoftBlueIcon
+              size={125}
+              className="pointer-events-none absolute -top-10 -right-8 opacity-55"
+            />
+            <BrandBlobLimeIcon
+              size={95}
+              className="pointer-events-none absolute right-14 -bottom-10 hidden opacity-35 sm:block"
+            />
+
+            <div className="relative z-10 flex items-start gap-3.5">
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-xs">
+                <BrandLimeBurstIcon
+                  size={16}
+                  className="pointer-events-none absolute -top-2 -left-2 -rotate-45"
+                />
+                <BrandChecklistIcon size={28} />
+              </div>
+
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <Badge
+                    tone={PLAN_VARIANT_TONE[variantPreview.variant]}
+                    size="compact"
+                  >
+                    {PLAN_VARIANT_LABELS[variantPreview.variant]} · 5 faz
+                  </Badge>
+                  <Badge tone="neutral" size="compact">
+                    {DEPLOYMENT_LABELS[detail.deployment_level]}
+                    {detail.trl !== null ? ` · TRL ${detail.trl}/9` : ""}
+                  </Badge>
+                  {prefilledFromSearch ? (
+                    <Badge tone="info" variant="outline" size="compact">
+                      Uzupełniono z wyszukiwarki
+                    </Badge>
+                  ) : null}
+                </div>
+
+                <h3 className="text-sm font-extrabold leading-snug tracking-tight text-[var(--color-text)]">
+                  {detail.title_pl}
+                </h3>
+                <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+                  {variantPreview.rationale}
+                </p>
+              </div>
+            </div>
+
+            {detail.suggested_next_step ? (
+              <div className="relative z-10 mt-3 flex items-start gap-2 border-t border-[var(--color-border-subtle)] pt-2.5 text-xs">
+                <TargetIcon
+                  size={15}
+                  className="mt-0.5 shrink-0 text-[var(--color-accent-text)]"
+                />
+                <p className="leading-relaxed text-[var(--color-text-muted)]">
+                  <span className="font-bold text-[var(--color-text)]">
+                    Sugerowany krok:
+                  </span>{" "}
+                  {detail.suggested_next_step}
+                </p>
+              </div>
+            ) : null}
+          </div>
+
           {existingPlan ? (
             <Banner
               tone="info"
               appearance="tinted"
-              title={`Aktywny ${PLAN_VARIANT_LABELS[existingPlan.variant]}`}
+              title={`Masz już aktywny ${PLAN_VARIANT_LABELS[existingPlan.variant].toLowerCase()}`}
               actions={[
                 <Link
                   key="open-plan"
                   href={`/workspace/plans/${existingPlan.id}`}
                   onClick={() => setDeploySheetOpen(false)}
-                  className="inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-3.5 py-2 text-xs font-semibold text-[var(--color-on-accent)]"
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-xl bg-[var(--color-accent)] px-3.5 py-2 text-xs font-bold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
                 >
-                  Otwórz istniejący plan →
+                  <span>Otwórz aktywny plan</span>
+                  <ArrowRightIcon size={14} weight="bold" />
                 </Link>,
               ]}
             >
-              Masz już wygenerowany plan dla tej innowacji. Możesz go otworzyć lub wygenerować nowy wariant poniżej.
+              Możesz wrócić do aktualnej checklisty albo wygenerować nowy plan poniżej.
             </Banner>
           ) : null}
 
           {fullDetail?.contact_info && Object.keys(fullDetail.contact_info).length > 0 ? (
-            <Banner
-              tone="success"
-              appearance="tinted"
-              title="Zweryfikowany kontakt wdrożeniowy"
-            >
-              <div className="space-y-0.5 text-xs">
-                <div className="font-bold">{fullDetail.contact_info.unit_name}</div>
-                {fullDetail.contact_info.contact_person ? (
-                  <div>{fullDetail.contact_info.contact_person}</div>
-                ) : null}
-                <div className="font-mono">
-                  {[fullDetail.contact_info.email, fullDetail.contact_info.phone]
-                    .filter(Boolean)
-                    .join(" · ")}
+            <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-[var(--color-success-border)] bg-[var(--color-success-bg)] px-3.5 py-2.5 text-xs text-[var(--color-success-text)]">
+              <div className="flex min-w-0 items-start gap-2.5">
+                <BuildingsIcon size={16} className="mt-0.5 shrink-0" />
+                <div className="min-w-0 space-y-0.5">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-bold">
+                      {fullDetail.contact_info.unit_name || detail.organization_name}
+                    </span>
+                    <Badge tone="success" size="compact">
+                      Kontakt wdrożeniowy
+                    </Badge>
+                  </div>
+                  {fullDetail.contact_info.contact_person ? (
+                    <p>{fullDetail.contact_info.contact_person}</p>
+                  ) : null}
+                  {fullDetail.contact_info.email || fullDetail.contact_info.phone ? (
+                    <p className="font-mono text-[11px]">
+                      {[fullDetail.contact_info.email, fullDetail.contact_info.phone]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  ) : null}
                 </div>
               </div>
-            </Banner>
+            </div>
           ) : null}
-
-          {detail.suggested_next_step ? (
-            <p className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] p-3 text-xs leading-relaxed text-[var(--color-text-muted)]">
-              <strong className="text-[var(--color-text)]">Sugerowany następny krok:</strong>{" "}
-              {detail.suggested_next_step}
-            </p>
-          ) : null}
-
-          <div className="space-y-1">
-            <h3 className="text-sm font-bold text-[var(--color-text)]">
-              Ankieta organizacji — kontekst wdrożenia
-            </h3>
-            <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
-              {prefilledFromSearch
-                ? "Część pól uzupełniono z wyszukiwarki problemów. "
-                : ""}
-              Na podstawie gotowości innowacji i tego formularza system dobierze wariant planu (walidacja, pilotaż albo transfer i wdrożenie).
-            </p>
-          </div>
 
           <form
             id="org-questionnaire-form"
             onSubmit={handleGeneratePlan}
             className="space-y-4"
           >
-            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-              <div>
-                <label htmlFor="q-org-type" className="mb-1 block text-xs font-semibold">
-                  Typ organizacji
-                </label>
-                <select
-                  id="q-org-type"
-                  value={orgType}
-                  onChange={(e) => setOrgType(e.target.value as OrgType)}
-                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-                >
-                  {Object.entries(ORG_TYPE_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
+            {/* Section 1: Organization & Coordinator */}
+            <fieldset className="space-y-3 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] p-4">
+              <legend className="sr-only">Organizacja i osoba koordynująca</legend>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent)] font-mono text-xs font-extrabold text-[var(--color-on-accent)]">
+                    1
+                  </span>
+                  <h4 className="text-xs font-extrabold tracking-tight text-[var(--color-text)] sm:text-sm">
+                    Organizacja i koordynator
+                  </h4>
+                </div>
+                <span className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+                  Podstawa profilu wdrożeniowego
+                </span>
               </div>
-              <div>
-                <label htmlFor="q-org-name" className="mb-1 block text-xs font-semibold">
-                  Nazwa organizacji
-                </label>
-                <input
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <Dropdown
+                  id="q-org-type"
+                  label="Typ organizacji"
+                  options={ORG_TYPE_OPTIONS}
+                  value={orgType}
+                  disabled={submittingPlan}
+                  onValueChange={(value) => setOrgType(value as OrgType)}
+                />
+                <TextInput
                   id="q-org-name"
+                  label="Nazwa organizacji"
                   required
+                  disabled={submittingPlan}
                   value={orgName}
                   onChange={(e) => setOrgName(e.target.value)}
                   placeholder="np. Gmina Trzebownisko"
-                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
                 />
-              </div>
-              <div>
-                <label htmlFor="q-role" className="mb-1 block text-xs font-semibold">
-                  Twoja rola
-                </label>
-                <input
+                <TextInput
                   id="q-role"
+                  label="Twoja rola"
                   required
+                  disabled={submittingPlan}
                   value={roleTitle}
                   onChange={(e) => setRoleTitle(e.target.value)}
                   placeholder="np. Sołtys / Dyrektor / Kierownik IT"
-                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
                 />
-              </div>
-              <div>
-                <label htmlFor="q-loc" className="mb-1 block text-xs font-semibold">
-                  Lokalizacja wdrożenia
-                </label>
-                <input
+                <TextInput
                   id="q-loc"
+                  label="Lokalizacja wdrożenia"
                   required
+                  disabled={submittingPlan}
                   value={deploymentLocation}
                   onChange={(e) => setDeploymentLocation(e.target.value)}
                   placeholder="np. Trzebownisko, Podkarpackie"
-                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
                 />
               </div>
-              <div>
-                <label htmlFor="q-users" className="mb-1 block text-xs font-semibold">
-                  Liczba potencjalnych użytkowników
-                </label>
-                <input
+            </fieldset>
+
+            {/* Section 2: Scale & Timeline */}
+            <fieldset className="space-y-3 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] p-4">
+              <legend className="sr-only">Skala odbiorców i zakładany termin</legend>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[var(--color-accent-lime)] font-mono text-xs font-extrabold text-[var(--color-on-accent-lime)]">
+                    2
+                  </span>
+                  <h4 className="text-xs font-extrabold tracking-tight text-[var(--color-text)] sm:text-sm">
+                    Skala odbiorców i harmonogram
+                  </h4>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <NumberInput
                   id="q-users"
-                  type="number"
+                  label="Liczba odbiorców"
                   min={1}
+                  step={1}
                   required
-                  value={usersCount}
-                  onChange={(e) => setUsersCount(Number(e.target.value))}
-                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                  disabled={submittingPlan}
+                  value={usersCountDraft}
+                  error={usersCountError}
+                  hint="Szacowana liczba użytkowników końcowych"
+                  onChange={(e) => {
+                    setUsersCountDraft(e.target.value);
+                    if (usersCountError) setUsersCountError("");
+                  }}
                 />
-              </div>
-              <div>
-                <label htmlFor="q-timeline" className="mb-1 block text-xs font-semibold">
-                  Zakładany termin
-                </label>
-                <input
+                <TextInput
                   id="q-timeline"
+                  label="Zakładany termin"
+                  disabled={submittingPlan}
                   value={targetTimeline}
                   onChange={(e) => setTargetTimeline(e.target.value)}
-                  placeholder="np. Q1 2027"
-                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                  placeholder="np. Q1 2027 lub za 3 miesiące"
+                  hint="Opcjonalnie — trafia do planu kontaktu"
                 />
               </div>
-              <div>
-                <label htmlFor="q-current" className="mb-1 block text-xs font-semibold">
-                  Obecny sposób rozwiązania problemu
-                </label>
-                <input
+            </fieldset>
+
+            {/* Section 3: Context, Resources & Constraints */}
+            <fieldset className="space-y-3 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] p-4">
+              <legend className="sr-only">Kontekst wdrożeniowy i zasoby</legend>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--color-border)] bg-[var(--color-surface)] font-mono text-xs font-extrabold text-[var(--color-text)]">
+                    3
+                  </span>
+                  <h4 className="text-xs font-extrabold tracking-tight text-[var(--color-text)] sm:text-sm">
+                    Zasoby, zespół i ograniczenia
+                  </h4>
+                </div>
+                <Badge tone="neutral" size="compact">
+                  Opcjonalne · personalizuje fazy 1–3
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <TextArea
                   id="q-current"
+                  label="Obecny sposób działania"
+                  rows={2}
+                  minRows={2}
+                  maxRows={4}
+                  autoGrow
+                  resizable={false}
+                  disabled={submittingPlan}
                   value={currentApproach}
                   onChange={(e) => setCurrentApproach(e.target.value)}
-                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                  placeholder="np. Zgłoszenia telefoniczne i ręczny rejestr"
                 />
-              </div>
-              <div>
-                <label htmlFor="q-resources" className="mb-1 block text-xs font-semibold">
-                  Dostępne zasoby
-                </label>
-                <input
+                <TextArea
                   id="q-resources"
+                  label="Dostępne zasoby"
+                  rows={2}
+                  minRows={2}
+                  maxRows={4}
+                  autoGrow
+                  resizable={false}
+                  disabled={submittingPlan}
                   value={availableResources}
                   onChange={(e) => setAvailableResources(e.target.value)}
-                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                  placeholder="np. Budżet pilotażowy, 2 osoby IT, sala"
                 />
-              </div>
-              <div>
-                <label htmlFor="q-comp" className="mb-1 block text-xs font-semibold">
-                  Kompetencje zespołu
-                </label>
-                <input
+                <TextArea
                   id="q-comp"
+                  label="Kompetencje zespołu"
+                  rows={2}
+                  minRows={2}
+                  maxRows={4}
+                  autoGrow
+                  resizable={false}
+                  disabled={submittingPlan}
                   value={teamCompetencies}
                   onChange={(e) => setTeamCompetencies(e.target.value)}
-                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                  placeholder="np. Koordynacja projektów, brak programisty"
                 />
-              </div>
-              <div>
-                <label htmlFor="q-constraints" className="mb-1 block text-xs font-semibold">
-                  Najważniejsze ograniczenia
-                </label>
-                <input
+                <TextArea
                   id="q-constraints"
+                  label="Najważniejsze ograniczenia"
+                  rows={2}
+                  minRows={2}
+                  maxRows={4}
+                  autoGrow
+                  resizable={false}
+                  disabled={submittingPlan}
                   value={keyConstraints}
                   onChange={(e) => setKeyConstraints(e.target.value)}
-                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                  placeholder="np. Wymogi RODO, termin rozliczenia dotacji"
                 />
               </div>
-            </div>
+            </fieldset>
 
-            {error ? (
-              <p role="alert" className="text-sm font-semibold text-[var(--color-error-text)]">
-                {error}
-              </p>
+            {planError ? (
+              <Banner tone="error" appearance="tinted" announcement="assertive">
+                {planError}
+              </Banner>
             ) : null}
+
+            <div className="sticky -bottom-4 -mx-4 -mb-4 flex flex-wrap items-center justify-between gap-2.5 border-t border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-4 py-3.5 sm:-bottom-6 sm:-mx-6 sm:-mb-6 sm:px-6">
+              <Button
+                variant="outline"
+                disabled={submittingPlan}
+                onClick={() => {
+                  setPlanError("");
+                  setUsersCountError("");
+                  setDeploySheetOpen(false);
+                }}
+              >
+                Anuluj
+              </Button>
+              <Button
+                type="submit"
+                loading={submittingPlan}
+                trailingIcon={<ArrowRightIcon size={16} weight="bold" />}
+              >
+                {submittingPlan ? "Generowanie planu…" : "Wygeneruj plan w 5 fazach"}
+              </Button>
+            </div>
           </form>
         </div>
       </Sheet>

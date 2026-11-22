@@ -1,5 +1,53 @@
 import type { ImplementationStep } from "./radar-api";
-import { ORG_TYPE_LABELS, type OrgType } from "./radar-labels";
+import {
+  ORG_TYPE_LABELS,
+  type DeploymentLevel,
+  type OrgType,
+  type PlanVariant,
+} from "./radar-labels";
+
+export interface PlanVariantPreview {
+  variant: PlanVariant;
+  rationale: string;
+}
+
+/** Mirror backend deterministic rule (`select_plan_variant`) for pre-generation preview. */
+export function resolvePlanVariantPreview(
+  deploymentLevel: DeploymentLevel,
+  trl: number | null,
+): PlanVariantPreview {
+  if (
+    deploymentLevel === "concept" ||
+    (deploymentLevel === "prototype" && (trl ?? 0) <= 3)
+  ) {
+    return {
+      variant: "validation",
+      rationale:
+        "Innowacja jest na etapie koncepcji lub wczesnego prototypu — system przygotuje plan walidacji przed pilotażem.",
+    };
+  }
+  if (deploymentLevel === "prototype" || deploymentLevel === "tests") {
+    return {
+      variant: "pilot",
+      rationale:
+        "Innowacja jest przetestowanym prototypem lub w fazie testów — system przygotuje plan ograniczonego pilotażu.",
+    };
+  }
+  return {
+    variant: "transfer_deployment",
+    rationale:
+      "Innowacja jest wdrożona lub sprawdzona w praktyce — system przygotuje plan transferu i wdrożenia w jednostce.",
+  };
+}
+
+/** Parse positive integer user count from a controlled text/number input draft. */
+export function parseUsersCountInput(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!/^\d+$/.test(trimmed)) return null;
+  const parsed = Number(trimmed);
+  if (!Number.isSafeInteger(parsed) || parsed < 1) return null;
+  return parsed;
+}
 
 export interface PlanProgressSummary {
   total: number;

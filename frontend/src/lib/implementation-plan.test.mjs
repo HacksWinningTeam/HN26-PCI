@@ -36,6 +36,8 @@ const {
   computePlanProgress,
   extractOrganizationContextItems,
   formatPlanDate,
+  parseUsersCountInput,
+  resolvePlanVariantPreview,
 } = require("./implementation-plan.ts");
 
 function makeStep(phaseNumber, status) {
@@ -109,4 +111,23 @@ test("formatPlanDate handles valid and invalid timestamps safely", () => {
   assert.equal(formatPlanDate("invalid-date"), "invalid-date");
   const formatted = formatPlanDate("2026-11-22T01:15:00Z");
   assert.ok(formatted.includes("2026"));
+});
+
+test("resolvePlanVariantPreview matches backend maturity variant rules", () => {
+  assert.equal(resolvePlanVariantPreview("concept", 2).variant, "validation");
+  assert.equal(resolvePlanVariantPreview("prototype", 3).variant, "validation");
+  assert.equal(resolvePlanVariantPreview("prototype", 4).variant, "pilot");
+  assert.equal(resolvePlanVariantPreview("tests", 6).variant, "pilot");
+  assert.equal(resolvePlanVariantPreview("pilot", 7).variant, "transfer_deployment");
+  assert.equal(resolvePlanVariantPreview("deployed", 9).variant, "transfer_deployment");
+});
+
+test("parseUsersCountInput validates positive integers without silent clamping", () => {
+  assert.equal(parseUsersCountInput("250"), 250);
+  assert.equal(parseUsersCountInput(" 1 "), 1);
+  assert.equal(parseUsersCountInput(""), null);
+  assert.equal(parseUsersCountInput("0"), null);
+  assert.equal(parseUsersCountInput("-5"), null);
+  assert.equal(parseUsersCountInput("12.5"), null);
+  assert.equal(parseUsersCountInput("abc"), null);
 });
