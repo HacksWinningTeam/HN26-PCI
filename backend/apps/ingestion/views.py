@@ -8,10 +8,12 @@ from rest_framework.views import APIView
 from apps.innovations.models import Innovation
 
 from .models import IngestionRun, InnovationAuditLog, SourceFeed
+from .pipeline import run_ingestion_pipeline
 from .serializers import (
     AdminDataQualityResponseSerializer,
     AdminInnovationItemSerializer,
     AdminInnovationPatchSerializer,
+    AdminRunIngestionRequestSerializer,
     IngestionRunSerializer,
     MergeDuplicateResponseSerializer,
 )
@@ -180,22 +182,23 @@ class AdminRunIngestionView(APIView):
 
     @extend_schema(
         tags=["Admin"],
-        request=None,
+        request=AdminRunIngestionRequestSerializer,
         responses={201: IngestionRunSerializer},
-        summary="Trigger a source refresh run",
+        summary="Trigger a source refresh, normalization, and deduplication run",
     )
     def post(self, request):
-        now = timezone.now()
-        error_feeds = SourceFeed.objects.filter(status="error").count()
-        SourceFeed.objects.filter(status="active").update(last_synced_at=now)
-        run = IngestionRun.objects.create(
-            status="completed_with_warnings" if error_feeds else "completed",
-            new_records=0,
-            updated_records=Innovation.objects.filter(is_merged=False).count(),
-            errors_count=error_feeds,
-            summary=(
-                "Odświeżono aktywne źródła publiczne; "
-                "wykryto błędy połączenia w nieosiągalnych kanałach."
-            ),
+        serializer = AdminRunIngestionRequestSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        user = getattr(request, "user", None)
+        actor = (
+            user.email
+            if user and getattr(user, "is_authenticated", False) and user.email
+            else "pci_admin"
+        )
+        run = run_ingestion_pipeline(
+            feed_ids=data.get("feed_ids") or None,
+            live_fetch=bool(data.get("live_fetch", False)),
+            actor=actor,
         )
         return Response(IngestionRunSerializer(run).data, status=status.HTTP_201_CREATED)

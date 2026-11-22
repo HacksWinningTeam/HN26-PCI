@@ -135,3 +135,12 @@ class InnovationAuditLogSerializer(serializers.ModelSerializer):
 class MergeDuplicateResponseSerializer(serializers.Serializer):
     merged_slug = serializers.SlugField()
     target_slug = serializers.SlugField()
+
+
+class AdminRunIngestionRequestSerializer(serializers.Serializer):
+    live_fetch = serializers.BooleanField(required=False, default=False)
+    feed_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        required=False,
+        default=list,
+    )

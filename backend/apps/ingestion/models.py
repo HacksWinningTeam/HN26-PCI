@@ -18,6 +18,7 @@ class SourceFeed(models.Model):
     error_message = models.TextField(blank=True, default="")
     last_synced_at = models.DateTimeField()
     records_count = models.PositiveIntegerField(default=0)
+    config = models.JSONField(default=dict, blank=True)
 
     class Meta:
         ordering = ["name"]

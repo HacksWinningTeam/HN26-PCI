@@ -128,6 +128,10 @@ STORAGES = {
 }
 WHITENOISE_MANIFEST_STRICT = False
 
+GEMINI_API_KEY = env("GEMINI_API_KEY", default="")
+GEMINI_MODEL = env("GEMINI_MODEL", default="gemini-2.5-flash")
+GEMINI_TIMEOUT_SECONDS = env.int("GEMINI_TIMEOUT_SECONDS", default=15)
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 _DEFAULT_FRONTEND_ORIGINS = [
