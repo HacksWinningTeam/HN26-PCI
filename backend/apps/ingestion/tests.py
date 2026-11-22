@@ -221,7 +221,8 @@ def test_ingestion_pipeline_dedup_change_conflict_stale_and_error(settings, monk
 
     smartbus = Innovation.objects.get(title_pl__startswith="SmartBus Podkarpacie")
     assert smartbus.verification_status == "pending_review"
-    assert smartbus.scores == {}
+    assert smartbus.scores == {"credibility": 55}
+    assert smartbus.assessment["dimensions"]["innovativeness"]["status"] == "unknown"
     assert InnovationAuditLog.objects.filter(innovation=smartbus, action="ingest").exists()
 
     dup_mirror = Innovation.objects.get(sources__url="https://example.gov.pl/aquaguard-mirror")

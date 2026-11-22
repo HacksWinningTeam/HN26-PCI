@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 from typing import Any
 
 from apps.innovations.models import Innovation
@@ -18,6 +19,7 @@ SCORE_KEYS = (
     "transferability",
     "credibility",
 )
+QUALITY_SCORE_KEYS = ("innovativeness", "application_potential", "credibility")
 
 
 def _evidence_summary(innovation: Innovation) -> dict[str, int]:
@@ -83,8 +85,9 @@ def build_comparison_payload(
             score_leaders[key] = best.slug
 
     strongest = max(
-        [inv for inv in innovations if all(key in (inv.scores or {}) for key in SCORE_KEYS)],
-        key=lambda x: sum(int((x.scores or {}).get(k, 0)) for k in SCORE_KEYS),
+        [inv for inv in innovations
+         if all(key in (inv.scores or {}) for key in QUALITY_SCORE_KEYS)],
+        key=lambda x: sum(int(x.scores[k]) for k in QUALITY_SCORE_KEYS),
         default=None,
     )
     most_mature = max(
@@ -156,6 +159,9 @@ def render_comparison_markdown(comparison: dict[str, Any]) -> str:
             f"szacunki AI={eq['ai_estimates_count']}, braki={eq['missing_info_count']}, "
             f"źródła={eq['sources_count']}"
         )
+        for ev in inv.get("evidences", []):
+            if ev.get("assessment_key"):
+                lines.append(f"- **Uzasadnienie oceny:** {ev['text_pl']}")
         lines.append(f"- **Rekomendowany kolejny krok:** {inv['suggested_next_step']}")
         lines.append("")
     return "\n".join(lines)
@@ -181,6 +187,7 @@ def render_comparison_csv(comparison: dict[str, Any]) -> str:
             "verified_facts_count",
             "missing_info_count",
             "suggested_next_step",
+            "assessment",
         ]
     )
     for entry in comparison.get("items", []):
@@ -204,6 +211,7 @@ def render_comparison_csv(comparison: dict[str, Any]) -> str:
                 eq["verified_facts_count"],
                 eq["missing_info_count"],
                 inv["suggested_next_step"],
+                json.dumps(inv.get("assessment", {}), ensure_ascii=False),
             ]
         )
     return buf.getvalue()

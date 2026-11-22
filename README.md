@@ -2,6 +2,23 @@
 
 A Docker-first full-stack application template combining **Django 5.2 LTS**, **Django REST Framework**, **`drf-spectacular`** (OpenAPI 3, Swagger UI, ReDoc), **PostgreSQL 18**, and **Next.js 16** (App Router, React 19, TypeScript, Tailwind CSS v4).
 
+## Radar: Preliminary Innovation Assessments
+
+Real-source imports produce three independent quality indices: innovativeness, application potential and credibility (0–100). These are preliminary assessments, separate from the 40/20/20/20 problem-match score. They do not certify patent novelty or predict implementation success.
+
+The existing optional Gemini extraction grades novelty and applicability against the [versioned rubric](docs/tasks/T09-innovation-assessments.md). A criterion requires a reason and a verbatim excerpt traceable to a stored source. All required criteria must be supported before a dimension gets a numeric score. No key, failed AI requests or insufficient source material leave it unknown, rather than zero. AI receives bounded public source snapshots, without account or implementation-profile data. An excerpt match checks traceability; PCI still needs to verify the claim and assessment.
+
+Credibility uses documented rules for source material, linked evidence, actual PCI verification, freshness and recorded contradictions. Repeated citations and the system's own AI explanations never count as independent confirmation. The `assessment` API field includes rubric version, timestamp, methods, component points, source references and limitations; detail evidence and backend JSON/Markdown/CSV exports include explanations.
+
+Imports, changed source material, PCI quality edits and merges refresh assessments. Unchanged inputs reuse their stored result. To backfill existing real records after migrations, first preview a bounded batch:
+
+```bash
+docker compose exec -T backend python manage.py assess_innovations --limit 100 --dry-run
+docker compose exec -T backend python manage.py assess_innovations --limit 100 --workers 4 --retry-unknown
+```
+
+Use `-f compose.prod.yaml` after `docker compose` for the deployed stack. `--slug <slug>` may be repeated to select records. The command uses stored material and the existing configured Gemini service, shares the harvesting lock, and excludes synthetic/merged records. It never seeds data or runs AI from migrations or public GET requests. Omit `--retry-unknown` to skip unchanged attempts; completed dimensions remain stable when retrying an unknown dimension. Source imports do not automatically mark records PCI-verified.
+
 ## Stack & Tooling
 
 - **Backend**: Python 3.12, Django 5.2 LTS, DRF, `drf-spectacular`, `django-cors-headers`, `django-environ`, `psycopg[binary]`, Gunicorn + WhiteNoise (`prod` target), managed with **`uv`**

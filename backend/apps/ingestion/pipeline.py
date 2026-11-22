@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 from apps.discovery.models import ScoringConfig
+from apps.innovations.assessment import assess_innovation
 from apps.innovations.models import Evidence, Innovation, InnovationSource
 
 from .adapters import RawSourceRecord, fetch_feed_batch, fetch_feed_records
@@ -96,9 +97,11 @@ def ingest_raw_record(
     )
 
     if existing_source is not None and existing_source.content_hash == new_hash:
+        existing_source.fetched_at = today
         existing_source.last_verified_at = today
         existing_source.is_available = True
-        existing_source.save(update_fields=["last_verified_at", "is_available"])
+        existing_source.save(update_fields=["fetched_at", "last_verified_at", "is_available"])
+        assess_innovation(existing_source.innovation)
         return existing_source.innovation, "unchanged"
 
     extracted = precomputed_extracted or extract_and_classify_innovation(
@@ -147,6 +150,8 @@ def ingest_raw_record(
         existing_source.last_verified_at = today
         existing_source.is_available = True
         existing_source.save()
+
+        assess_innovation(inv, qualitative=extracted.get("quality_assessment", {}))
 
         InnovationAuditLog.objects.create(
             innovation=inv,
@@ -232,6 +237,8 @@ def ingest_raw_record(
             limitation_note=ev.get("limitation_note", ""),
         )
 
+    assess_innovation(inv, qualitative=extracted.get("quality_assessment", {}))
+
     InnovationAuditLog.objects.create(
         innovation=inv,
         action="ingest",
@@ -255,10 +262,13 @@ def mark_stale_innovations() -> int:
         verification_status="verified",
         last_verified_at__lte=cutoff,
     )
+    stale_ids = list(stale_qs.values_list("pk", flat=True))
     count = stale_qs.update(
         verification_status="stale",
         verification_method=f"Rekord nieodświeżany od > {stale_days} dni",
     )
+    for innovation in Innovation.objects.filter(pk__in=stale_ids):
+        assess_innovation(innovation)
     return count
 
 

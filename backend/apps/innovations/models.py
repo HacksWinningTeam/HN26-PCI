@@ -94,6 +94,7 @@ class Innovation(models.Model):
 
     # Deterministic 0-100 sub-scores & structured assessment metadata
     scores = models.JSONField(default=dict)
+    assessment = models.JSONField(default=dict, blank=True)
     strengths = models.JSONField(default=list)
     risks = models.JSONField(default=list)
     missing_info = models.JSONField(default=list)
@@ -176,6 +177,16 @@ class Evidence(models.Model):
     )
     confidence = models.CharField(max_length=16, blank=True, default="")
     limitation_note = models.CharField(max_length=255, blank=True, default="")
+    assessment_key = models.CharField(max_length=40, blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["innovation", "assessment_key"],
+                condition=~models.Q(assessment_key=""),
+                name="unique_innovation_assessment_evidence",
+            ),
+        ]
 
     def __str__(self) -> str:
         return f"[{self.kind}] {self.text_pl[:50]}"

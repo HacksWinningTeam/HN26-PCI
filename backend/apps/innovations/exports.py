@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import io
+import json
 from typing import Any
 
 from .models import Innovation
@@ -48,6 +49,12 @@ def render_innovation_markdown(innovation: Innovation) -> str:
     ]
     for ev in data.get("evidences", []):
         lines.append(f"- **[{ev['kind']}]** {ev['text_pl']}")
+    if data.get("assessment"):
+        lines.extend(["", "## Wstępne oceny (0–100)"])
+        for key, dimension in data["assessment"].get("dimensions", {}).items():
+            score = dimension["score"]
+            lines.append(f"- **{key}:** {score if score is not None else 'brak danych'}; "
+                         f"metoda: {dimension['method']}")
     if data.get("missing_info"):
         lines.append("")
         lines.append("## Brakujące informacje")
@@ -81,6 +88,10 @@ def render_innovation_csv(innovation: Innovation) -> str:
             "verification_status",
             "last_verified_at",
             "sources",
+            "innovativeness",
+            "application_potential",
+            "credibility",
+            "assessment",
         ]
     )
     writer.writerow(
@@ -100,6 +111,10 @@ def render_innovation_csv(innovation: Innovation) -> str:
             data["verification_status"],
             data["last_verified_at"],
             "; ".join(src["url"] for src in data.get("sources", [])),
+            data["scores"].get("innovativeness", ""),
+            data["scores"].get("application_potential", ""),
+            data["scores"].get("credibility", ""),
+            json.dumps(data["assessment"], ensure_ascii=False),
         ]
     )
     return buf.getvalue()

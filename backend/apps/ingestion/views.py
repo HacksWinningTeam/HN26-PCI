@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsPCIAdmin
 from apps.discovery.models import ScoringConfig
+from apps.innovations.assessment import assess_innovation
 from apps.innovations.models import Innovation, InnovationSource
 
 from .locking import IngestionBusyError
@@ -163,6 +164,7 @@ class AdminDataQualityView(APIView):
                 content_hash=InnovationSource.compute_hash(snapshot),
             )
 
+        assess_innovation(inv)
         InnovationAuditLog.objects.create(
             innovation=inv,
             action="verify" if inv.verification_status == "verified" else "ingest",
@@ -210,6 +212,7 @@ class AdminInnovationUpdateView(APIView):
             if not innovation.verification_method:
                 innovation.verification_method = "Zweryfikowano ręcznie przez administratora PCI"
         innovation.save()
+        assess_innovation(innovation)
 
         if changes:
             action = (
@@ -329,12 +332,15 @@ class AdminMergeDuplicateView(APIView):
         for src in dup.sources.all():
             src.innovation = target
             src.save(update_fields=["innovation"])
+        # Generated explanations belong to old inputs, not the merged evidence set.
+        dup.evidences.exclude(assessment_key="").delete()
         for ev in dup.evidences.all():
             ev.innovation = target
             ev.save(update_fields=["innovation"])
         dup.duplicate_of = target
         dup.is_merged = True
         dup.save(update_fields=["duplicate_of", "is_merged"])
+        assess_innovation(target)
 
         actor = _resolve_actor(request)
         InnovationAuditLog.objects.create(

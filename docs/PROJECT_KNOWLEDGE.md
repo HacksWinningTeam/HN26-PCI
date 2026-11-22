@@ -38,4 +38,6 @@
 
 ## 4. Key Implementation Decisions & Trade-offs
 
+- **Quality assessments (`DEC-029`, T09):** source-grounded, versioned innovativeness/application-potential AI estimates and deterministic credibility indices reuse existing score/evidence UI. Integrated with import/update, PCI quality edits/merge and bounded real-record backfill. Local backfill processed 28 real records: 28 credibility indices, 9 application-potential scores, 1 innovativeness score; remaining dimensions explicitly unknown. One record has all three indices. Repeat without retries recalculated 0 records. Task remains `IN_PROGRESS` pending user manual sign-off. Scope, rubric and verification: `docs/tasks/T09-innovation-assessments.md`; operational/AI limitations also documented in README.
+
 *(Link to `DEC-XXX` entries in [`04-decisions.md`](04-decisions.md) and note runtime constraints, data source adapters, AI usage/fallbacks, and known limitations here.)*
