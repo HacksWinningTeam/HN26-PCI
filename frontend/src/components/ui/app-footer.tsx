@@ -18,7 +18,9 @@ export function AppFooter({ fullWidth = false }: { fullWidth?: boolean }) {
       <div
         className={[
           "flex flex-wrap items-center justify-between gap-x-6 gap-y-2",
-          fullWidth ? "mx-auto w-full max-w-6xl px-4 sm:px-6" : "",
+          fullWidth
+            ? "mx-auto w-full max-w-6xl px-4 sm:px-6"
+            : "mx-auto w-full max-w-[var(--app-shell-content-max-width,none)]",
         ]
           .filter(Boolean)
           .join(" ")}

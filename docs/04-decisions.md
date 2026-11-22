@@ -96,6 +96,30 @@
 - **Decision:** Restore desktop collapse controls, state/props, icon rail, and shell width adjustment. Hide the collapse control on mobile and always display full logo and labels there, regardless of remembered desktop state. Apply the same rule to the forced mobile gallery preview. Keep mobile breadcrumbs, icon actions, and search placement as established in DEC-009.
 - **Affected Docs & Tasks:** `docs/02-ui-system.md`, `docs/05-plan.md`, sidebar components/styles, shell styles, gallery preview, and localization. No task statuses changed.
 
+### `DEC-011` — Centered Application Shell Width Limit
+- **Date:** 2026-11-22 01:25
+- **Status:** Superseded by DEC-012
+- **Context / New Info:** User explicitly requested limiting the existing application shell width, then instructed that Docker must not be used for this change.
+- **Decision:** Cap the shared `AppShellLayout` at 1600px, including its sidebar and padding, and center it horizontally. Keep width fluid below the cap, preserving the existing mobile layout and viewport scrolling. This is a bounded refinement explicitly requested for implementation; product flow and API contracts are unchanged.
+- **Affected Docs & Tasks:** `docs/02-ui-system.md`, `docs/05-plan.md`, `frontend/src/components/ui/app-shell-layout.module.css`. No active TXX spec exists in the template plan; no task statuses or approvals changed.
+- **Verification:** Local `npm run typecheck` and `git diff --check` passed. `npm run lint` found five existing `react-hooks/set-state-in-effect` errors in untouched files (`innovations/page.tsx`, `solve/page.tsx`, `AppShell.tsx`, `SessionProvider.tsx`). Docker-based checks, including the production image build, omitted at the user's explicit request.
+
+### `DEC-012` — Left Sidebar and Full-Width Navbar Background
+- **Date:** 2026-11-22 01:26
+- **Status:** Accepted
+- **Context / New Info:** User refined DEC-011: sidebar must stay at the left and navbar background must stretch across the available width.
+- **Decision:** Remove the width cap from the shell itself. Center and limit only the content/footer and inner navbar layout to 1600px using the shared `--app-shell-content-max-width` property. Keep navbar background/border full-width in the right column and preserve existing sidebar padding, mobile behavior, and scroll regions. This explicit implementation request authorizes the bounded refinement; no API or product-flow changes.
+- **Affected Docs & Tasks:** `docs/02-ui-system.md`, `docs/05-plan.md`, `frontend/src/components/ui/{app-shell-layout,nav-bar}.module.css`. No active TXX spec or status changes.
+- **Verification:** Local `npm run typecheck`, scoped ESLint for `AppShellLayout`/`NavBar`, and `git diff --check` passed. Docker remains excluded at the user's request; full lint's previously observed unrelated errors remain outside this change.
+
+### `DEC-013` — Full-Width Footer Background
+- **Date:** 2026-11-22 01:27
+- **Status:** Accepted
+- **Context / New Info:** User requested the same full-width background behavior for the footer and authorized a local commit of these shell refinements.
+- **Decision:** Keep the scrolling content container full-width and move the 1600px cap to the page itself and the footer's inner contents. Footer background/border spans the right column like the navbar. Preserve the public footer's existing width/padding and footer placement after content.
+- **Affected Docs & Tasks:** `docs/02-ui-system.md`, `docs/05-plan.md`, `frontend/src/components/ui/{app-shell-layout.module.css,app-footer.tsx}`. No active TXX spec or status changes.
+- **Verification:** Local `npm run typecheck`, scoped ESLint for `AppShellLayout`/`NavBar`/`AppFooter`, and `git diff --check` passed. Docker excluded at the user's request; full lint's previously observed unrelated errors remain outside this change.
+
 <!-- Template for new entries:
 ### `DEC-XXX` — `<Short Title>`
 - **Date:** `<YYYY-MM-DD HH:MM from date '+%Y-%m-%d %H:%M'>`

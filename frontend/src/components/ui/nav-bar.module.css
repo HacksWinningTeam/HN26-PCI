@@ -4,6 +4,9 @@
 }
 .layout {
   display: grid;
+  width: 100%;
+  max-width: var(--app-shell-content-max-width, 1600px);
+  margin-inline: auto;
   grid-template-columns: minmax(0, 1fr) auto auto;
   grid-template-areas: "context search actions";
   align-items: center;

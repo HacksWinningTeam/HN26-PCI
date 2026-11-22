@@ -1,5 +1,6 @@
 .shell {
   --app-shell-sidebar-width: 256px;
+  --app-shell-content-max-width: 1600px;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
@@ -7,6 +8,7 @@
   height: 100dvh;
   min-height: 0;
   min-width: 0;
+  width: 100%;
   padding: 16px;
   background: var(--color-canvas);
   overflow: clip;
@@ -52,8 +54,20 @@
   overflow-anchor: none;
   scrollbar-gutter: stable;
 }
-.contentBody { display: flex; flex-direction: column; min-height: 100%; }
-.page { flex: 1; min-width: 0; padding-block: 24px; }
+.contentBody {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  width: 100%;
+}
+.page {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  max-width: var(--app-shell-content-max-width);
+  margin-inline: auto;
+  padding-block: 24px;
+}
 
 .shell[data-layout="mobile"] { display: flex; flex-direction: column; }
 .shell[data-layout="mobile"] > .column { display: contents; }

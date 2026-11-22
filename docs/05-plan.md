@@ -16,6 +16,8 @@ Design-system refinement (`DEC-009`): mobile app shell uses a single row for men
 
 Status lives in each task file's `Status` field; this table mirrors it.
 
+Design-system refinement (`DEC-012`, `DEC-013`): sidebar stays left within a full-width shell; navbar and footer backgrounds/borders span the right column. Page content, footer contents, and navbar controls are centered with a 1600px cap and remain fluid on narrower screens. No task statuses changed; no active TXX spec exists yet.
+
 - `TODO` — Planned; ready for design (if UI-facing) or implementation (if backend/infra only, once dependencies are `VERIFIED`).
 - `DESIGN_REVIEW` — `## UI Design (Per-Task)` written (`hackathon-ui-design`) and **awaiting user approval**. Not ready for implementation.
 - `DESIGN_READY` — UI design explicitly approved by the user (approval date recorded in the task); ready for implementation.
