@@ -1,6 +1,6 @@
 # 02 — Shared UI System (Global Baseline)
 
-> Lightweight global foundation only. Product screens and UX rules are defined in [`docs/PROJECT_KNOWLEDGE.md`](PROJECT_KNOWLEDGE.md) (Section 9), and interactive tokens/patterns are showcased at `/design-system`. Per-screen layouts, component hierarchies, and interactive states are designed **per task** inside each `docs/tasks/TXX-*.md` via `hackathon-ui-design` immediately before implementing that task.
+> Lightweight global foundation only. Product requirements are defined in [`01-brief.md`](01-brief.md), implementation status in [`PROJECT_KNOWLEDGE.md`](PROJECT_KNOWLEDGE.md), and interactive tokens/patterns at `/design-system`. Per-screen layouts, component hierarchies, and interactive states are designed **per task** inside each `docs/tasks/TXX-*.md` via `hackathon-ui-design` immediately before implementing that task.
 
 ## Baseline & Constraints
 

@@ -14,10 +14,10 @@ Applies to Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, and E
 - Never hardcode `http://localhost:8000` (or any backend origin) in browser-executed code; the only allowed fallback is the server-side one inside `getApiBaseUrl()`.
 - Keep `frontend/src/proxy.ts` (Next.js 16 convention — never add deprecated `middleware.ts`) and `skipTrailingSlashRedirect: true` in `frontend/next.config.ts` so `/api/...`, `/admin/...`, and `/static/...` forward to Django without redirect loops.
 
-## Tailwind CSS v4 & WCAG 2.2 AA Light Baseline
+## Tailwind CSS v4 & WCAG 2.2 AA Themes
 
 - Use Tailwind CSS v4 CSS-first configuration (`@import "tailwindcss";` in `frontend/src/app/globals.css`); do not add a legacy `tailwind.config.js`.
-- Stick to the light WCAG 2.2 AA baseline — do **not** add dark mode or theme toggles unless explicitly requested.
+- Preserve the accepted light, dark, high-contrast black/white, high-contrast black/yellow and grayscale themes (`DEC-001`, `DEC-002`). Use the existing semantic tokens and accessibility controls; keep system appearance, text scaling, link underlining and read-aloud preferences working.
 - Maintain >= 4.5:1 normal text contrast and >= 3:1 contrast for UI controls and borders.
 - Preserve visible `:focus-visible` outlines, >= 44px (`min-h-11`) interactive click/touch targets, semantic landmarks (`<header>`, `<main>`, `<footer>`, sequential headings), text/icon indicators alongside color, and `aria-live="polite"` for live status updates.
 

@@ -12,7 +12,7 @@ Refreshing sources fetches up to 10 candidates per channel from real public feed
 
 ## Scope & Non-Goals
 
-- Configure CORDIS, RUJ UJ, Nauka w Polsce RSS and OpenAlex PL; remove only the two known seeded placeholders. Preserve custom feeds and existing innovations.
+- Configure CORDIS, RUJ UJ, Nauka w Polsce RSS and OpenAlex PL. Preserve custom feeds and existing innovations.
 - Track provenance, backfill existing imports and calculate local counts on reads. Keep genuine error handling and relevance filtering.
 - No broader admin redesign, background jobs, secret/env/dependency changes, commit or push.
 
@@ -26,15 +26,15 @@ Refreshing sources fetches up to 10 candidates per channel from real public feed
 
 ## Technical Implementation Plan
 
-- Backend: `apps/ingestion/{models,default_feeds,pipeline,serializers,views,tests}.py`, new migrations for provenance and existing-feed upgrade, `apps/innovations/management/commands/seed_demo.py`.
+- Backend: `apps/ingestion/{models,default_feeds,pipeline,serializers,views,tests}.py`, new migrations for provenance and existing-feed upgrade.
 - Frontend: defaults and count label in `src/app/admin/page.tsx`.
-- Tests: seeded configs, migration/backfill, API counts ignoring fabricated cache/client input, repeat refresh, filtered records, merged/deleted records, shared sources and real network failure isolation.
+- Tests: channel configs, migration/backfill, API counts ignoring fabricated cache/client input, repeat refresh, filtered records, merged/deleted records, shared sources and real network failure isolation.
 
 ## Acceptance Criteria
 
 - [x] Default and configured feed limit is 10; upstream CORDIS/OpenAlex request 10 candidates.
-- [x] Four real channels parse records live; no intentional failed/stale channels or fabricated failure run from seed.
-- [x] Existing database upgraded without reseeding innovation/demo account data or deleting custom feeds.
+- [x] Four channels parse records from live sources.
+- [x] Existing database upgraded while preserving innovations, accounts and custom feeds.
 - [x] API/cards count distinct local non-merged innovations; repeat runs do not inflate counts.
 - [ ] Automated checks recorded; user confirms manual checks.
 

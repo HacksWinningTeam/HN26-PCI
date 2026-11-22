@@ -17,7 +17,7 @@ Automatically discover technology offers for business from CTT Uniwersytetu Łó
 - Persist bounded offsets/pagination with head revisits; fail visibly on empty/unrecognized catalogues or inaccessible documents without advancing saved state.
 - Preserve source URLs, snapshots, explicit TRL metadata and publisher-derived classification. Do not attribute IBE's address to the implementing school.
 - Reuse ingestion quality assessment, deduplication, pending review, source counters and periodic worker.
-- No frontend layout/API/env changes; no fixes to unrelated audit findings or synthetic data.
+- No frontend layout/API/env changes; preserve the existing import flow.
 
 ## UI Design (Per-Task)
 
@@ -37,7 +37,7 @@ N/A — backend source additions displayed by existing source cards.
 - [x] A live refresh imports individual source-backed CTT and school records, at most 10 per channel.
 - [x] Repeated batches preserve pagination and do not duplicate already imported URLs.
 - [x] Explicit source values remain distinct from AI/rule estimates; unknown quality remains unknown.
-- [x] Existing/custom feeds are preserved; migrations perform no network access or innovation seeding.
+- [x] Existing/custom feeds are preserved; migrations configure source channels.
 
 ## Verification Checklist
 

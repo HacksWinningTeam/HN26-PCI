@@ -1,21 +1,21 @@
 # AI Agent Rules
 
-Shared workspace rules for **Antigravity** and **Claude Code** on this hackathon template (`CLAUDE.md` imports this file via `@AGENTS.md`).
+Shared workspace rules for agents working on **Praktoteka — Radar Innowacji PCI**, including Codex, Antigravity and Claude Code (`CLAUDE.md` imports this file via `@AGENTS.md`).
 
-## Hackathon Project Brief (Fill In At Kickoff)
+## Hackathon Project Brief
 
 - **Problem & Demo Goal:** Radar porządkuje istniejące polskie innowacje i prowadzi osobę szukającą rozwiązania od opisu problemu lub katalogu do wyjaśnionego dopasowania, porównania i spersonalizowanego planu wdrożeniowego.
-- **Primary User Flow:** Na wspólnym ekranie „Szukaj innowacji” przeglądaj katalog lub rozwiń opis problemu → doprecyzuj branżę, beneficjentów, lokalizację wdrożenia i typ organizacji → oceń dopasowanie rozbite na 40/20/20/20 → porównaj karty → zarejestruj się → uzupełnij kontekst organizacji → odkryj plan walidacji, pilotażu albo transferu/wdrożenia → śledź pięciofazową checklistę; operator PCI weryfikuje dane i widzi szczegóły postępu.
+- **Primary User Flow:** Na wspólnym ekranie „Szukaj innowacji” przeglądaj katalog lub rozwiń opis problemu → doprecyzuj branżę, beneficjentów, lokalizację wdrożenia i typ organizacji → oceń dopasowanie rozbite na 40/20/20/20 → porównaj karty → zarejestruj się → uzupełnij kontekst organizacji → odkryj plan walidacji, pilotażu albo transferu/wdrożenia → śledź pięciofazową checklistę → zgłoś etap, mierniki i wyniki; operator PCI weryfikuje dane i raporty oraz śledzi transfery w Impact Radarze.
 - **Core Models & API Endpoints:** `Innovation`, `InnovationSource`, `Evidence`, `ProblemQuery`, `InnovationMatch`, `AdopterProfile`, `ImplementationPlan`, `ImplementationStep`; publiczne `/api/innovations/` i `/api/discovery/match/`, chronione `/api/profile/` i `/api/implementation-plans/`, operatorskie `/api/admin/...`.
 - **Out of Scope for MVP:** Konta twórców i publiczne zgłaszanie pomysłów, portal społecznościowy, crowdfunding, wyszukiwanie inwestorów oraz pełne crawlowanie Internetu w czasie rzeczywistym.
-- **Deadline / Demo / Code Freeze:** `<YYYY-MM-DD HH:MM submission deadline, demo slot, code-freeze time>`
+- **Deadline / Demo / Code Freeze:** Not supplied by the user; record confirmed times in `docs/01-brief.md`. Per DEC-028, missing dates must not block authorized work.
 
 ## Stack & Repository Map
 
 - `backend/`: Python 3.12, Django 5.2 LTS, Django REST Framework, `drf-spectacular`, `psycopg[binary]`, Gunicorn + WhiteNoise (`prod`), managed with **`uv`** (`backend/pyproject.toml`).
 - `frontend/`: Node 22, Next.js 16 (App Router + `output: "standalone"`), React 19, TypeScript, Tailwind CSS v4, ESLint 9 flat config, managed with **`npm`** (`frontend/package.json`).
 - `compose.yaml`: Local hot-reload development (`db`, `backend`, `frontend`).
-- `compose.prod.yaml`: Single-port production stack (`target: prod`) for Hetzner.
+- `compose.prod.yaml`: Single-port production stack (`target: prod`) for Hetzner, including the periodic `ingestion` worker.
 - `.github/workflows/deploy.yml`: Automatic Hetzner CI/CD pipeline triggered on push to `main`.
 - `Makefile` & `.env.example`: Standard dev/verify commands and environment variable template.
 
@@ -23,15 +23,17 @@ Shared workspace rules for **Antigravity** and **Claude Code** on this hackathon
 
 - **Ship vertical slices:** Implement DB model -> DRF serializer/view/tests -> Next.js UI end-to-end before adding polish.
 - **Keep it simple:** Prefer direct Django/DRF and Next.js patterns over speculative abstractions. Do not add unrequested infrastructure (Redis, Celery, auth systems, theme toggles) unless asked.
-- **No silent fake data:** Never silently stub production API responses; clearly label any explicit demo/seed data.
+- **Source-backed data:** Production API responses must reflect stored records and traceable sources.
 
 ## Non-Negotiable Architecture Invariants
 
-- **Single-port proxy:** In prod each app exposes exactly one host port, chosen from the `3000–3100` range (`FRONTEND_PORT`, default `3000`). Browser requests and links use same-origin paths (`/api/...`, `/admin/`, `/static/...`) rewritten by `frontend/src/proxy.ts` with `skipTrailingSlashRedirect: true` in `frontend/next.config.ts`. Keep `NEXT_PUBLIC_API_URL` empty by default, never hardcode `http://localhost:8000` (or any backend origin) in browser-executed code — the only allowed fallback is the server-side one inside `getApiBaseUrl()` in `frontend/src/lib/api.ts`, and never add deprecated `middleware.ts`.
+- **Single-port proxy:** In prod each app exposes exactly one host port, chosen from the `3000–3100` range (`FRONTEND_PORT`, default `3000`). Browser requests and links use same-origin paths (`/api/...`, `/django-admin/...`, `/static/...`) rewritten by `frontend/src/proxy.ts` with `skipTrailingSlashRedirect: true` in `frontend/next.config.ts`. `/admin` is the Next.js PCI operator panel; `/django-admin/` is Django Admin. Keep `NEXT_PUBLIC_API_URL` empty by default, never hardcode `http://localhost:8000` (or any backend origin) in browser-executed code — the only allowed fallback is the server-side one inside `getApiBaseUrl()` in `frontend/src/lib/api.ts`, and never add deprecated `middleware.ts`.
 - **Internal-only prod DB & backend:** Only `frontend` publishes `FRONTEND_PORT` in `compose.prod.yaml`. Keep `localhost,127.0.0.1,backend` in `DJANGO_ALLOWED_HOSTS` so Next.js SSR (`API_INTERNAL_URL=http://backend:8000`) and healthchecks work.
 - **Docker paths:** Keep PostgreSQL 18 mounted at `/var/lib/postgresql` (never `/var/lib/postgresql/data`) and the `uv` virtualenv at `/opt/venv` (never `/app/.venv`).
 - **Git & secrets:** Never commit `.env` or real secrets. Keep `/lib/` and `/lib64/` anchored in `.gitignore` so `frontend/src/lib/` stays tracked. Mirror any new env var in `.env.example`, `compose.yaml`, and `compose.prod.yaml`.
-- **UI baseline:** Follow the **WCAG 2.2 AA** light baseline; do not add dark mode or theme switchers unless explicitly requested.
+- **UI baseline:** Follow the accepted **WCAG 2.2 AA** system across the five resolved themes: light, dark, high-contrast black/white, high-contrast black/yellow and grayscale (`DEC-001`, `DEC-002`). Preserve system appearance, text scaling, link underlining and read-aloud preferences. Reuse semantic tokens and existing controls.
+- **Production data and accounts:** Harvest innovations from configured public sources. `BOOTSTRAP_DEMO_ACCOUNTS=true` independently creates missing hackathon admin/demo/tester accounts when migrations run (`DEC-032`). Keep account setup separate from source ingestion and reported deployment results.
+- **Accurate documentation:** Keep `README.md`, `AI_USAGE.md` and `DATA_SOURCES.md` aligned with implemented behavior. Distinguish model instructions from enforced validation, proposed targets from reported outcomes, and adopter declarations from PCI verification. Describe URL validation at the stage where it runs and document the actual data flow.
 
 ## Testing, Verification & Quality Bar
 
@@ -42,7 +44,8 @@ Shared workspace rules for **Antigravity** and **Claude Code** on this hackathon
   - `make schema-check` (`python manage.py spectacular --validate --fail-on-warn`)
   - `make migrations-check` (`python manage.py makemigrations --check --dry-run`)
   - `make build-prod` (production Docker images, including `next build`) whenever frontend code, Dockerfiles, dependencies, or Compose files changed, and always at the end of a milestone — a push to `main` deploys immediately, so a broken prod build breaks the live demo.
-- **Stack must be running:** All `make` checks use `docker compose exec`. If the containers are down, start them with `make up-d` first; if a check still cannot run, say so explicitly instead of reporting it as passed.- **Common workflow commands:** `make up` / `make up-d`, `make makemigrations`, `make migrate`, and `docker compose up -V --build` whenever `frontend/package.json` changes.
+- **Stack must be running:** Test, lint, schema and migration checks use `docker compose exec`; `make build-prod` uses `docker build`. If required containers are down, start them with `make up-d` first; if a check still cannot run, say so explicitly instead of reporting it as passed.
+- **Common workflow commands:** `make up` / `make up-d`, `make makemigrations`, `make migrate`, and `docker compose up -V --build` whenever `frontend/package.json` changes.
 
 ## CI/CD Deployment & Git Policy
 
@@ -71,8 +74,8 @@ When working from the repository root, read the matching scoped guide before edi
 - **Workflow skills:** `.agents/skills/` (symlinked to `.claude/skills/`): `hackathon-kickoff`, `hackathon-plan`, `hackathon-ui-design`, `hackathon-run-task`, `hackathon-update-plan`.
 - **Guided workflow routing:** When the user says *"let's start"*, *"continue"*, *"what's next?"*, or adds new requirements without naming a skill, check these rules **in order** and follow the first match:
   1. The message (or new entries in `docs/inputs/my-notes.md`) brings new requirements, mentor feedback, or scope/design changes -> run `hackathon-update-plan` first, then continue routing.
-  2. `docs/01-brief.md` still has template placeholders -> run `hackathon-kickoff`.
-  3. `docs/05-plan.md` still has example tasks (`<Example: ...>`) -> run `hackathon-plan`.
+  2. `docs/01-brief.md` has no concrete problem, demo goal or core flow yet -> run `hackathon-kickoff`. Missing timeline or judging metadata alone does not restart kickoff for the implemented product.
+  3. `docs/05-plan.md` has no real task specs yet -> run `hackathon-plan`. Reserved historical IDs and gaps in task numbering do not indicate missing work.
   4. Pick the next task in `docs/05-plan.md` order (an `IN_PROGRESS` task first, otherwise the first `TODO` / `DESIGN_REVIEW` / `DESIGN_READY` task whose `Depends On` are all `VERIFIED`), then:
      - `IN_PROGRESS` -> resume `hackathon-run-task`.
      - `DESIGN_REVIEW` -> re-present its UI design and ask for approval (`hackathon-ui-design`, step 5); do not implement.

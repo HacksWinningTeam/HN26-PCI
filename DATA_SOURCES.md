@@ -1,6 +1,6 @@
 # Źródła danych, aktualizacje i ochrona informacji
 
-Dane o innowacjach trafiają do Praktoteki ze skonfigurowanych publicznych repozytoriów i kanałów oraz z pojedynczych adresów wskazanych przez operatora PCI. System nie indeksuje całego Internetu na ślepo — pobiera tylko jawne źródła o znanej strukturze, zapamiętuje stan pobierania i oznacza nowo dodane rekordy do przeglądu PCI.
+Dane o innowacjach trafiają do Praktoteki ze skonfigurowanych publicznych repozytoriów i kanałów oraz z pojedynczych adresów wskazanych przez operatora PCI. Dobór źródeł o znanej strukturze, zapis stanu pobierania i przegląd nowych rekordów przez PCI tworzą uporządkowany proces zasilania katalogu.
 
 ---
 
@@ -21,9 +21,9 @@ Poza kanałami domyślnymi panel operatora PCI (`/admin`) pozwala:
 - dodawać własne kanały `SourceFeed` (JSON API w tym Dane.gov.pl JSON:API, OpenAlex i CORDIS, a także kanały RSS/Atom i OAI-PMH),
 - pobierać pojedyncze publiczne adresy URL (`scrape_url_and_ingest`) z automatycznym rozpoznawaniem HTML, JSON, XML oraz plików PDF (`pypdf`).
 
-Nowe katalogi nie są pojedynczymi ręcznie podanymi dokumentami: automat przy każdym przebiegu odkrywa aktualne odnośniki i pobiera konkretne opisy. Metoda `HTML katalog` obsługuje tylko dwa wskazane serwisy i ich znane ścieżki dokumentów; linki zewnętrzne oraz nawigacja są pomijane. Brak rozpoznanych kart lub niedostępny dokument powoduje rzeczywisty błąd kanału bez przesunięcia zapisanego kursora.
+Automat przy każdym przebiegu odkrywa aktualne odnośniki w katalogach i pobiera konkretne opisy. Adaptery `HTML katalog` rozpoznają strukturę CTT UŁ i IBE oraz ścieżki ich dokumentów, koncentrując import na kartach technologii i opisach innowacji szkolnych. Zapisany kursor pozwala kontynuować pobieranie; przy błędzie kanału zachowuje pozycję do kolejnej próby.
 
-CTT pokrywa oferty transferu dla biznesu, a IBE innowacje realizowane w szkołach (wydawca opisuje realizację w roku szkolnym 2024/2025). To poszerza przekrój do czterech grup źródeł z FAQ, ale nie oznacza pełnego monitorowania startupów, samorządów ani bezpośredniej integracji z urzędami patentowymi. Wartości ze źródła pozostają deklaracjami wydawcy do weryfikacji PCI. Lokalizacja szkoły pozostaje nieustalona, zamiast korzystać z powtarzanego w PDF adresu IBE w Warszawie.
+CTT pokrywa oferty transferu dla biznesu, a IBE innowacje realizowane w szkołach (wydawca opisuje realizację w roku szkolnym 2024/2025). Wybrane kanały reprezentują cztery grupy źródeł z FAQ i łączą perspektywę nauki, B+R, biznesu oraz edukacji. Deklaracje wydawcy zachowują pochodzenie i trafiają do weryfikacji PCI. Lokalizacja szkoły jest traktowana osobno od adresu wydawcy IBE.
 
 ---
 
@@ -42,26 +42,31 @@ CTT pokrywa oferty transferu dla biznesu, a IBE innowacje realizowane w szkołac
 2. **Detekcja zmian (`content_hash`):** dla każdego źródła zapisywana jest migawka tekstu (do `6000` znaków) oraz hash SHA-256. Jeśli treść pod tym samym URL się nie zmieniła, system aktualizuje tylko daty dostępności źródła bez ponownego wywoływania ekstrakcji AI.
 3. **Odświeżenie vs konflikt:** zmiana treści źródła aktualizuje opisy, klasyfikację, ocenę Oslo 2018, dowody i oceny jakości, nie nadpisując pól oznaczonych wcześniej jako `pci_verified`. Rozwój dojrzałości w ramach jednego źródła (np. prototyp → pilotaż lub wyższy TRL) przenosi zweryfikowany rekord do ponownego przeglądu (`pending_review`) z zapisem różnicy w audycie. Regresja TRL albo rozbieżność między wieloma źródłami oznacza rekord jako `conflict`.
 4. **Deduplikacja:** nowe rekordy porównywane są z aktywną bazą (75% podobieństwa znormalizowanego tytułu + 25% nazwy organizacji). Wynik `≥ 72%` oznacza rekord jako potencjalnego duplikatu (`duplicate_of`), który operator może scalić w `/admin` z zachowaniem wszystkich źródeł i dowodów.
-5. **Nieaktualność:** zweryfikowane rekordy nieodświeżane dłużej niż `stale_after_days` (`180` dni) automatycznie dostają status `stale`.
+5. **Nieaktualność:** przy przebiegu pobierania funkcja `mark_stale_innovations` oznacza jako `stale` niescalone, zweryfikowane rekordy z `last_verified_at` nie późniejszym niż data sprzed `stale_after_days` (domyślnie `180` dni). Data zapisana w aplikacji wspiera kierowanie rekordów do ponownej oceny.
 6. **Audyt zmian (`InnovationAuditLog`):** każde pozyskanie, edycja, weryfikacja, odrzucenie, scalenie i aktualizacja klasyfikacji zapisuje autora, metodę, czas i diff pól.
 
 ---
 
-## Zasady dostępu i RODO
+## Przechowywanie i dostęp do danych
 
 - **Poszanowanie zabezpieczeń stron:** adaptery wykrywają blokady antybotowe i CAPTCHA (`_assert_not_antibot`, m.in. Turnstile, reCAPTCHA, hCaptcha) i natychmiast przerywają pobieranie bez prób obchodzenia zabezpieczeń, raportując błąd operatorowi.
-- **Publiczne adresy URL:** walidator `public_source_url` odrzuca adresy lokalne, wewnętrzne i prywatne zakresy IP.
-- **Ochrona kontaktów:** publiczny katalog i karta poziomu 2 nie zwracają prywatnych danych kontaktowych (`contact_info`); trafiają one dopiero do widoku po rejestracji (poziom 3) i planu wdrożeniowego.
-- **Anonimowa analityka:** model `AnalyticsEvent` zapisuje wyłącznie typy zdarzeń (`view`, `filter`, `search`), obszary, sektory i filtry — bez powiązania z użytkownikiem, adresem IP czy identyfikatorem sesji.
+- **Walidacja i obsługa URL:** kanały domyślne wskazują znanych publicznych wydawców. Konfiguracja kanału i ręczny import korzystają z `URLField` oraz wymagają sesji i uprawnień operatora PCI. `_download` obsługuje połączenie HTTP. Osobny `public_source_url` w `apps/innovations/assessment.py` sprawdza schemat, nazwę hosta i jawne adresy IP przy wyborze materiałów oraz walidacji cytatów do oceny jakości.
+- **Ochrona kontaktów:** oddzielne pole `contact_info` jest pomijane w publicznym katalogu i szczegółach poziomu 2. Zwraca je warstwa zarejestrowana (poziom 3) i plan wdrożeniowy. Opisy i cytaty zachowują treść materiału źródłowego, co umożliwia prześledzenie pochodzenia informacji.
+- **Konta i dane organizacji:** PostgreSQL przechowuje konta, hashe haseł, sesje Django, profile organizacji, zapisane porównania i innowacje. Plany zachowują migawkę kontekstu organizacji oraz postęp i notatki. Powiązanie z kontem pozwala wrócić do własnego kontekstu i kontynuować wdrożenie.
+- **Zapytania i zgłoszenia powiadomień:** `ProblemQuery` zapisuje opis problemu i kontekst; model przewiduje opcjonalne powiązanie z użytkownikiem. `MatchNotification` przechowuje e-mail, opis i filtry oraz opcjonalne konto. Zgłoszenia tworzą bazę potrzeb i kontaktów do organizacji zainteresowanych rozwiązaniami.
+- **Raporty i załączniki:** `ImplementationPlan` przechowuje zadeklarowany etap wdrożenia, daty, liczbę odbiorców, opis rezultatu, mierniki przed/po, URL dowodu, preferencję widoczności oraz decyzję operatora PCI. Jeden plik wyników (do 10 MB) wraz z nazwą, typem, rozmiarem i datą jest zapisany bezpośrednio w PostgreSQL. Pobranie wymaga konta właściciela planu lub operatora PCI; zapis i usunięcie pliku wymagają właściciela planu.
+- **Widoczność efektów:** `outcome_visibility` zapisuje `pci_only` albo `public_summary`. Raport jest dostępny właścicielowi i PCI, a preferencja wskazuje oczekiwany sposób wykorzystania podsumowania efektów.
+- **Anonimowa analityka:** osobny model `AnalyticsEvent` zapisuje typ zdarzenia (`view`, `filter`, `search`), identyfikator innowacji, obszar, sektor, beneficjentów, filtry i czas — bez pola użytkownika, adresu IP czy identyfikatora sesji. Ten osobny zbiór zdarzeń służy analizie korzystania z katalogu i filtrów.
+- **Cykl pracy z danymi i AI:** dane zapisane w PostgreSQL wspierają kontynuację planów i historię weryfikacji. Właściciel może wymienić lub usunąć załącznik przez API planu. Zakres materiałów i kontekstu organizacji wysyłanych do Google opisuje [`AI_USAGE.md`](AI_USAGE.md); pliki z wynikami nie są dołączane do obecnych wywołań AI.
 
 ---
 
-## Ograniczenia źródeł
+## Sposób pracy ze źródłami
 
-1. **Wybrane kanały zamiast otwartego crawlera:** automat zbiera dane tylko ze skonfigurowanych API/kanałów oraz ręcznie wskazanych URL.
-2. **Domyślny status `pending_review`:** automatycznie pobrane rekordy wymagają przeglądu i potwierdzenia przez operatora PCI, zanim zostaną oznaczone jako zweryfikowane.
-3. **Limity techniczne formatów i API:**
-   - migawka tekstu jest ograniczona do `6000` znaków (`8000` dla HTML, do `20` stron i `10 000` znaków dla PDF),
-   - parser `pypdf` odczytuje tylko warstwę tekstową PDF (skany bez OCR nie zostaną sparsowane),
-   - podstawowa paginacja OpenAlex sięga do `10 000` pierwszych wyników zapytania.
-4. **Niekompletność źródeł pierwotnych:** wiele abstraktów naukowych i notek prasowych nie zawiera informacji o TRL, kosztach czy kontakcie wdrożeniowym — system wykazuje te braki w `missing_info` zamiast je dopisywać.
+1. **Źródła dopasowane do zadania:** skonfigurowane API, kanały i katalogi obejmują naukę, B+R, oferty transferu technologii i innowacje szkolne. Operator rozszerza bazę o kolejne kanały i pojedyncze URL.
+2. **Weryfikacja PCI:** status `pending_review` prowadzi nowo pozyskane rekordy do przeglądu operatora; potwierdzone informacje zyskują oznaczenie weryfikacji.
+3. **Przetwarzanie materiałów:**
+   - `raw_snapshot` przechowuje do `6000` znaków znormalizowanego tytułu i tekstu; hash tego wycinka wspiera wykrywanie zmian,
+   - parsery przygotowują do `8000` znaków dla HTML i wielu formatów kanałów; PDF jest odczytywany z warstwy tekstowej maksymalnie `20` stron i skracany do `10 000` znaków przed dalszym przetwarzaniem,
+   - paginacja OpenAlex obejmuje do `10 000` pierwszych wyników zapytania.
+4. **Uzupełnianie wiedzy o innowacji:** pola `missing_info` wskazują informacje do pozyskania przy kontakcie z twórcą, np. poziom TRL, koszty lub warunki wdrożenia. Pomaga to zaplanować kolejne działania walidacyjne.

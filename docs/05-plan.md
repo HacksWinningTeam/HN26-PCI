@@ -1,12 +1,12 @@
 # 05 — Master Implementation Plan
 
-> Vertical-slice development roadmap. Each task links to a dedicated verifiable spec in `docs/tasks/TXX-*.md`. `hackathon-plan` replaces the `<Example: ...>` rows below with real tasks and links.
+> Vertical-slice development roadmap. Each real task links to its spec in `docs/tasks/TXX-*.md`. Task status is defined in that spec and mirrored here.
 
-> **Planning note (`DEC-004`):** the approved product flow now starts with public catalog/problem discovery, continues through explained matching and comparison, and introduces registration only for personalized implementation planning and progress tracking. PCI administrators verify source data and monitor implementation progress. This file still contains template tasks; `hackathon-plan` must replace them with real vertical slices after the kickoff brief is approved.
+> **Existing foundations (`DEC-004`, `DEC-005`):** catalog/problem matching, account sessions, organization profiles and rule-based five-phase plans are implemented. The tasks below track subsequent slices and refinements; they are not a complete history of the initial implementation.
 
 > **Contract note (`DEC-005`):** real tasks must keep area separate from location, use `TRL`, implement the area/character taxonomy, expose the explained 40/20/20/20 match breakdown, preserve the three nested information levels, generate maturity-aware five-phase plans, and provide detailed PCI oversight.
 
-> **Discovery consolidation (`DEC-014`):** user approved merging the existing catalog and problem screen before further development. T03 tracks this bounded refactor independently of the still-placeholder T01/T02 rows.
+> **Task numbering (`DEC-036`):** T01/T02 were unused template examples, had no real specs and were removed from the active board. Keep those IDs reserved; do not recreate tasks or infer missing implementation from the numbering gap. This documentation cleanup does not change any real task status or approval.
 
 > **Admin closure (`DEC-026`):** user closed the admin topic and authorized a local checkpoint of the delivered admin-only navigation, advanced quality table and Demo PCI redirect. The unimplemented broader T04 redesign is cancelled; delivered changes remain. No detailed browser verification results were supplied.
 
@@ -14,15 +14,7 @@
 
 ## Task Status Legend
 
-Design-system addition (`DEC-007`): themed brand icons and three organic photo frames are maintained in `/design-system`; user approved the supplied visual reference and requested a local commit. Existing template task statuses are unchanged.
-
-Design-system addition (`DEC-008`): `PublicNavBar` previews for landing/login/register live in Navigation bars alongside the application shell. Future product-screen tasks should use this header for public landing/account layouts. No task statuses changed.
-
-Design-system refinement (`DEC-009`): mobile app shell uses a single row for menu/title/icon actions, hides breadcrumbs, and puts search inside the expanded sidebar; desktop retains navbar search. Sidebar collapse remains on desktop only; mobile always uses the full labeled menu (`DEC-010`). The gallery and its mobile preview share these rules; no task statuses changed.
-
 Status lives in each task file's `Status` field; this table mirrors it.
-
-Design-system refinement (`DEC-012`, `DEC-013`): sidebar stays left within a full-width shell; navbar and footer backgrounds/borders span the right column. Page content, footer contents, and navbar controls are centered with a 1600px cap and remain fluid on narrower screens. No task statuses changed; no active TXX spec exists yet.
 
 - `TODO` — Planned; ready for design (if UI-facing) or implementation (if backend/infra only, once dependencies are `VERIFIED`).
 - `DESIGN_REVIEW` — `## UI Design (Per-Task)` written (`hackathon-ui-design`) and **awaiting user approval**. Not ready for implementation.
@@ -35,15 +27,12 @@ Design-system refinement (`DEC-012`, `DEC-013`): sidebar stays left within a ful
 
 | ID | Task | Layer | UI Design? | Depends On | Status | Spec |
 | --- | --- | --- | --- | --- | --- | --- |
-| `T01` | `<Example: Core domain model + CRUD API>` | Backend | No | — | `TODO` | [T01](tasks/_template.md) |
-| `T02` | `<Example: Primary user workflow screen>` | Full-Stack | Yes | `T01` | `TODO` | [T02](tasks/_template.md) |
 | `T03` | Unified innovation discovery · horizontal filters (DEC-015) | Frontend | Yes | — (existing endpoints) | `IN_PROGRESS` | [T03](tasks/T03-unified-discovery.md) |
 | `T04` | PCI admin cleanup · delivered subset retained; broader redesign cancelled (DEC-026) | Frontend | Yes | — (existing endpoints) | `CANCELLED` | [T04](tasks/T04-admin-cleanup.md) |
 | `T05` | Demo PCI login opens admin (DEC-019) | Frontend | No | — | `IN_PROGRESS` | [T05](tasks/T05-demo-pci-redirect.md) |
 | `T06` | Redesign innovation comparison screen (DEC-023) | Frontend | Yes | — (existing endpoints) | `VERIFIED` | [T06](tasks/T06-compare-redesign.md) |
 | `T07` | Real ingestion channels · limit 10 · local counts (DEC-027) | Full-Stack | Yes (bounded changes explicitly approved) | — | `IN_PROGRESS` | [T07](tasks/T07-real-source-counts.md) |
-
-| `T08` | Production live harvesting without runtime seeds (DEC-028) | Full-Stack / Infra | Yes (bounded controls authorized by request) | — (existing ingestion) | `IN_PROGRESS` | [T08](tasks/T08-production-harvesting.md) |
+| `T08` | Production live harvesting (DEC-028) | Full-Stack / Infra | Yes (bounded controls authorized by request) | — (existing ingestion) | `IN_PROGRESS` | [T08](tasks/T08-production-harvesting.md) |
 
 ## Milestone 2 — Core Features
 

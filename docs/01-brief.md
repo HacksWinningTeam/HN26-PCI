@@ -5,9 +5,9 @@
 
 ## Timeline
 
-- **Submission Deadline:** `<YYYY-MM-DD HH:MM>`
-- **Demo Slot & Length:** `<YYYY-MM-DD HH:MM, e.g. 3 min + 2 min Q&A>`
-- **Code Freeze:** `<YYYY-MM-DD HH:MM — default 2h before deadline; only fixes and demo prep after this>`
+- **Submission Deadline:** Not supplied by the user.
+- **Demo Slot & Length:** Not supplied by the user.
+- **Code Freeze:** Not supplied by the user. Missing dates do not block authorized work (`DEC-028`).
 
 ## Problem & Demo Goal
 
@@ -17,9 +17,7 @@
 
 ## Judging Criteria
 
-| Criterion | Weight / Priority | How Our Demo Addresses It |
-| --- | --- | --- |
-| `<e.g., Technical Execution>` | `<e.g., 40%>` | `<Concrete proof in our app>` |
+Organizer criteria and challenge context are recorded in [`TASK_KNOWLEDGE.md`](TASK_KNOWLEDGE.md). No additional judging weights are assumed here.
 
 ## Requirements
 
@@ -27,18 +25,18 @@
 | --- | --- | --- | --- | --- |
 | `REQ-01` | Publiczny katalog istniejących polskich innowacji pozyskanych z jawnych źródeł naukowych, B+R, ofert CTT dla biznesu i opisów innowacji szkolnych | Must | PDF + FAQ + DEC-027 + DEC-031 | `T07`, `T08`, `T11` |
 | `REQ-02` | Jeden ekran „Szukaj innowacji”: katalog, fraza i rozwijany opis problemu; wspólny panel wyszukiwania i filtrów nad wynikami | Must | DEC-004, DEC-014, DEC-015 | `T03` |
-| `REQ-03` | Doprecyzowanie zapytania przez branżę, beneficjentów, lokalizację wdrożenia i typ organizacji | Must | DEC-004, DEC-005 | `TBD (hackathon-plan)` |
-| `REQ-04` | Ranking dopasowań: problem 40%, branża 20%, beneficjenci 20%, zastosowanie w typie organizacji 20%, z widocznym wyjaśnieniem | Must | DEC-005 | `TBD (hackathon-plan)` |
+| `REQ-03` | Doprecyzowanie zapytania przez branżę, beneficjentów, lokalizację wdrożenia i typ organizacji | Must | DEC-004, DEC-005 | Baseline (`DEC-004`, `DEC-005`) |
+| `REQ-04` | Ranking dopasowań: problem 40%, branża 20%, beneficjenci 20%, zastosowanie w typie organizacji 20%, z widocznym wyjaśnieniem | Must | DEC-005 | Baseline (`DEC-004`, `DEC-005`) |
 | `REQ-05` | Katalog z poziomym panelem filtrów, wynikami na pełną szerokość, widokiem siatki/tabeli i porównaniem 2–3 innowacji | Must | FAQ + Notes + DEC-015 | `T03` |
 | `REQ-06` | Trzy poziomy informacji: skrócona karta, publiczny detal oraz warstwa zarejestrowana z planem i kontaktem; źródła, TRL, wdrożenie i fakty vs szacunki przy samych polach (w tym jawna ocena Oslo 2018); uzasadnione wstępne oceny innowacyjności, potencjału zastosowania i wiarygodności | Must | FAQ + DEC-005 + DEC-029 + DEC-030 | `T09`, `T10` |
-| `REQ-07` | Rejestracja wymagana dopiero dla planu wdrożeniowego, zapisanych danych i śledzenia postępu | Must | DEC-004 | `TBD (hackathon-plan)` |
-| `REQ-08` | Ankieta określająca typ organizacji, lokalizację, skalę, obecne podejście, zasoby, kompetencje, termin i ograniczenia | Must | DEC-005 | `TBD (hackathon-plan)` |
-| `REQ-09` | Personalizowany plan w wariancie walidacji, pilotażu albo transferu/wdrożenia, z pięcioma fazami, ryzykami, zasobami i miernikami | Must | DEC-005 | `TBD (hackathon-plan)` |
-| `REQ-10` | Checklista realizacji planu i zapis postępu użytkownika | Must | DEC-004 | `TBD (hackathon-plan)` |
+| `REQ-07` | Rejestracja wymagana dopiero dla planu wdrożeniowego, zapisanych danych i śledzenia postępu | Must | DEC-004 | Baseline (`DEC-004`, `DEC-005`) |
+| `REQ-08` | Ankieta określająca typ organizacji, lokalizację, skalę, obecne podejście, zasoby, kompetencje, termin i ograniczenia | Must | DEC-005 | Baseline (`DEC-004`, `DEC-005`) |
+| `REQ-09` | Personalizowany plan w wariancie walidacji, pilotażu albo transferu/wdrożenia, z pięcioma fazami, ryzykami, zasobami i miernikami | Must | DEC-005 | Baseline (`DEC-004`, `DEC-005`) |
+| `REQ-10` | Checklista realizacji planu i zapis postępu użytkownika | Must | DEC-004 | Baseline (`DEC-004`, `DEC-005`) |
 | `REQ-11` | Panel PCI do weryfikacji danych oraz szczegółowego podglądu porównań, planów, postępu wdrożeń i **Impact Radaru** (lejek transferu innowacji oparty na rzeczywistych raportach organizacji i weryfikacji PCI) | Must | DEC-004, DEC-005, DEC-020, DEC-022, DEC-026, DEC-033 | `T04` (delivered subset; broader redesign cancelled), `T12` |
-| `REQ-12` | Automatyczne pozyskiwanie, cykliczna aktualizacja pełnej klasyfikacji/poziomu wdrożenia/dowodów i kontrola jakości danych źródłowych; 10 pozycji na kanał, działające kanały i rzeczywiste lokalne liczniki; produkcja pobiera dane na żywo cyklicznie, bez seedów; oceny powstają przy imporcie i są przeliczane po zmianie ich podstaw; katalogi CTT i IBE odkrywają poszczególne karty HTML/PDF | Must | FAQ + DEC-027 + DEC-028 + DEC-029 + DEC-030 + DEC-031 | `T07`, `T08`, `T09`, `T10`, `T11` |
-| `REQ-13` | Eksport karty/planu oraz „Powiadom mnie” wymagające tylko e-maila (z konta lub podanego ręcznie) | Should | Notes + DEC-005 | `TBD (hackathon-plan)` |
-| `REQ-14` | Anonimowa analityka wyszukiwań i trendów zgodna z RODO | Could | FAQ + Notes | `TBD (hackathon-plan)` |
+| `REQ-12` | Automatyczne pozyskiwanie, cykliczna aktualizacja pełnej klasyfikacji/poziomu wdrożenia/dowodów i kontrola jakości danych źródłowych; 10 pozycji na kanał, działające kanały i rzeczywiste lokalne liczniki; produkcja pobiera dane na żywo cyklicznie; oceny powstają przy imporcie i są przeliczane po zmianie ich podstaw; katalogi CTT i IBE odkrywają poszczególne karty HTML/PDF | Must | FAQ + DEC-027 + DEC-028 + DEC-029 + DEC-030 + DEC-031 | `T07`, `T08`, `T09`, `T10`, `T11` |
+| `REQ-13` | Eksport karty/planu oraz „Powiadom mnie” wymagające tylko e-maila (z konta lub podanego ręcznie) | Should | Notes + DEC-005 | Baseline (`DEC-004`, `DEC-005`) |
+| `REQ-14` | Anonimowa analityka wyszukiwań i trendów zgodna z RODO | Could | FAQ + Notes | Baseline (`DEC-004`, `DEC-005`) |
 
 ## Core User Flows
 

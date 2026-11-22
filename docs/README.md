@@ -1,6 +1,6 @@
 # Hackathon Development Workflow & Project Memory
 
-This folder stores the **persistent project memory** for both **Antigravity** and **Claude Code** so every agent understands the goal, follows the same build/verification flow, and adapts smoothly when requirements change mid-hackathon.
+This folder stores the **persistent project memory** for agents working on Praktoteka, including Codex, Antigravity and Claude Code, so they share the goal, build/verification flow and current decisions.
 
 ```mermaid
 flowchart LR
@@ -21,13 +21,16 @@ flowchart LR
 
 | File | Purpose | Created / Updated By |
 | --- | --- | --- |
+| [`../README.md`](../README.md) | Product overview, startup, routes, accounts and verification commands | Agents / Team |
+| [`../AI_USAGE.md`](../AI_USAGE.md) | AI inputs, deterministic calculations, validation and interpretation of recommendations | Agents / Team |
+| [`../DATA_SOURCES.md`](../DATA_SOURCES.md) | Six configured sources, refresh behavior, persisted data and access checks | Agents / Team |
 | [`TASK_KNOWLEDGE.md`](TASK_KNOWLEDGE.md) | Authoritative HackNation 2026 PCI / Radar Innowacji challenge spec, organizer FAQ, judging criteria, and domain requirements | Organizer docs / User |
 | [`PROJECT_KNOWLEDGE.md`](PROJECT_KNOWLEDGE.md) | Living implementation knowledge: what we built, architecture in practice, modules, and trade-offs | Agents / Team as code evolves |
 | [`inputs/organizer-brief/`](inputs/organizer-brief/) | Raw organizer PDFs and challenge specs (tracked in Git) | User at kickoff |
 | [`inputs/ui/`](inputs/ui/) | Brand assets and optional per-task screen sketches (e.g. `T02-dashboard.png`) | User anytime |
 | [`inputs/my-notes.md`](inputs/my-notes.md) | User's rough notes, priorities, and mid-hackathon additions | User anytime |
 | [`01-brief.md`](01-brief.md) | Timeline (deadline / demo / code freeze), goals, judging criteria, `REQ-XX` requirements, and MVP scope | `hackathon-kickoff`, `hackathon-update-plan` |
-| [`02-ui-system.md`](02-ui-system.md) | Lightweight shared app shell, WCAG 2.2 AA light tokens, and UI primitives | `hackathon-kickoff`, `hackathon-ui-design`, `hackathon-update-plan` |
+| [`02-ui-system.md`](02-ui-system.md) | Shared app shell, WCAG 2.2 AA themes, semantic tokens and UI primitives | `hackathon-kickoff`, `hackathon-ui-design`, `hackathon-update-plan` |
 | [`03-architecture.md`](03-architecture.md) | Models, DRF endpoints, Next.js routes, env vars, and simplifications | `hackathon-plan`, `hackathon-ui-design`, `hackathon-update-plan` |
 | [`04-decisions.md`](04-decisions.md) | Append-only Decision & Change Log (`DEC-001`, `DEC-002`, ...) | All workflow skills on every scope/design decision |
 | [`05-plan.md`](05-plan.md) | Master task board (`TODO`, `DESIGN_REVIEW`, `DESIGN_READY`, `IN_PROGRESS`, `VERIFIED`, `CANCELLED`) | `hackathon-plan`, `hackathon-ui-design`, `hackathon-run-task`, `hackathon-update-plan` |
