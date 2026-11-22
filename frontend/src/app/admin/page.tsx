@@ -13,9 +13,9 @@ import {
   BuildingsIcon,
   Button,
   CardSurface,
-  CheckCircleIcon,
   CloseIcon,
   DatabaseIcon,
+  DataTable,
   EmptyState,
   ErrorState,
   GitMergeIcon,
@@ -28,6 +28,9 @@ import {
   Sidebar,
   SidebarUtilities,
   StatFilterCard,
+  defaultTableState,
+  type TableColumn,
+  type TableState,
 } from "@/components/ui";
 import {
   fetchAdminDataQuality,
@@ -99,6 +102,7 @@ export default function AdminPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [recordFilter, setRecordFilter] = useState<RecordFilter>("all");
+  const [recordTableState, setRecordTableState] = useState<TableState>(defaultTableState);
   const [onlyWithIssues, setOnlyWithIssues] = useState(false);
 
   const [quality, setQuality] = useState<AdminDataQualityResponse | null>(null);
@@ -411,15 +415,6 @@ export default function AdminPage() {
         menuButton.current?.focus();
       },
     },
-    {
-      id: "workspace",
-      label: "Moje wdrożenia",
-      href: "/workspace",
-      icon: <CheckCircleIcon size={20} />,
-      onSelect: () => {
-        setMobileMenuOpen(false);
-      },
-    },
   ];
 
   const sectionMeta: Record<AdminTab, { title: string; breadcrumb: string }> = {
@@ -439,7 +434,10 @@ export default function AdminPage() {
           id={id}
           type="search"
           value={searchQuery}
-          onChange={(event) => setSearchQuery(event.target.value)}
+          onChange={(event) => {
+            setSearchQuery(event.target.value);
+            setRecordTableState((state) => ({ ...state, page: 0 }));
+          }}
           placeholder="Szukaj rekordu, źródła lub organizacji…"
           className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
         />
@@ -489,6 +487,107 @@ export default function AdminPage() {
 
   const latestRun = quality?.ingestion_runs?.[0] ?? null;
 
+  const recordColumns: TableColumn<AdminInnovationItem>[] = [
+    {
+      id: "innovation",
+      label: "Innowacja i pochodzenie",
+      minWidth: 240,
+      value: (rec) => `${rec.title_pl} ${rec.organization_name} ${rec.origin_location}`,
+      sortable: true,
+      filter: "text",
+      render: (rec) => (
+        <div className="space-y-0.5">
+          <div className="font-semibold">{rec.title_pl}</div>
+          <div className="text-xs text-[var(--color-text-muted)]">
+            {rec.organization_name} · {rec.origin_location}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "status",
+      label: "Status",
+      minWidth: 140,
+      value: (rec) => rec.verification_status,
+      sortable: true,
+      filter: "category",
+      options: Object.entries(VERIFICATION_LABELS).map(([value, label]) => ({ value, label })),
+      render: (rec) => (
+        <Badge tone={STATUS_BADGE_TONE[rec.verification_status]} size="compact">
+          {VERIFICATION_LABELS[rec.verification_status]}
+        </Badge>
+      ),
+    },
+    {
+      id: "issues",
+      label: "Wykryte problemy / braki",
+      minWidth: 240,
+      value: (rec) => [...rec.conflicting_info, ...rec.missing_info].join(" ") || "Brak uwag",
+      filter: "text",
+      render: (rec) => (
+        <div className="space-y-1 text-[var(--color-text-muted)]">
+          {rec.conflicting_info.map((conflict, index) => (
+            <div key={`conflict-${index}`} className="text-[var(--color-error-text)]">
+              <strong>Sprzeczność:</strong> {conflict}
+            </div>
+          ))}
+          {rec.missing_info.map((missing, index) => (
+            <div key={`missing-${index}`}>
+              <strong>Brak:</strong> {missing}
+            </div>
+          ))}
+          {rec.conflicting_info.length === 0 && rec.missing_info.length === 0
+            ? "Brak uwag"
+            : null}
+        </div>
+      ),
+    },
+    {
+      id: "verifiedAt",
+      label: "Ostatnia weryfikacja",
+      minWidth: 160,
+      value: (rec) => rec.last_verified_at || null,
+      sortable: true,
+      render: (rec) => <span className="font-mono">{rec.last_verified_at}</span>,
+    },
+    {
+      id: "actions",
+      label: "Działania",
+      minWidth: 200,
+      render: (rec) => (
+        <div className="flex flex-wrap gap-1.5">
+          {rec.verification_status !== "verified" ? (
+            <Button
+              type="button"
+              variant="outline"
+              tone="success"
+              disabled={busySlug === rec.slug}
+              aria-label={`Zatwierdź: ${rec.title_pl}`}
+              onClick={() => void handleQuickVerify(rec)}
+            >
+              Zatwierdź
+            </Button>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            aria-label={`Edytuj: ${rec.title_pl}`}
+            onClick={() => startEdit(rec)}
+          >
+            Edytuj
+          </Button>
+          <Link
+            href={`/innovations/${rec.slug}`}
+            aria-label={`Otwórz kartę: ${rec.title_pl}`}
+            className="inline-flex min-h-11 items-center rounded-md border border-[var(--color-border-subtle)] px-3 text-sm font-semibold text-[var(--color-accent-text)] hover:underline"
+          >
+            Karta ↗
+          </Link>
+        </div>
+      ),
+    },
+  ];
+
   if (!authLoaded || !auth.authenticated || !auth.user?.is_pci_admin) {
     return (
       <>
@@ -530,8 +629,8 @@ export default function AdminPage() {
             mobileSearch={searchField(`${searchId}-mobile`)}
             brand={
               <Link
-                href="/workspace"
-                aria-label="Praktoteka — Moje wdrożenia"
+                href="/admin"
+                aria-label="Praktoteka — Panel PCI"
                 className="inline-flex min-h-11 items-center rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-sidebar-focus)]"
               >
                 <BrandLogo />
@@ -546,7 +645,7 @@ export default function AdminPage() {
             <NavBar
               title={sectionMeta[tab].title}
               breadcrumbs={[
-                { label: "Praktoteka", href: "/workspace" },
+                { label: "Praktoteka", href: "/admin" },
                 { label: "Panel PCI" },
                 { label: sectionMeta[tab].breadcrumb },
               ]}
@@ -636,7 +735,10 @@ export default function AdminPage() {
                     hint={card.hint}
                     active={recordFilter === card.key}
                     accent={card.key === "all" ? "lime" : "cyan"}
-                    onClick={() => setRecordFilter(card.key)}
+                    onClick={() => {
+                      setRecordFilter(card.key);
+                      setRecordTableState((state) => ({ ...state, page: 0 }));
+                    }}
                   />
                 ))}
               </div>
@@ -781,7 +883,7 @@ export default function AdminPage() {
                       {filteredRecords.length})
                     </h2>
                     <p className="text-xs text-[var(--color-text-muted)]">
-                      Rekordy wymagające decyzji operatora są wyświetlane na górze listy.
+                      Domyślnie rekordy wymagające decyzji operatora są na początku listy.
                     </p>
                   </div>
                   {recordFilter !== "all" || normalizedQuery ? (
@@ -790,6 +892,7 @@ export default function AdminPage() {
                       onClick={() => {
                         setRecordFilter("all");
                         setSearchQuery("");
+                        setRecordTableState(defaultTableState);
                       }}
                       className="min-h-11 cursor-pointer text-xs font-semibold text-[var(--color-accent-text)] underline"
                     >
@@ -798,92 +901,24 @@ export default function AdminPage() {
                   ) : null}
                 </div>
 
-                {filteredRecords.length === 0 ? (
-                  <EmptyState
-                    title="Brak pasujących rekordów"
-                    description="Zmień wybrany filtr statusu lub wyczyść wyszukiwanie w górnym pasku."
-                  />
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[780px] border-collapse text-left text-xs">
-                      <thead>
-                        <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-raised)]">
-                          <th className="p-2.5 font-bold">Innowacja i pochodzenie</th>
-                          <th className="p-2.5 font-bold">Status</th>
-                          <th className="p-2.5 font-bold">Wykryte problemy / braki</th>
-                          <th className="p-2.5 font-bold">Ostatnia weryfikacja</th>
-                          <th className="p-2.5 font-bold">Działania</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--color-border-subtle)]">
-                        {filteredRecords.map((rec) => (
-                          <tr key={rec.slug}>
-                            <td className="p-2.5 align-top">
-                              <div className="font-semibold text-[var(--color-text)]">
-                                {rec.title_pl}
-                              </div>
-                              <div className="mt-0.5 text-[var(--color-text-muted)]">
-                                {rec.organization_name} · {rec.origin_location}
-                              </div>
-                            </td>
-                            <td className="p-2.5 align-top">
-                              <Badge
-                                tone={STATUS_BADGE_TONE[rec.verification_status]}
-                                size="compact"
-                              >
-                                {VERIFICATION_LABELS[rec.verification_status]}
-                              </Badge>
-                            </td>
-                            <td className="space-y-1 p-2.5 align-top text-[var(--color-text-muted)]">
-                              {rec.conflicting_info.map((c, i) => (
-                                <div key={`c-${i}`} className="text-[var(--color-error-text)]">
-                                  <strong>Sprzeczność:</strong> {c}
-                                </div>
-                              ))}
-                              {rec.missing_info.map((m, i) => (
-                                <div key={`m-${i}`}>
-                                  <strong>Brak:</strong> {m}
-                                </div>
-                              ))}
-                              {rec.conflicting_info.length === 0 &&
-                              rec.missing_info.length === 0
-                                ? "Brak uwag"
-                                : null}
-                            </td>
-                            <td className="p-2.5 align-top font-mono">{rec.last_verified_at}</td>
-                            <td className="p-2.5 align-top">
-                              <div className="flex flex-wrap gap-1.5">
-                                {rec.verification_status !== "verified" ? (
-                                  <button
-                                    type="button"
-                                    disabled={busySlug === rec.slug}
-                                    onClick={() => void handleQuickVerify(rec)}
-                                    className="min-h-9 cursor-pointer rounded-md border border-[var(--color-success-border)] bg-[var(--color-success-bg)] px-2.5 py-1 font-semibold text-[var(--color-success-text)] disabled:opacity-60"
-                                  >
-                                    Zatwierdź ✓
-                                  </button>
-                                ) : null}
-                                <button
-                                  type="button"
-                                  onClick={() => startEdit(rec)}
-                                  className="min-h-9 cursor-pointer rounded-md border border-[var(--color-border)] px-2.5 py-1 font-semibold hover:border-[var(--color-accent)]"
-                                >
-                                  Edytuj
-                                </button>
-                                <Link
-                                  href={`/innovations/${rec.slug}`}
-                                  className="inline-flex min-h-9 items-center rounded-md border border-[var(--color-border-subtle)] px-2.5 py-1 font-semibold text-[var(--color-accent-text)] hover:underline"
-                                >
-                                  Karta ↗
-                                </Link>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                <DataTable
+                  name="Lista innowacji"
+                  rows={filteredRecords}
+                  columns={recordColumns}
+                  getRowId={(rec) => rec.slug}
+                  state={recordTableState}
+                  onStateChange={setRecordTableState}
+                  search={false}
+                  filters
+                  sorting
+                  pagination
+                  emptyState={
+                    <EmptyState
+                      title="Brak pasujących rekordów"
+                      description="Zmień wybrany filtr statusu lub wyczyść wyszukiwanie w górnym pasku."
+                    />
+                  }
+                />
               </CardSurface>
             </div>
           ) : null}

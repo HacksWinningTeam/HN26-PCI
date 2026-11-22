@@ -8,6 +8,10 @@
 
 > **Discovery consolidation (`DEC-014`):** user approved merging the existing catalog and problem screen before further development. T03 tracks this bounded refactor independently of the still-placeholder T01/T02 rows.
 
+> **Admin closure (`DEC-026`):** user closed the admin topic and authorized a local checkpoint of the delivered admin-only navigation, advanced quality table and Demo PCI redirect. The unimplemented broader T04 redesign is cancelled; delivered changes remain. No detailed browser verification results were supplied.
+
+> **Admin table (`DEC-022`, supersedes `DEC-021`):** delivered advanced `DataTable` for quality review, with sorting, column filters, pagination and column visibility controls.
+
 ## Task Status Legend
 
 Design-system addition (`DEC-007`): themed brand icons and three organic photo frames are maintained in `/design-system`; user approved the supplied visual reference and requested a local commit. Existing template task statuses are unchanged.
@@ -34,6 +38,8 @@ Design-system refinement (`DEC-012`, `DEC-013`): sidebar stays left within a ful
 | `T01` | `<Example: Core domain model + CRUD API>` | Backend | No | — | `TODO` | [T01](tasks/_template.md) |
 | `T02` | `<Example: Primary user workflow screen>` | Full-Stack | Yes | `T01` | `TODO` | [T02](tasks/_template.md) |
 | `T03` | Unified innovation discovery · horizontal filters (DEC-015) | Frontend | Yes | — (existing endpoints) | `IN_PROGRESS` | [T03](tasks/T03-unified-discovery.md) |
+| `T04` | PCI admin cleanup · delivered subset retained; broader redesign cancelled (DEC-026) | Frontend | Yes | — (existing endpoints) | `CANCELLED` | [T04](tasks/T04-admin-cleanup.md) |
+| `T05` | Demo PCI login opens admin (DEC-019) | Frontend | No | — | `IN_PROGRESS` | [T05](tasks/T05-demo-pci-redirect.md) |
 
 ## Milestone 2 — Core Features
 

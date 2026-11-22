@@ -151,6 +151,48 @@
 - **Decision:** Use a named card container query: below 25rem of card width, stack the details, compare and share actions at full width; otherwise place them in a single row. Keep >=44px targets and let rem sizing respect text scaling. This small layout correction is explicitly authorized for implementation.
 - **Affected Docs & Tasks:** T03, `frontend/src/components/InnovationCardCompact.tsx`; no changes to API contracts or product scope.
 
+### `DEC-018` — Simplify PCI Operations UI
+- **Date:** 2026-11-22 02:31
+- **Status:** Accepted (cleanup scope; detailed design awaits approval)
+- **Context / New Info:** User requested tidying and “unslopping” the existing admin panel. The current UI uses five large statistic/filter cards, a full-width editor above the records table, and boxed source/implementation lists.
+- **Decision:** Create T04 for a bounded cleanup of `/admin`: compact labeled filters with counts, neutral lists/tables, shorter action labels, an on-demand record editor and expandable implementation details. Keep the four existing operator sections and all current operations. No new metrics, APIs, models, permissions or dependencies. Detailed UI proposal is in T04 at `DESIGN_REVIEW`; implementation awaits explicit design approval. T03 and its existing approval/status are unaffected. Deadline/code freeze remain unspecified.
+- **Affected Docs & Tasks:** `docs/01-brief.md` (REQ-11), `docs/05-plan.md`, new `docs/tasks/T04-admin-cleanup.md`. Existing architecture and shared UI tokens/primitives suffice, so `docs/02-ui-system.md` and `docs/03-architecture.md` contracts remain unchanged.
+
+### `DEC-019` — Demo PCI Login Opens Admin
+- **Date:** 2026-11-22 02:35
+- **Status:** Accepted
+- **Context / New Info:** User explicitly requested that the demo PCI admin login open the admin panel instead of the adopter workspace.
+- **Decision:** After successful login via “Demo PCI”, navigate directly to `/admin`, including when the login URL contains a different `next` destination. Load the destination using the newly established server session before refreshing client auth, avoiding a competing workspace redirect from the shared login-page guard. Standard login and organization demo keep their existing behavior. This bounded behavior correction is explicitly authorized; T04's pending visual design remains unchanged.
+- **Affected Docs & Tasks:** `frontend/src/app/login/page.tsx`, `docs/05-plan.md`, new T05. No API, model, shared UI or architecture contract changes.
+
+### `DEC-020` — Admin-Only Navigation
+- **Date:** 2026-11-22 02:36
+- **Status:** Accepted
+- **Context / New Info:** User explicitly requested removing “Moje wdrożenia” from admin and keeping only admin tabs.
+- **Decision:** Remove the personal workspace sidebar entry from `/admin` at all widths. Retain Quality/verification, Duplicates, Public sources and Organization implementations. Point the admin logo and home breadcrumb to `/admin` so navigation stays in the operator context. This narrow UI correction is explicitly authorized independently of T04's broader design proposal, which remains `DESIGN_REVIEW`.
+- **Affected Docs & Tasks:** `frontend/src/app/admin/page.tsx`, T04, `docs/05-plan.md`. No routes, API, model, environment or shared component changes.
+
+### `DEC-021` — Shared Table in PCI Quality Review
+- **Date:** 2026-11-22 02:38
+- **Status:** Superseded by DEC-022
+- **Context / New Info:** User explicitly requested using the existing table component in “Jakość i weryfikacja”.
+- **Decision:** Replace the custom native table markup with `SimpleTable` and typed columns for innovation/origin, status, full issues, verification date and actions. Reuse the component's named scroll region, headers and row styling. Keep the current search, filters, priority ordering, editor, verification and public-card links. No new sorting, pagination or selection behavior is required. Table actions retain >=44px targets. This specific component replacement is approved by the user's instruction; T04's broader redesign remains pending.
+- **Affected Docs & Tasks:** `frontend/src/app/admin/page.tsx`, T04, `docs/05-plan.md`. No changes to shared primitives, API, routes, models or environment.
+
+### `DEC-022` — Advanced PCI Quality DataTable
+- **Date:** 2026-11-22 02:40
+- **Status:** Accepted
+- **Context / New Info:** User clarified that the quality-review screen must use the advanced table, not `SimpleTable`.
+- **Decision:** Replace `SimpleTable` with the existing `DataTable`. Enable sorting by innovation, status and verification date; text filters for innovation/origin and issues, a labeled status category filter, pagination, page-size and visible-column controls. Retain one shell search, existing quality-category filters, record priority as the unsorted default, and all row actions. Reset page when shell query/category changes; a whole-filter reset clears table state too. No row selection/bulk operations or detail drawer required for this bounded replacement. Existing API/model contracts and T04's pending broader cleanup design are unchanged. The user's correction explicitly authorizes this component/configuration change.
+- **Affected Docs & Tasks:** T04, `docs/05-plan.md`, `frontend/src/app/admin/page.tsx`. DEC-021 superseded; no changes to shared components or dependencies.
+
+### `DEC-026` — Close Admin Work and Save Local Checkpoint
+- **Date:** 2026-11-22 02:43
+- **Status:** Accepted
+- **Context / New Info:** User explicitly closed the admin topic and requested a commit: “dobra i chuj zamykamy temat admina commit”.
+- **Decision:** Keep the delivered scope: advanced quality-review DataTable, admin-only sidebar/home links and Demo PCI redirect. Cancel the remaining unapproved T04 redesign proposal (compact filter tiles, drawer editor and source/implementation list changes); retain its design as historical context and do not re-present it as pending work. Mark T04 `CANCELLED` for that unimplemented remainder, without claiming its delivered subset was reverted. User authorized a local checkpoint, not a push. No detailed manual verification results were supplied, so do not mark T05 verified or claim browser checks. Stage only admin changes, the Demo PCI redirect hunks and associated documentation; exclude concurrent login-form, registration, search/detail and generated-file changes.
+- **Affected Docs & Tasks:** `docs/01-brief.md`, `docs/05-plan.md`, T04, T05 closure note; delivered frontend files. Existing architecture/UI contracts remain valid.
+
 <!-- Template for new entries:
 ### `DEC-XXX` — `<Short Title>`
 - **Date:** `<YYYY-MM-DD HH:MM from date '+%Y-%m-%d %H:%M'>`

@@ -21,11 +21,16 @@ function LoginFormInner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function doLogin(eMail: string, pass: string) {
+  async function doLogin(eMail: string, pass: string, demoPci = false) {
     setLoading(true);
     setError("");
     try {
       await loginAccount(eMail, pass);
+      if (demoPci) {
+        // Reload with the new session before the login-page auth guard redirects.
+        window.location.replace("/admin");
+        return;
+      }
       const nextAuth = await refreshAuth();
       const target = sanitizeNextUrl(
         rawNext,
@@ -147,7 +152,7 @@ function LoginFormInner() {
               type="button"
               disabled={loading}
               title="Zaloguj się na konto demonstracyjne operatora PCI"
-              onClick={() => void doLogin("admin@pcinn.org", "admin1234")}
+              onClick={() => void doLogin("admin@pcinn.org", "admin1234", true)}
               className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface)] disabled:opacity-60"
             >
               Demo PCI
