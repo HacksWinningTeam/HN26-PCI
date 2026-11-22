@@ -41,7 +41,13 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
   }
 
-  if (pathname === "/design-system" || pathname === "/" || pathname.startsWith("/admin")) {
+  if (
+    pathname === "/design-system" ||
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname.startsWith("/admin")
+  ) {
     return children;
   }
 

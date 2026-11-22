@@ -14,7 +14,7 @@ export type SidebarUtilitiesProps = {
   logoutLabel?: string;
 };
 
-/** Sidebar entry points for the application settings sheets and optional sign-out action. */
+/** Sidebar footer: compact Settings & Accessibility icon row plus optional full-width sign-out action. */
 export function SidebarUtilities({ onLogout, logoutLabel }: SidebarUtilitiesProps) {
   const t = useTranslations();
   const [panel, setPanel] = useState<"settings" | "accessibility" | null>(null);
@@ -23,47 +23,42 @@ export function SidebarUtilities({ onLogout, logoutLabel }: SidebarUtilitiesProp
   return (
     <>
       <nav aria-label={t("Settings")}>
-        <ul className={styles.list}>
-          <li>
-            <button
-              type="button"
-              className={styles.item}
-              aria-haspopup="dialog"
-              aria-expanded={panel === "settings"}
-              title={t("Settings")}
-              onClick={() => setPanel("settings")}
-            >
-              <SettingsIcon size={20} className={styles.icon} />
-              <span className={styles.label}>{t("Settings")}</span>
-            </button>
-          </li>
-          <li>
-            <button
-              type="button"
-              className={styles.item}
-              aria-haspopup="dialog"
-              aria-expanded={panel === "accessibility"}
-              title={t("Accessibility")}
-              onClick={() => setPanel("accessibility")}
-            >
-              <AccessibilityIcon className="h-5 w-5 shrink-0" />
-              <span className={styles.label}>{t("Accessibility")}</span>
-            </button>
-          </li>
-          {onLogout ? (
-            <li>
-              <button
-                type="button"
-                className={styles.item}
-                title={signOutText}
-                onClick={() => void onLogout()}
-              >
-                <SignOutIcon size={20} className={styles.icon} />
-                <span className={styles.label}>{signOutText}</span>
-              </button>
-            </li>
-          ) : null}
-        </ul>
+        <div className={styles.utilityRow}>
+          <button
+            type="button"
+            className={styles.utilityButton}
+            aria-label={t("Settings")}
+            aria-haspopup="dialog"
+            aria-expanded={panel === "settings"}
+            title={t("Settings")}
+            onClick={() => setPanel("settings")}
+          >
+            <SettingsIcon size={20} className={styles.icon} />
+          </button>
+          <button
+            type="button"
+            className={styles.utilityButton}
+            aria-label={t("Accessibility")}
+            aria-haspopup="dialog"
+            aria-expanded={panel === "accessibility"}
+            title={t("Accessibility")}
+            onClick={() => setPanel("accessibility")}
+          >
+            <AccessibilityIcon className="h-5 w-5 shrink-0" />
+          </button>
+        </div>
+
+        {onLogout ? (
+          <button
+            type="button"
+            className={`${styles.item} ${styles.logoutItem}`}
+            title={signOutText}
+            onClick={() => void onLogout()}
+          >
+            <SignOutIcon size={20} className={styles.icon} />
+            <span className={styles.label}>{signOutText}</span>
+          </button>
+        ) : null}
       </nav>
       <Sheet
         open={panel !== null}

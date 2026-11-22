@@ -51,6 +51,15 @@
     padding: 0;
     border-radius: 8px;
   }
+  .panel:not([data-layout="mobile"])[data-collapsed] .utilityRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .panel:not([data-layout="mobile"])[data-collapsed] .utilityButton {
+    width: 44px;
+    height: 44px;
+    margin-inline: auto;
+    border-radius: 8px;
+  }
   .panel:not([data-layout="mobile"])[data-collapsed] .label {
     position: absolute;
     width: 1px;
@@ -115,9 +124,39 @@
   margin-top: auto;
   margin-inline: -12px;
   border-top: 1px solid var(--color-sidebar-border);
-  padding-top: 0;
+  padding-top: 8px;
   padding-inline: 12px;
   font-size: 0.75rem;
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
+
+.utilityRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.utilityButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms;
+}
+
+.utilityButton:hover { background: var(--color-sidebar-hover); }
+
+.utilityButton:focus-visible {
+  outline: 2px solid var(--color-sidebar-focus);
+  outline-offset: 2px;
+}
+
+.logoutItem { margin-top: 4px; }
