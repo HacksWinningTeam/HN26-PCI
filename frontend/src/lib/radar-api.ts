@@ -1,12 +1,15 @@
 import { apiRequest } from "./api";
 import type {
+  AdopterDeploymentStatus,
   DeploymentLevel,
   EvidenceKind,
   InnovationCharacter,
   OrgType,
+  PciTransferStatus,
   PlanVariant,
   PrimaryArea,
   StepStatus,
+  TransferStageKey,
   VerificationStatus,
 } from "./radar-labels";
 
@@ -170,6 +173,16 @@ export interface ImplementationPlan {
   risks: string[];
   success_metrics: string[];
   user_reported_issues: string;
+  pilot_started_at?: string | null;
+  adopter_deployment_status: AdopterDeploymentStatus;
+  deployment_started_on: string | null;
+  reached_beneficiaries_count: number | null;
+  outcome_summary: string;
+  evidence_url: string;
+  deployment_reported_at: string | null;
+  pci_transfer_status: PciTransferStatus;
+  pci_transfer_note: string;
+  pci_transfer_verified_at: string | null;
   steps: ImplementationStep[];
   created_at: string;
   updated_at: string;
@@ -282,6 +295,50 @@ export interface AdminImplementationOverview {
   user_reported_issues: string;
   step_notes: string[];
   updated_at: string;
+}
+
+export interface AdminImpactFunnel {
+  created_plans: number;
+  started_pilots: number;
+  confirmed_deployments: number;
+  verified_effects: number;
+  awaiting_pci_review: number;
+  total_reached_beneficiaries: number;
+}
+
+export interface AdminImpactTransfer {
+  plan_id: number;
+  user_email: string;
+  user_name: string;
+  organization_name: string;
+  organization_type: string;
+  deployment_location: string;
+  innovation_slug: string;
+  innovation_title: string;
+  primary_area: PrimaryArea;
+  variant: PlanVariant;
+  stage_key: TransferStageKey;
+  stage_label: string;
+  current_phase: number;
+  completed_steps_count: number;
+  total_steps_count: number;
+  pilot_started_at: string | null;
+  adopter_deployment_status: AdopterDeploymentStatus;
+  deployment_started_on: string | null;
+  reached_beneficiaries_count: number | null;
+  outcome_summary: string;
+  evidence_url: string;
+  deployment_reported_at: string | null;
+  pci_transfer_status: PciTransferStatus;
+  pci_transfer_note: string;
+  pci_transfer_verified_at: string | null;
+  awaiting_pci_review: boolean;
+  updated_at: string;
+}
+
+export interface AdminImpactRadarResponse {
+  funnel: AdminImpactFunnel;
+  transfers: AdminImpactTransfer[];
 }
 
 export function fetchInnovations(params: Record<string, string | undefined> = {}) {
@@ -424,6 +481,22 @@ export function updateImplementationPlanIssues(id: number, user_reported_issues:
   });
 }
 
+export function updateImplementationPlanReport(
+  id: number,
+  payload: {
+    adopter_deployment_status?: AdopterDeploymentStatus;
+    deployment_started_on?: string | null;
+    reached_beneficiaries_count?: number | null;
+    outcome_summary?: string;
+    evidence_url?: string;
+  },
+) {
+  return apiRequest<ImplementationPlan>(`/api/implementation-plans/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function updateImplementationStep(
   stepId: number,
   payload: { status?: StepStatus; notes?: string },
@@ -511,4 +584,24 @@ export function deleteAdminSourceFeed(feedId: number) {
 
 export function fetchAdminImplementations() {
   return apiRequest<AdminImplementationOverview[]>("/api/admin/implementations/");
+}
+
+export function fetchAdminImpactRadar() {
+  return apiRequest<AdminImpactRadarResponse>("/api/admin/impact-radar/");
+}
+
+export function verifyAdminTransfer(
+  planId: number,
+  payload: {
+    pci_transfer_status: "deployment_confirmed" | "effect_verified" | "needs_clarification";
+    pci_transfer_note?: string;
+  },
+) {
+  return apiRequest<AdminImpactTransfer>(
+    `/api/admin/implementations/${planId}/verify-transfer/`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }

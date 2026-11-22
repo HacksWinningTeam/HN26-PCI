@@ -1,4 +1,5 @@
 from django.http import HttpResponse
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
@@ -23,8 +24,12 @@ from .planner import (
     select_plan_variant,
     select_recommendation_path,
 )
+from .radar import build_impact_radar_payload, serialize_transfer_row
 from .serializers import (
+    AdminImpactRadarSerializer,
+    AdminImpactTransferSerializer,
     AdminImplementationOverviewSerializer,
+    AdminTransferVerifySerializer,
     ImplementationPlanCreateSerializer,
     ImplementationPlanSerializer,
     ImplementationPlanUpdateSerializer,
@@ -133,17 +138,57 @@ class ImplementationPlanDetailView(APIView):
         tags=["Implementation"],
         request=ImplementationPlanUpdateSerializer,
         responses={200: ImplementationPlanSerializer},
-        summary="Update plan notes / reported issues",
+        summary="Update plan notes, reported issues, or deployment/outcome report",
     )
     def patch(self, request, pk: int):
-        plan = ImplementationPlan.objects.filter(pk=pk, user=request.user).first()
+        plan = (
+            ImplementationPlan.objects.filter(pk=pk, user=request.user)
+            .select_related("innovation")
+            .prefetch_related("steps", "innovation__sources", "innovation__evidences")
+            .first()
+        )
         if not plan:
             return Response({"detail": "Nie znaleziono planu."}, status=status.HTTP_404_NOT_FOUND)
         serializer = ImplementationPlanUpdateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if "user_reported_issues" in serializer.validated_data:
-            plan.user_reported_issues = serializer.validated_data["user_reported_issues"]
-            plan.save(update_fields=["user_reported_issues", "updated_at"])
+        data = serializer.validated_data
+
+        updated_fields: list[str] = []
+        if "user_reported_issues" in data:
+            plan.user_reported_issues = data["user_reported_issues"]
+            updated_fields.append("user_reported_issues")
+
+        report_fields = (
+            "adopter_deployment_status",
+            "deployment_started_on",
+            "reached_beneficiaries_count",
+            "outcome_summary",
+            "evidence_url",
+        )
+        report_changed = False
+        for field in report_fields:
+            if field in data:
+                setattr(plan, field, data[field])
+                updated_fields.append(field)
+                report_changed = True
+
+        if report_changed:
+            now = timezone.now()
+            plan.deployment_reported_at = now
+            updated_fields.append("deployment_reported_at")
+            if (
+                plan.adopter_deployment_status in {"in_pilot", "deployed"}
+                and plan.pilot_started_at is None
+            ):
+                plan.pilot_started_at = now
+                updated_fields.append("pilot_started_at")
+            if plan.pci_transfer_status == "needs_clarification":
+                plan.pci_transfer_status = "unverified"
+                updated_fields.append("pci_transfer_status")
+
+        if updated_fields:
+            updated_fields.append("updated_at")
+            plan.save(update_fields=list(dict.fromkeys(updated_fields)))
         return Response(ImplementationPlanSerializer(plan).data)
 
 
@@ -158,7 +203,11 @@ class ImplementationStepUpdateView(APIView):
         summary="Update implementation step status or notes",
     )
     def patch(self, request, pk: int):
-        step = ImplementationStep.objects.filter(pk=pk, plan__user=request.user).first()
+        step = (
+            ImplementationStep.objects.select_related("plan")
+            .filter(pk=pk, plan__user=request.user)
+            .first()
+        )
         if not step:
             return Response(
                 {"detail": "Nie znaleziono kroku planu."}, status=status.HTTP_404_NOT_FOUND
@@ -170,6 +219,13 @@ class ImplementationStepUpdateView(APIView):
         if "notes" in serializer.validated_data:
             step.notes = serializer.validated_data["notes"]
         step.save()
+        if (
+            step.phase_number >= 3
+            and step.status in {"in_progress", "completed"}
+            and step.plan.pilot_started_at is None
+        ):
+            step.plan.pilot_started_at = timezone.now()
+            step.plan.save(update_fields=["pilot_started_at", "updated_at"])
         return Response(ImplementationStepSerializer(step).data)
 
 
@@ -220,6 +276,81 @@ class AdminImplementationOverviewView(APIView):
                 }
             )
         return Response(rows)
+
+
+class AdminImpactRadarView(APIView):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
+
+    @extend_schema(
+        tags=["Admin"],
+        responses={200: AdminImpactRadarSerializer},
+        summary="PCI Impact Radar funnel KPIs and live transfer pipeline",
+    )
+    def get(self, request):
+        payload = build_impact_radar_payload()
+        return Response(AdminImpactRadarSerializer(payload).data)
+
+
+class AdminTransferVerifyView(APIView):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
+
+    @extend_schema(
+        tags=["Admin"],
+        request=AdminTransferVerifySerializer,
+        responses={200: AdminImpactTransferSerializer},
+        summary="Confirm deployment, verify measured effect, or request clarification",
+    )
+    def post(self, request, pk: int):
+        plan = (
+            ImplementationPlan.objects.select_related("user", "innovation")
+            .prefetch_related("steps")
+            .filter(pk=pk)
+            .first()
+        )
+        if not plan:
+            return Response({"detail": "Nie znaleziono planu."}, status=status.HTTP_404_NOT_FOUND)
+
+        serializer = AdminTransferVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        target_status = serializer.validated_data["pci_transfer_status"]
+        note = serializer.validated_data.get("pci_transfer_note", "").strip()
+
+        if target_status == "needs_clarification" and not note:
+            return Response(
+                {"detail": "Podaj uwagę dla organizacji, co wymaga uzupełnienia."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if target_status == "effect_verified" and not (
+            plan.outcome_summary.strip()
+            or plan.reached_beneficiaries_count is not None
+            or note
+        ):
+            return Response(
+                {
+                    "detail": (
+                        "Weryfikacja efektu wymaga opisu rezultatów lub liczby odbiorców "
+                        "od organizacji albo notatki weryfikacyjnej PCI."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        now = timezone.now()
+        if (
+            target_status in {"deployment_confirmed", "effect_verified"}
+            and plan.pilot_started_at is None
+        ):
+            plan.pilot_started_at = now
+        plan.pci_transfer_status = target_status
+        plan.pci_transfer_note = note
+        plan.pci_transfer_verified_at = now
+        plan.pci_transfer_verified_by = request.user
+        plan.save()
+
+        return Response(AdminImpactTransferSerializer(serialize_transfer_row(plan)).data)
 
 
 class ImplementationPlanExportView(APIView):

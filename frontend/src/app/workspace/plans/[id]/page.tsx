@@ -23,10 +23,12 @@ import {
   CompareIcon,
   CsvIcon,
   DefinitionList,
+  Dropdown,
   ErrorState,
   EyeIcon,
   IconButton,
   LoadingState,
+  NumberInput,
   PdfIcon,
   ProgressBar,
   SpinnerIcon,
@@ -46,16 +48,21 @@ import { setNavBarOverride } from "@/lib/navbar-override";
 import {
   fetchImplementationPlan,
   updateImplementationPlanIssues,
+  updateImplementationPlanReport,
   updateImplementationStep,
   type ImplementationPlan,
 } from "@/lib/radar-api";
 import { downloadCsvFile, formatImplementationPlanCsv } from "@/lib/radar-export";
 import {
+  ADOPTER_DEPLOYMENT_STATUS_LABELS,
   DEPLOYMENT_LABELS,
+  PCI_TRANSFER_STATUS_LABELS,
   PLAN_VARIANT_LABELS,
   PRIMARY_AREA_LABELS,
   STEP_STATUS_LABELS,
   VERIFICATION_LABELS,
+  type AdopterDeploymentStatus,
+  type PciTransferStatus,
   type PlanVariant,
   type StepStatus,
   type VerificationStatus,
@@ -86,6 +93,23 @@ const STEP_STATUS_OPTIONS: ReadonlyArray<{ value: StepStatus; label: string }> =
   { value: "completed", label: STEP_STATUS_LABELS.completed },
 ];
 
+const ADOPTER_DEPLOYMENT_OPTIONS: ReadonlyArray<{
+  value: AdopterDeploymentStatus;
+  label: string;
+}> = [
+  { value: "none", label: ADOPTER_DEPLOYMENT_STATUS_LABELS.none },
+  { value: "in_pilot", label: ADOPTER_DEPLOYMENT_STATUS_LABELS.in_pilot },
+  { value: "deployed", label: ADOPTER_DEPLOYMENT_STATUS_LABELS.deployed },
+  { value: "stopped", label: ADOPTER_DEPLOYMENT_STATUS_LABELS.stopped },
+];
+
+const PCI_TRANSFER_TONE: Record<PciTransferStatus, StatusTone> = {
+  unverified: "warning",
+  deployment_confirmed: "info",
+  effect_verified: "success",
+  needs_clarification: "error",
+};
+
 function PlanWorkspaceDetailInner() {
   const params = useParams<{ id: string }>();
   const pathname = usePathname();
@@ -96,6 +120,13 @@ function PlanWorkspaceDetailInner() {
 
   const [plan, setPlan] = useState<ImplementationPlan | null>(null);
   const [issuesDraft, setIssuesDraft] = useState("");
+  const [deploymentStatusDraft, setDeploymentStatusDraft] =
+    useState<AdopterDeploymentStatus>("none");
+  const [deploymentStartDraft, setDeploymentStartDraft] = useState("");
+  const [beneficiariesDraft, setBeneficiariesDraft] = useState("");
+  const [outcomeDraft, setOutcomeDraft] = useState("");
+  const [evidenceUrlDraft, setEvidenceUrlDraft] = useState("");
+  const [savingReport, setSavingReport] = useState(false);
   const [noteDrafts, setNoteDrafts] = useState<Record<number, string>>({});
   const [loading, setLoading] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
@@ -117,6 +148,16 @@ function PlanWorkspaceDetailInner() {
         setPlan(data);
         setError("");
         setIssuesDraft(data.user_reported_issues || "");
+        setDeploymentStatusDraft(data.adopter_deployment_status || "none");
+        setDeploymentStartDraft(data.deployment_started_on || "");
+        setBeneficiariesDraft(
+          data.reached_beneficiaries_count !== null &&
+            data.reached_beneficiaries_count !== undefined
+            ? String(data.reached_beneficiaries_count)
+            : "",
+        );
+        setOutcomeDraft(data.outcome_summary || "");
+        setEvidenceUrlDraft(data.evidence_url || "");
         const drafts: Record<number, string> = {};
         for (const s of data.steps) drafts[s.id] = s.notes || "";
         setNoteDrafts(drafts);
@@ -276,6 +317,46 @@ function PlanWorkspaceDetailInner() {
       setError(err instanceof Error ? err.message : "Błąd zapisu zgłoszonych uwag.");
     } finally {
       setSavingIssues(false);
+    }
+  }
+
+  async function handleSaveDeploymentReport(e: React.FormEvent) {
+    e.preventDefault();
+    if (!plan) return;
+    setError("");
+
+    const trimmedCount = beneficiariesDraft.trim();
+    let parsedCount: number | null = null;
+    if (trimmedCount !== "") {
+      const n = Number(trimmedCount);
+      if (!Number.isInteger(n) || n < 0) {
+        setError("Liczba objętych odbiorców musi być liczbą całkowitą >= 0.");
+        return;
+      }
+      parsedCount = n;
+    }
+
+    setSavingReport(true);
+    try {
+      const updated = await updateImplementationPlanReport(plan.id, {
+        adopter_deployment_status: deploymentStatusDraft,
+        deployment_started_on: deploymentStartDraft.trim() || null,
+        reached_beneficiaries_count: parsedCount,
+        outcome_summary: outcomeDraft.trim(),
+        evidence_url: evidenceUrlDraft.trim(),
+      });
+      setPlan(updated);
+      setStatusMessage(
+        "Zapisano raport z wdrożenia i efektów — dane zasilają Impact Radar PCI do weryfikacji.",
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Nie udało się zapisać raportu z wdrożenia.",
+      );
+    } finally {
+      setSavingReport(false);
     }
   }
 
@@ -701,6 +782,102 @@ function PlanWorkspaceDetailInner() {
                 );
               })}
             </ol>
+          </section>
+
+          {/* Deployment & Outcome Reporting for Impact Radar */}
+          <section
+            aria-labelledby="plan-outcome-heading"
+            className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6 print:hidden"
+          >
+            <form onSubmit={handleSaveDeploymentReport} className="space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2
+                  id="plan-outcome-heading"
+                  className="text-base font-extrabold tracking-tight text-[var(--color-text)]"
+                >
+                  Raport z wdrożenia i efektów
+                </h2>
+                <Badge tone={PCI_TRANSFER_TONE[plan.pci_transfer_status]} size="compact">
+                  {PCI_TRANSFER_STATUS_LABELS[plan.pci_transfer_status]}
+                </Badge>
+              </div>
+
+              {plan.pci_transfer_note ? (
+                <Banner
+                  tone={
+                    plan.pci_transfer_status === "needs_clarification"
+                      ? "warning"
+                      : "info"
+                  }
+                  appearance="tinted"
+                  title="Informacja od operatora PCI"
+                >
+                  {plan.pci_transfer_note}
+                </Banner>
+              ) : null}
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Dropdown
+                  id="deployment-status-select"
+                  label="Etap wdrożenia w organizacji"
+                  options={ADOPTER_DEPLOYMENT_OPTIONS}
+                  value={deploymentStatusDraft}
+                  onValueChange={(val) =>
+                    setDeploymentStatusDraft(val as AdopterDeploymentStatus)
+                  }
+                />
+
+                <TextInput
+                  id="deployment-start-date"
+                  type="date"
+                  label="Data rozpoczęcia pilotażu lub wdrożenia"
+                  value={deploymentStartDraft}
+                  onChange={(e) => setDeploymentStartDraft(e.target.value)}
+                />
+
+                <NumberInput
+                  id="reached-beneficiaries"
+                  label="Liczba objętych odbiorców"
+                  min={0}
+                  max={10000000}
+                  placeholder="np. 120"
+                  value={beneficiariesDraft}
+                  onChange={(e) => setBeneficiariesDraft(e.target.value)}
+                />
+
+                <TextInput
+                  id="evidence-url"
+                  type="url"
+                  label="Link do potwierdzenia lub raportu (opcjonalnie)"
+                  placeholder="https://bip.gmina.pl/... lub strona projektu"
+                  value={evidenceUrlDraft}
+                  onChange={(e) => setEvidenceUrlDraft(e.target.value)}
+                />
+              </div>
+
+              <TextArea
+                id="outcome-summary"
+                label="Zmierzone efekty względem mierników sukcesu"
+                hint="Opisz konkretne rezultaty z Fazy 4–5 (np. ilu odbiorców skorzystało, co się poprawiło, decyzja o skalowaniu)."
+                rows={3}
+                autoGrow
+                maxRows={8}
+                value={outcomeDraft}
+                onChange={(e) => setOutcomeDraft(e.target.value)}
+                placeholder="np. Wdrożono usługę w urzędzie gminy, obsłużono 145 seniorów, czas rejestracji skrócił się o 40%…"
+              />
+
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span className="text-xs text-[var(--color-text-muted)]">
+                  {plan.deployment_reported_at
+                    ? `Ostatni raport zapisano: ${formatPlanDate(plan.deployment_reported_at)}`
+                    : "Po zapisaniu zgłoszenie pojawi się w kolejce Impact Radar PCI."}
+                </span>
+                <Button type="submit" variant="filled" loading={savingReport}>
+                  {savingReport ? "Zapisywanie…" : "Zapisz raport wdrożeniowy"}
+                </Button>
+              </div>
+            </form>
           </section>
 
           {/* Reported Issues / Gaps for PCI */}

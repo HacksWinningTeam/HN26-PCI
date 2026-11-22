@@ -39,6 +39,7 @@ import {
   SparkleIcon,
   StatFilterCard,
   Switch,
+  TargetIcon,
   TextInput,
   defaultTableState,
   type TableColumn,
@@ -48,17 +49,21 @@ import {
   createAdminSourceFeed,
   deleteAdminSourceFeed,
   fetchAdminDataQuality,
+  fetchAdminImpactRadar,
   fetchAdminImplementations,
   mergeDuplicateInnovation,
   patchAdminInnovation,
   patchAdminSourceFeed,
   runAdminIngestion,
   scrapeAdminUrl,
+  verifyAdminTransfer,
   type AdminDataQualityResponse,
+  type AdminImpactRadarResponse,
   type AdminImplementationOverview,
   type AdminInnovationItem,
   type SourceFeedItem,
 } from "@/lib/radar-api";
+import { ImpactRadarPanel } from "@/components/admin/ImpactRadarPanel";
 import {
   DEPLOYMENT_LABELS,
   getProvenanceMeta,
@@ -70,7 +75,7 @@ import {
   type VerificationStatus,
 } from "@/lib/radar-labels";
 
-type AdminTab = "quality" | "duplicates" | "feeds" | "activity";
+type AdminTab = "radar" | "quality" | "duplicates" | "feeds" | "activity";
 type RecordFilter = "all" | "pending" | "issues" | "duplicates" | "stale";
 
 const STATUS_BADGE_TONE: Record<
@@ -141,13 +146,14 @@ export default function AdminPage() {
   const navigationId = useId();
   const searchId = useId();
 
-  const [tab, setTab] = useState<AdminTab>("quality");
+  const [tab, setTab] = useState<AdminTab>("radar");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [recordFilter, setRecordFilter] = useState<RecordFilter>("all");
   const [recordTableState, setRecordTableState] = useState<TableState>(defaultTableState);
   const [onlyWithIssues, setOnlyWithIssues] = useState(false);
 
+  const [radar, setRadar] = useState<AdminImpactRadarResponse | null>(null);
   const [quality, setQuality] = useState<AdminDataQualityResponse | null>(null);
   const [activity, setActivity] = useState<AdminImplementationOverview[]>([]);
   const [editing, setEditing] = useState<AdminInnovationItem | null>(null);
@@ -183,12 +189,14 @@ export default function AdminPage() {
 
   const load = useCallback(async () => {
     try {
-      const [q, a] = await Promise.all([
+      const [q, a, r] = await Promise.all([
         fetchAdminDataQuality(),
         fetchAdminImplementations(),
+        fetchAdminImpactRadar(),
       ]);
       setQuality(q);
       setActivity(a);
+      setRadar(r);
       setError("");
     } catch (err) {
       setError(
@@ -206,11 +214,16 @@ export default function AdminPage() {
       return;
     }
     let active = true;
-    void Promise.all([fetchAdminDataQuality(), fetchAdminImplementations()])
-      .then(([q, a]) => {
+    void Promise.all([
+      fetchAdminDataQuality(),
+      fetchAdminImplementations(),
+      fetchAdminImpactRadar(),
+    ])
+      .then(([q, a, r]) => {
         if (!active) return;
         setQuality(q);
         setActivity(a);
+        setRadar(r);
         setError("");
       })
       .catch((err) => {
@@ -231,6 +244,26 @@ export default function AdminPage() {
 
   async function handleLogout() {
     await logout();
+  }
+
+  async function handleVerifyTransfer(
+    planId: number,
+    payload: {
+      pci_transfer_status:
+        | "deployment_confirmed"
+        | "effect_verified"
+        | "needs_clarification";
+      pci_transfer_note: string;
+    },
+  ) {
+    setMessage("");
+    setError("");
+    const updated = await verifyAdminTransfer(planId, payload);
+    const nextRadar = await fetchAdminImpactRadar();
+    setRadar(nextRadar);
+    setMessage(
+      `Zaktualizowano status transferu „${updated.innovation_title}” (${updated.organization_name}) na: ${updated.stage_label}.`,
+    );
   }
 
   async function handleMergeDuplicate(slug: string) {
@@ -536,8 +569,24 @@ export default function AdminPage() {
   );
 
   const duplicateCount = quality?.potential_duplicates.length ?? 0;
+  const awaitingRadarCount = radar?.funnel.awaiting_pci_review ?? 0;
 
   const sidebarItems = [
+    {
+      id: "radar",
+      label:
+        awaitingRadarCount > 0
+          ? `Impact Radar (${awaitingRadarCount})`
+          : "Impact Radar",
+      icon: <TargetIcon size={20} />,
+      active: tab === "radar",
+      current: "page" as const,
+      onSelect: () => {
+        setTab("radar");
+        setMobileMenuOpen(false);
+        menuButton.current?.focus();
+      },
+    },
     {
       id: "quality",
       label: "Jakość i weryfikacja",
@@ -589,6 +638,7 @@ export default function AdminPage() {
   ];
 
   const sectionMeta: Record<AdminTab, { title: string; breadcrumb: string }> = {
+    radar: { title: "Impact Radar", breadcrumb: "Impact Radar" },
     quality: { title: "Jakość i weryfikacja", breadcrumb: "Jakość danych" },
     duplicates: { title: "Duplikaty rekordów", breadcrumb: "Duplikaty" },
     feeds: { title: "Źródła publiczne", breadcrumb: "Źródła" },
@@ -889,6 +939,14 @@ export default function AdminPage() {
             />
           ) : error && !quality ? (
             <ErrorState message={error} onRetry={() => void load()} />
+          ) : null}
+
+          {!loading && tab === "radar" && radar ? (
+            <ImpactRadarPanel
+              radar={radar}
+              searchQuery={searchQuery}
+              onVerifyTransfer={handleVerifyTransfer}
+            />
           ) : null}
 
           {!loading && tab === "quality" && quality ? (

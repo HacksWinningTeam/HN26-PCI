@@ -1,7 +1,9 @@
 from django.urls import path
 
 from .views import (
+    AdminImpactRadarView,
     AdminImplementationOverviewView,
+    AdminTransferVerifyView,
     ImplementationPlanDetailView,
     ImplementationPlanExportView,
     ImplementationPlanListCreateView,
@@ -33,5 +35,15 @@ urlpatterns = [
         "admin/implementations/",
         AdminImplementationOverviewView.as_view(),
         name="admin-implementations",
+    ),
+    path(
+        "admin/impact-radar/",
+        AdminImpactRadarView.as_view(),
+        name="admin-impact-radar",
+    ),
+    path(
+        "admin/implementations/<int:pk>/verify-transfer/",
+        AdminTransferVerifyView.as_view(),
+        name="admin-transfer-verify",
     ),
 ]

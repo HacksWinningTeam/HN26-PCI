@@ -12,6 +12,19 @@ export type OrgType =
   | "other";
 export type PlanVariant = "validation" | "pilot" | "transfer_deployment";
 export type StepStatus = "not_started" | "in_progress" | "completed";
+export type AdopterDeploymentStatus = "none" | "in_pilot" | "deployed" | "stopped";
+export type PciTransferStatus =
+  | "unverified"
+  | "deployment_confirmed"
+  | "effect_verified"
+  | "needs_clarification";
+export type TransferStageKey =
+  | "planning"
+  | "validation"
+  | "pilot"
+  | "deployed"
+  | "effect_verified"
+  | "stopped";
 export type EvidenceKind =
   | "verified_fact"
   | "source_declaration"
@@ -103,6 +116,20 @@ export const STEP_STATUS_LABELS: Record<StepStatus, string> = {
   not_started: "Nierozpoczęty",
   in_progress: "Rozpoczęty",
   completed: "Ukończony",
+};
+
+export const ADOPTER_DEPLOYMENT_STATUS_LABELS: Record<AdopterDeploymentStatus, string> = {
+  none: "Nie zgłoszono etapu wdrożenia",
+  in_pilot: "Trwa pilotaż lub walidacja",
+  deployed: "Wdrożono w praktyce",
+  stopped: "Zakończono lub wstrzymano",
+};
+
+export const PCI_TRANSFER_STATUS_LABELS: Record<PciTransferStatus, string> = {
+  unverified: "Oczekuje na weryfikację",
+  deployment_confirmed: "Potwierdzone wdrożenie",
+  effect_verified: "Zweryfikowany efekt",
+  needs_clarification: "Wymaga uzupełnienia",
 };
 
 export type ClassificationProvenance =

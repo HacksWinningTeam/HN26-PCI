@@ -16,6 +16,18 @@ class ImplementationPlan(models.Model):
         ("transfer", "Transfer do organizacji"),
         ("partnership", "Nawiązanie partnerstwa"),
     ]
+    ADOPTER_DEPLOYMENT_STATUS_CHOICES = [
+        ("none", "Nie zgłoszono etapu wdrożenia"),
+        ("in_pilot", "Trwa pilotaż lub walidacja"),
+        ("deployed", "Wdrożono w praktyce"),
+        ("stopped", "Zakończono lub wstrzymano"),
+    ]
+    PCI_TRANSFER_STATUS_CHOICES = [
+        ("unverified", "Oczekuje na weryfikację"),
+        ("deployment_confirmed", "Potwierdzone wdrożenie"),
+        ("effect_verified", "Zweryfikowany efekt"),
+        ("needs_clarification", "Wymaga uzupełnienia"),
+    ]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -45,6 +57,31 @@ class ImplementationPlan(models.Model):
     partner_archetypes = models.JSONField(default=list)
     ai_personalized = models.BooleanField(default=False)
     user_reported_issues = models.TextField(blank=True, default="")
+    pilot_started_at = models.DateTimeField(null=True, blank=True)
+    adopter_deployment_status = models.CharField(
+        max_length=24,
+        choices=ADOPTER_DEPLOYMENT_STATUS_CHOICES,
+        default="none",
+    )
+    deployment_started_on = models.DateField(null=True, blank=True)
+    reached_beneficiaries_count = models.PositiveIntegerField(null=True, blank=True)
+    outcome_summary = models.TextField(blank=True, default="")
+    evidence_url = models.URLField(max_length=500, blank=True, default="")
+    deployment_reported_at = models.DateTimeField(null=True, blank=True)
+    pci_transfer_status = models.CharField(
+        max_length=32,
+        choices=PCI_TRANSFER_STATUS_CHOICES,
+        default="unverified",
+    )
+    pci_transfer_note = models.TextField(blank=True, default="")
+    pci_transfer_verified_at = models.DateTimeField(null=True, blank=True)
+    pci_transfer_verified_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="verified_implementation_transfers",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

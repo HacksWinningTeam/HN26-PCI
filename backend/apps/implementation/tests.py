@@ -169,3 +169,143 @@ def test_gemini_plan_personalization_and_fallback(settings, monkeypatch):
     assert fallback_plan.status_code == 201
     assert fallback_plan.data["ai_personalized"] is False
     assert len(fallback_plan.data["steps"]) == 5
+
+
+@pytest.mark.django_db
+def test_impact_radar_real_collection_and_pci_verification(settings):
+    settings.GEMINI_API_KEY = ""
+    call_command("seed_demo")
+
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+    pci_admin = User.objects.create_user(
+        username="pci-radar-admin",
+        email="pci-radar@pcinn.org",
+        password="password123",
+        is_staff=True,
+    )
+
+    adopter = APIClient()
+    reg = adopter.post(
+        "/api/auth/register/",
+        {
+            "email": "szkola@rzeszow.pl",
+            "password": "password123",
+            "full_name": "Anna Dyrektor",
+            "organization_type": "school",
+            "organization_name": "Szkoła Podstawowa nr 12",
+            "role_title": "Dyrektor",
+            "deployment_location": "Rzeszów",
+        },
+        format="json",
+    )
+    assert reg.status_code == 201
+
+    # Non-admin blocked from Impact Radar endpoints
+    assert adopter.get("/api/admin/impact-radar/").status_code == 403
+
+    admin_client = APIClient()
+    admin_client.force_authenticate(user=pci_admin)
+    baseline = admin_client.get("/api/admin/impact-radar/")
+    assert baseline.status_code == 200
+    base_funnel = baseline.data["funnel"]
+
+    plan_res = adopter.post(
+        "/api/implementation-plans/",
+        {"innovation_slug": "e-urzad-senior"},
+        format="json",
+    )
+    assert plan_res.status_code == 201
+    plan_id = plan_res.data["id"]
+    step_3_id = plan_res.data["steps"][2]["id"]
+
+    # Initially: +1 created plan, +0 started pilots
+    radar_initial = admin_client.get("/api/admin/impact-radar/")
+    assert radar_initial.status_code == 200
+    assert radar_initial.data["funnel"]["created_plans"] == base_funnel["created_plans"] + 1
+    assert radar_initial.data["funnel"]["started_pilots"] == base_funnel["started_pilots"]
+    assert (
+        radar_initial.data["funnel"]["confirmed_deployments"]
+        == base_funnel["confirmed_deployments"]
+    )
+    assert radar_initial.data["funnel"]["verified_effects"] == base_funnel["verified_effects"]
+
+    # Advancing Phase 3 automatically starts pilot tracking
+    step_res = adopter.patch(
+        f"/api/implementation-steps/{step_3_id}/",
+        {"status": "in_progress"},
+        format="json",
+    )
+    assert step_res.status_code == 200
+    radar_pilot = admin_client.get("/api/admin/impact-radar/")
+    assert radar_pilot.data["funnel"]["started_pilots"] == base_funnel["started_pilots"] + 1
+    row_pilot = next(r for r in radar_pilot.data["transfers"] if r["plan_id"] == plan_id)
+    assert row_pilot["pilot_started_at"] is not None
+
+    # Adopter submits real deployment & outcome report
+    report_res = adopter.patch(
+        f"/api/implementation-plans/{plan_id}/",
+        {
+            "adopter_deployment_status": "deployed",
+            "deployment_started_on": "2026-11-20",
+            "reached_beneficiaries_count": 145,
+            "outcome_summary": "Wdrożono obsługę elektroniczną dla 145 rodziców i seniorów.",
+            "evidence_url": "https://bip.rzeszow.pl/raport-wdrozenia",
+        },
+        format="json",
+    )
+    assert report_res.status_code == 200
+    assert report_res.data["adopter_deployment_status"] == "deployed"
+    assert report_res.data["reached_beneficiaries_count"] == 145
+    assert report_res.data["deployment_reported_at"] is not None
+
+    radar_awaiting = admin_client.get("/api/admin/impact-radar/")
+    assert (
+        radar_awaiting.data["funnel"]["awaiting_pci_review"]
+        == base_funnel["awaiting_pci_review"] + 1
+    )
+    row_awaiting = next(r for r in radar_awaiting.data["transfers"] if r["plan_id"] == plan_id)
+    assert row_awaiting["awaiting_pci_review"] is True
+
+    # needs_clarification requires a note
+    bad_clarify = admin_client.post(
+        f"/api/admin/implementations/{plan_id}/verify-transfer/",
+        {"pci_transfer_status": "needs_clarification", "pci_transfer_note": ""},
+        format="json",
+    )
+    assert bad_clarify.status_code == 400
+
+    # PCI confirms deployment
+    confirm_res = admin_client.post(
+        f"/api/admin/implementations/{plan_id}/verify-transfer/",
+        {
+            "pci_transfer_status": "deployment_confirmed",
+            "pci_transfer_note": "Potwierdzono publikację na BIP.",
+        },
+        format="json",
+    )
+    assert confirm_res.status_code == 200
+    assert confirm_res.data["pci_transfer_status"] == "deployment_confirmed"
+
+    # PCI verifies measured effect
+    verify_res = admin_client.post(
+        f"/api/admin/implementations/{plan_id}/verify-transfer/",
+        {
+            "pci_transfer_status": "effect_verified",
+            "pci_transfer_note": "Zweryfikowano wskaźnik 145 odbiorców.",
+        },
+        format="json",
+    )
+    assert verify_res.status_code == 200
+    assert verify_res.data["stage_key"] == "effect_verified"
+
+    radar_final = admin_client.get("/api/admin/impact-radar/")
+    assert radar_final.data["funnel"] == {
+        "created_plans": base_funnel["created_plans"] + 1,
+        "started_pilots": base_funnel["started_pilots"] + 1,
+        "confirmed_deployments": base_funnel["confirmed_deployments"] + 1,
+        "verified_effects": base_funnel["verified_effects"] + 1,
+        "awaiting_pci_review": base_funnel["awaiting_pci_review"],
+        "total_reached_beneficiaries": base_funnel["total_reached_beneficiaries"] + 145,
+    }
