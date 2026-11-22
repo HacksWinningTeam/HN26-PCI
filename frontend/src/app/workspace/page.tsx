@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "@/components/SessionProvider";
 import {
+  ArrowRightIcon,
   Badge,
   BrandBlobLimeIcon,
   BrandBlobSoftBlueIcon,
@@ -14,9 +15,13 @@ import {
   BrandUserIcon,
   BuildingsIcon,
   CheckCircleIcon,
+  ClockIcon,
+  CsvIcon,
+  EyeIcon,
   GridViewIcon,
   IconButton,
   LoadingState,
+  PdfIcon,
   SearchIcon,
   ShieldCheckIcon,
   StarSlashedIcon,
@@ -33,7 +38,18 @@ import {
   type SavedInnovation,
 } from "@/lib/radar-api";
 import { downloadCsvFile, formatImplementationPlanCsv } from "@/lib/radar-export";
-import { ORG_TYPE_LABELS, PLAN_VARIANT_LABELS } from "@/lib/radar-labels";
+import {
+  ORG_TYPE_LABELS,
+  PLAN_VARIANT_LABELS,
+  PRIMARY_AREA_LABELS,
+  type PlanVariant,
+} from "@/lib/radar-labels";
+
+const PLAN_VARIANT_TONE: Record<PlanVariant, "info" | "lime" | "success"> = {
+  validation: "info",
+  pilot: "lime",
+  transfer_deployment: "success",
+};
 
 export default function WorkspacePage() {
   const { auth, authLoaded, setCompareSlugs } = useSession();
@@ -257,20 +273,54 @@ export default function WorkspacePage() {
       </section>
 
       {/* Plans & Nearest Tasks */}
-      <section className="space-y-4">
-        <h2 className="text-xl font-bold">Wygenerowane plany ({plans.length})</h2>
+      <section aria-labelledby="workspace-plans-heading" className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <BrandChecklistIcon size={26} />
+            <h2
+              id="workspace-plans-heading"
+              className="text-xl font-extrabold tracking-tight text-[var(--color-text)]"
+            >
+              Wygenerowane plany
+            </h2>
+            <Badge tone="info" size="compact">
+              {plans.length}
+            </Badge>
+          </div>
+        </div>
+
         {plans.length === 0 ? (
-          <p className="rounded-xl border border-dashed border-[var(--color-border)] p-5 text-sm text-[var(--color-text-muted)]">
-            Nie masz jeszcze planu. Wybierz innowację w{" "}
-            <Link href="/innovations" className="font-semibold text-[var(--color-accent-text)] underline">
-              katalogu
-            </Link>{" "}
-            lub opisz problem w{" "}
-            <Link href="/innovations?mode=problem" className="font-semibold text-[var(--color-accent-text)] underline">
-              wyszukiwarce problemów
-            </Link>
-            .
-          </p>
+          <div className="flex flex-col items-start justify-between gap-4 rounded-2xl border border-dashed border-[var(--color-border)] bg-[var(--color-surface)] p-6 sm:flex-row sm:items-center">
+            <div className="flex items-start gap-3.5">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)]">
+                <BrandChecklistIcon size={30} />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-[var(--color-text)]">
+                  Nie masz jeszcze planu wdrożenia
+                </h3>
+                <p className="text-sm text-[var(--color-text-muted)]">
+                  Wybierz innowację z katalogu lub opisz swój problem, aby wygenerować 5-fazową checklistę.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/innovations?mode=problem"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--color-accent)] px-4 py-2 text-xs font-bold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+              >
+                <SearchIcon size={15} weight="bold" />
+                <span>Wyszukiwarka problemów</span>
+              </Link>
+              <Link
+                href="/innovations"
+                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-bold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+              >
+                <GridViewIcon size={15} />
+                <span>Katalog</span>
+              </Link>
+            </div>
+          </div>
         ) : (
           <div className="space-y-4">
             {plans.map((plan) => {
@@ -282,79 +332,146 @@ export default function WorkspacePage() {
               return (
                 <article
                   key={plan.id}
-                  className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5"
+                  className="space-y-4 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <span className="rounded border border-[var(--color-info-border)] bg-[var(--color-info-bg)] px-2.5 py-0.5 text-xs font-semibold text-[var(--color-info-text)]">
-                        {PLAN_VARIANT_LABELS[plan.variant]}
-                      </span>
-                      <h3 className="mt-1.5 text-lg font-bold">
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge tone={PLAN_VARIANT_TONE[plan.variant]} size="compact">
+                          {PLAN_VARIANT_LABELS[plan.variant]}
+                        </Badge>
+                        <Badge tone="neutral" size="compact">
+                          {PRIMARY_AREA_LABELS[plan.innovation.primary_area]}
+                        </Badge>
+                      </div>
+                      <h3 className="text-lg font-extrabold tracking-tight text-[var(--color-text)]">
                         <Link
                           href={`/workspace/plans/${plan.id}`}
-                          className="text-[var(--color-accent-text)] hover:underline"
+                          className="transition-colors hover:text-[var(--color-accent-text)]"
                         >
                           {plan.innovation.title_pl}
                         </Link>
                       </h3>
                     </div>
-                    <div className="text-right font-mono text-sm font-bold">
-                      {completed}/{plan.steps.length} faz ({pct}%)
+
+                    <div className="shrink-0 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] px-3.5 py-2 text-right">
+                      <p className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+                        Postęp realizacji
+                      </p>
+                      <p className="font-mono text-sm font-extrabold tabular-nums text-[var(--color-text)]">
+                        {completed}/{plan.steps.length} faz{" "}
+                        <span className="text-[var(--color-accent-text)]">({pct}%)</span>
+                      </p>
                     </div>
                   </div>
 
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-[var(--color-surface-raised)]">
-                    <div
-                      className="h-full bg-[var(--color-success-badge)]"
-                      style={{ width: `${pct}%` }}
-                    />
+                  <div
+                    className="grid grid-cols-5 gap-1.5"
+                    role="img"
+                    aria-label={`Postęp planu: ${completed} z ${plan.steps.length} faz (${pct}%)`}
+                  >
+                    {plan.steps.map((step) => {
+                      const stepStyle =
+                        step.status === "completed"
+                          ? "border-[var(--color-accent-lime-border)] bg-[var(--color-accent-lime)]"
+                          : step.status === "in_progress"
+                            ? "border-[var(--color-info-border)] bg-[var(--color-accent)]"
+                            : "border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)]";
+                      return (
+                        <span
+                          key={step.id}
+                          title={`Faza ${step.phase_number}: ${step.title}`}
+                          aria-hidden="true"
+                          className={`h-2.5 rounded-sm border transition-colors ${stepStyle}`}
+                        />
+                      );
+                    })}
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
-                    <div>
-                      <strong>Najbliższe zadanie:</strong>{" "}
-                      {nextTask
-                        ? `Faza ${nextTask.phase_number}: ${nextTask.title}`
-                        : "Wszystkie fazy ukończone"}
+                    <div className="flex items-start gap-2.5 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] px-3.5 py-2.5">
+                      {nextTask ? (
+                        <ClockIcon
+                          size={15}
+                          className="mt-0.5 shrink-0 text-[var(--color-accent-text)]"
+                        />
+                      ) : (
+                        <CheckCircleIcon
+                          size={15}
+                          className="mt-0.5 shrink-0 text-[var(--color-success-text)]"
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+                          Najbliższe zadanie
+                        </p>
+                        <p className="mt-0.5 font-semibold text-[var(--color-text)]">
+                          {nextTask
+                            ? `Faza ${nextTask.phase_number}: ${nextTask.title}`
+                            : "Wszystkie fazy ukończone"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <strong>Kontakt do planu:</strong>{" "}
-                      {contact?.unit_name || plan.innovation.organization_name}
-                      {contact?.email ? ` (${contact.email})` : ""}
+
+                    <div className="flex items-start gap-2.5 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] px-3.5 py-2.5">
+                      <BuildingsIcon
+                        size={15}
+                        className="mt-0.5 shrink-0 text-[var(--color-accent-text)]"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+                          Kontakt do planu
+                        </p>
+                        <p className="mt-0.5 truncate font-semibold text-[var(--color-text)]">
+                          {contact?.unit_name || plan.innovation.organization_name}
+                          {contact?.email ? (
+                            <span className="ml-1 font-normal text-[var(--color-text-muted)]">
+                              · {contact.email}
+                            </span>
+                          ) : null}
+                        </p>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-3 pt-1 text-xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 border-t border-[var(--color-border-subtle)] pt-4 text-xs">
                     <Link
                       href={`/workspace/plans/${plan.id}`}
-                      className="inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-4 font-semibold text-[var(--color-on-accent)]"
+                      className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--color-accent)] px-4 py-2 font-bold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
                     >
-                      Otwórz plan i checklistę →
+                      <span>Otwórz plan i checklistę</span>
+                      <ArrowRightIcon size={15} weight="bold" />
                     </Link>
-                    <Link
-                      href={`/workspace/plans/${plan.id}?print=1`}
-                      className="inline-flex min-h-10 items-center rounded-lg border border-[var(--color-border)] px-3 font-semibold"
-                    >
-                      Pobierz PDF
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        downloadCsvFile(
-                          `plan-${plan.innovation.slug}.csv`,
-                          formatImplementationPlanCsv(plan),
-                        )
-                      }
-                      className="inline-flex min-h-10 cursor-pointer items-center rounded-lg border border-[var(--color-border)] px-3 font-semibold"
-                    >
-                      Pobierz CSV
-                    </button>
-                    <Link
-                      href={`/innovations/${plan.innovation.slug}`}
-                      className="inline-flex min-h-10 items-center rounded-lg border border-[var(--color-border)] px-3 font-semibold"
-                    >
-                      Karta i źródła
-                    </Link>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        href={`/workspace/plans/${plan.id}?print=1`}
+                        className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+                      >
+                        <PdfIcon size={15} />
+                        <span>Pobierz PDF</span>
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          downloadCsvFile(
+                            `plan-${plan.innovation.slug}.csv`,
+                            formatImplementationPlanCsv(plan),
+                          )
+                        }
+                        className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+                      >
+                        <CsvIcon size={15} />
+                        <span>Pobierz CSV</span>
+                      </button>
+                      <Link
+                        href={`/innovations/${plan.innovation.slug}`}
+                        className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+                      >
+                        <EyeIcon size={15} />
+                        <span>Karta i źródła</span>
+                      </Link>
+                    </div>
                   </div>
                 </article>
               );
@@ -364,32 +481,58 @@ export default function WorkspacePage() {
       </section>
 
       {/* Saved Innovations & Saved Comparisons */}
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-2">
-        <div className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-          <h2 className="text-lg font-bold">Zapisane innowacje ({savedInnovations.length})</h2>
+      <section
+        aria-label="Zapisane materiały"
+        className="grid grid-cols-1 items-start gap-5 md:grid-cols-2"
+      >
+        <div className="flex flex-col gap-4 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <BrandBookmarkIcon size={24} />
+              <h2 className="text-lg font-extrabold tracking-tight text-[var(--color-text)]">
+                Zapisane innowacje
+              </h2>
+            </div>
+            <Badge tone="info" size="compact">
+              {savedInnovations.length}
+            </Badge>
+          </div>
+
           {savedInnovations.length === 0 ? (
-            <p className="text-xs text-[var(--color-text-muted)]">Brak zapisanych innowacji.</p>
+            <div className="flex flex-1 flex-col items-start justify-center gap-3 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-canvas)] p-4 text-xs text-[var(--color-text-muted)]">
+              <p>Nie dodałeś jeszcze żadnej innowacji do ulubionych.</p>
+              <Link
+                href="/innovations"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 font-bold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-raised)]"
+              >
+                <span>Przejdź do katalogu</span>
+                <ArrowRightIcon size={14} weight="bold" />
+              </Link>
+            </div>
           ) : (
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2.5 text-sm">
               {savedInnovations.map((s) => (
                 <li
                   key={s.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] p-3"
+                  className="group relative flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] p-3.5 transition-colors hover:bg-[var(--color-surface-raised)]"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <Link
                       href={`/innovations/${s.innovation.slug}`}
-                      className="block truncate font-semibold text-[var(--color-accent-text)] hover:underline"
+                      className="block truncate font-bold text-[var(--color-text)] transition-colors group-hover:text-[var(--color-accent-text)] after:absolute after:inset-0 after:z-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
                     >
                       {s.innovation.title_pl}
                     </Link>
-                    <div className="truncate text-xs text-[var(--color-text-muted)]">
-                      {s.innovation.organization_name}
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--color-text-muted)]">
+                      <span className="truncate">{s.innovation.organization_name}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>{PRIMARY_AREA_LABELS[s.innovation.primary_area]}</span>
                     </div>
                   </div>
                   <IconButton
                     variant="ghost"
                     tone="destructive"
+                    className="z-10 shrink-0"
                     aria-label={`Usuń z ulubionych: ${s.innovation.title_pl}`}
                     title="Usuń z ulubionych"
                     onClick={() => {
@@ -408,26 +551,52 @@ export default function WorkspacePage() {
           )}
         </div>
 
-        <div className="space-y-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] p-5">
-          <h2 className="text-lg font-bold">Zapisane porównania ({comparisons.length})</h2>
+        <div className="flex flex-col gap-4 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <BrandScalesIcon size={24} />
+              <h2 className="text-lg font-extrabold tracking-tight text-[var(--color-text)]">
+                Zapisane porównania
+              </h2>
+            </div>
+            <Badge tone="lime" size="compact">
+              {comparisons.length}
+            </Badge>
+          </div>
+
           {comparisons.length === 0 ? (
-            <p className="text-xs text-[var(--color-text-muted)]">Brak zapisanych porównań.</p>
+            <div className="flex flex-1 flex-col items-start justify-center gap-3 rounded-xl border border-dashed border-[var(--color-border)] bg-[var(--color-canvas)] p-4 text-xs text-[var(--color-text-muted)]">
+              <p>Porównaj co najmniej dwie karty z katalogu, aby zapisać zestawienie.</p>
+              <Link
+                href="/compare"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 font-bold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-raised)]"
+              >
+                <span>Otwórz porównywarkę</span>
+                <ArrowRightIcon size={14} weight="bold" />
+              </Link>
+            </div>
           ) : (
-            <ul className="space-y-2 text-sm">
+            <ul className="space-y-2.5 text-sm">
               {comparisons.map((c) => (
-                <li key={c.id} className="flex items-center justify-between gap-2 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] p-3">
-                  <div>
-                    <div className="font-semibold">{c.title}</div>
-                    <div className="text-xs text-[var(--color-text-muted)]">
-                      {c.innovation_slugs.join(" vs ")}
+                <li
+                  key={c.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] p-3.5"
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-bold text-[var(--color-text)]">
+                      {c.title}
+                    </div>
+                    <div className="mt-0.5 truncate text-xs text-[var(--color-text-muted)]">
+                      {c.innovation_slugs.length} karty · {c.innovation_slugs.join(" vs ")}
                     </div>
                   </div>
                   <Link
                     href="/compare"
                     onClick={() => setCompareSlugs(c.innovation_slugs)}
-                    className="shrink-0 text-xs font-semibold text-[var(--color-accent-text)] underline"
+                    className="inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 text-xs font-bold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
                   >
-                    Otwórz →
+                    <span>Otwórz</span>
+                    <ArrowRightIcon size={14} weight="bold" />
                   </Link>
                 </li>
               ))}
