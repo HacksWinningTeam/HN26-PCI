@@ -15,7 +15,7 @@ Browser (same-origin) -> Next.js 16 (src/proxy.ts / SSR via API_INTERNAL_URL) ->
 - **`apps.discovery`**: persisted or ephemeral `ProblemQuery` with problem text, sector, beneficiary groups, deployment location, and organization type; ranked `InnovationMatch` stores `problem_score`, `sector_score`, `beneficiary_score`, `organization_fit_score`, normalized `overall_score`, and an evidence-based explanation. Weights are respectively 40%, 20%, 20%, and 20%.
 - **`apps.accounts`**: registered Radar user plus `AdopterProfile` describing organization type, deployment location, scale/user count, current approach, available resources, competencies, target date, and constraints. Innovation creators do not need accounts.
 - **`apps.implementation`**: `ImplementationPlan` with `variant` (`validation`, `pilot`, `transfer_deployment`), five ordered `ImplementationStep` records (fit confirmation, contact/materials, readiness, pilot/execution, evaluation/scaling), requirements, risks, success metrics, progress state, relevant contact data, and saved comparisons. Rules select variant/facts; optional AI personalizes wording only.
-- **`apps.ingestion`**: source configuration, ingestion runs, import errors, proposed changes, duplicate candidates, and verification audit history.
+- **`apps.ingestion`**: source configuration, ingestion runs, import errors, proposed changes, duplicate candidates, and verification audit history. T07 / DEC-027 adds `SourceFeed.sources` provenance (many-to-many to `InnovationSource`, allowing overlapping channels). `records_count` in source API responses is read-only and counts distinct non-merged local innovations, including pending review; multiple citations and repeated imports do not inflate it. Counts update after merging/deleting records. Default channels: CORDIS, RUJ UJ, Nauka w Polsce RSS and OpenAlex PL; limit 10 candidates before relevance filtering, without invented failures or totals. Data migration upgrades existing default feeds and links previously imported sources; custom feeds/innovations are preserved.
 
 ## API Endpoints Overview (`drf-spectacular`)
 
@@ -63,9 +63,19 @@ Browser (same-origin) -> Next.js 16 (src/proxy.ts / SSR via API_INTERNAL_URL) ->
 - Document every new variable in `.env.example`, `compose.yaml`, and `compose.prod.yaml`.
 - `<External APIs, keys, timeouts, fallback behavior>`
 
+### Production harvesting (`DEC-028`, T08)
+
+- Deploy starts the web backend (migrations only) and a separate `ingestion` process using the same production build, without published ports. Worker polls on startup and then every `INGESTION_INTERVAL_SECONDS` (default 3600, minimum 60). Dev worker is opt-in via `docker compose --profile ingestion up -d ingestion`.
+- Runtime ingestion always fetches HTTP; `sample_items` configurations and explicit offline run requests are rejected. Per-feed `config.live_fetch` enables automatic polling; manual refresh of a selected feed is always live. Real failures remain visible and are retried. Operator endpoints use existing session auth, CSRF and PCI permissions.
+- `SourceFeed.harvest_state` persists page/offset/token information after successful processing. CORDIS uses page numbers; OpenAlex uses basic paging (first 10,000 results, no new API key needed); OAI consumes all records in a response before following its opaque resumption token. Every five backfill batches revisit the source head without losing backfill position. Network failure retains the saved position; expired OAI tokens restart through the normal endpoint.
+- A PostgreSQL session advisory lock prevents overlap between scheduled imports, manual feed refresh and single-URL imports. Worker handles shutdown signals and retries failures on its next interval.
+- Production Docker context excludes `seed_demo` and tests. Fresh migrations create four source configurations, zero innovations and zero accounts. Existing synthetic records become non-public; user/real-record data is not deleted. Create a real operator via `docker compose -f compose.prod.yaml exec backend python manage.py createsuperuser`.
+- Imported innovations remain `pending_review`; unknown quality scores are empty rather than identical constants. Gemini enriches real source text with rule-based fallback, and provenance distinguishes AI/rules from source statements. This is harvesting from configured APIs/feeds/documents, not an unrestricted web crawler. Metadata and inferred fields still require operator review.
+- Paging references: [OpenAlex official paging](https://help.openalex.org/api/paging/), [OAI-PMH flow control](https://www.openarchives.org/OAI/openarchivesprotocol.html#FlowControl).
+
 ## Hackathon Simplifications & Tradeoffs
 
-- Use a curated, source-linked dataset plus a demonstrable ingestion run rather than attempting to crawl every source during the live demo.
+- Production data comes from real configured public sources and periodic harvesting. Synthetic fixtures exist only for local tests; production contains no demo-seed command.
 - Treat percentage match as an explainable weighted similarity score (40/20/20/20), never as a probability of implementation success.
 - Generate one of three maturity-aware plan variants from deterministic templates and verified innovation/profile fields; optional AI may personalize wording but must not invent evidence, contacts, or achieved outcomes.
 - Put source-backed or PCI-verified contact information required to execute the plan in the registered level-3 view.

@@ -3,11 +3,12 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import AdopterProfile
+from apps.accounts.permissions import IsPCIAdmin
 from apps.accounts.serializers import AdopterProfileSerializer
 from apps.innovations.models import Innovation
 
@@ -173,8 +174,8 @@ class ImplementationStepUpdateView(APIView):
 
 
 class AdminImplementationOverviewView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
 
     @extend_schema(
         tags=["Admin"],

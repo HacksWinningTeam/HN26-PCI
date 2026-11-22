@@ -4,15 +4,18 @@ import xml.etree.ElementTree as ET
 
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.permissions import IsPCIAdmin
 from apps.discovery.models import ScoringConfig
 from apps.innovations.models import Innovation, InnovationSource
 
+from .locking import IngestionBusyError
 from .models import IngestionRun, InnovationAuditLog, SourceFeed
 from .pipeline import (
     _unique_slug,
@@ -51,8 +54,8 @@ def _resolve_actor(request) -> str:
 
 
 class AdminDataQualityView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
 
     @extend_schema(
         tags=["Admin"],
@@ -85,7 +88,9 @@ class AdminDataQualityView(APIView):
                     incomplete_records, many=True
                 ).data,
                 "all_records": AdminInnovationItemSerializer(active, many=True).data,
-                "source_feeds": SourceFeedSerializer(SourceFeed.objects.all(), many=True).data,
+                "source_feeds": SourceFeedSerializer(
+                    SourceFeed.objects.with_local_counts(), many=True
+                ).data,
                 "ingestion_runs": IngestionRunSerializer(runs, many=True).data,
             }
         )
@@ -178,8 +183,8 @@ class AdminDataQualityView(APIView):
 
 
 class AdminInnovationUpdateView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
 
     @extend_schema(
         tags=["Admin"],
@@ -224,8 +229,8 @@ class AdminInnovationUpdateView(APIView):
 
 
 class AdminInnovationRejectView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
 
     @extend_schema(
         tags=["Admin"],
@@ -263,8 +268,8 @@ class AdminInnovationRejectView(APIView):
 
 
 class AdminInnovationHistoryView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
 
     @extend_schema(
         tags=["Admin"],
@@ -280,8 +285,8 @@ class AdminInnovationHistoryView(APIView):
 
 
 class AdminMergeDuplicateView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
 
     @extend_schema(
         tags=["Admin"],
@@ -352,36 +357,38 @@ class AdminMergeDuplicateView(APIView):
 
 
 class AdminRunIngestionView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
 
     @extend_schema(
         tags=["Admin"],
         request=AdminRunIngestionRequestSerializer,
-        responses={201: IngestionRunSerializer},
+        responses={201: IngestionRunSerializer, 409: OpenApiTypes.OBJECT},
         summary="Trigger a source refresh, normalization, and deduplication run",
     )
     def post(self, request):
         serializer = AdminRunIngestionRequestSerializer(data=request.data or {})
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        run = run_ingestion_pipeline(
-            feed_ids=data.get("feed_ids") or None,
-            live_fetch=bool(data.get("live_fetch", False)),
-            max_records=int(data.get("max_records", 5)),
-            actor=_resolve_actor(request),
-        )
+        try:
+            run = run_ingestion_pipeline(
+                feed_ids=data.get("feed_ids") or None,
+                max_records=int(data.get("max_records", 10)),
+                actor=_resolve_actor(request),
+            )
+        except IngestionBusyError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
         return Response(IngestionRunSerializer(run).data, status=status.HTTP_201_CREATED)
 
 
 class AdminScrapeUrlView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
 
     @extend_schema(
         tags=["Admin"],
         request=AdminScrapeUrlRequestSerializer,
-        responses={201: AdminScrapeUrlResponseSerializer},
+        responses={201: AdminScrapeUrlResponseSerializer, 409: OpenApiTypes.OBJECT},
         summary="Scrape public HTML, JSON/RSS/OAI-PMH, or PDF URL as pending_review",
     )
     def post(self, request):
@@ -398,6 +405,8 @@ class AdminScrapeUrlView(APIView):
                 max_records=int(data.get("max_records", 3)),
                 actor=_resolve_actor(request),
             )
+        except IngestionBusyError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_409_CONFLICT)
         except (urllib.error.URLError, TimeoutError) as exc:
             return Response(
                 {"detail": f"Błąd pobierania ze źródła zewnętrznego: {exc}"},
@@ -444,8 +453,8 @@ class AdminScrapeUrlView(APIView):
 
 
 class AdminSourceFeedListCreateView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
 
     @extend_schema(
         tags=["Admin"],
@@ -453,7 +462,7 @@ class AdminSourceFeedListCreateView(APIView):
         summary="List all configured public ingestion SourceFeeds",
     )
     def get(self, request):
-        feeds = SourceFeed.objects.all()
+        feeds = SourceFeed.objects.with_local_counts()
         return Response(SourceFeedSerializer(feeds, many=True).data)
 
     @extend_schema(
@@ -472,8 +481,8 @@ class AdminSourceFeedListCreateView(APIView):
 
 
 class AdminSourceFeedDetailView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
 
     @extend_schema(
         tags=["Admin"],
@@ -517,8 +526,8 @@ class AdminSourceFeedDetailView(APIView):
 
 
 class AdminScoringConfigView(APIView):
-    authentication_classes = []
-    permission_classes = [AllowAny]
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsPCIAdmin]
 
     @extend_schema(
         tags=["Admin"],

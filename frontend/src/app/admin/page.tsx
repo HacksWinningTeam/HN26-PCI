@@ -10,12 +10,19 @@ import {
   AppShellLayout,
   Badge,
   Banner,
+  BrandBlobLimeIcon,
+  BrandBlobSoftBlueIcon,
+  BrandLayersIcon,
+  BrandLimeBurstIcon,
+  BrandSearchIdeaIcon,
   BuildingsIcon,
   Button,
   CardSurface,
+  ClockIcon,
   CloseIcon,
   DatabaseIcon,
   DataTable,
+  Dropdown,
   EmptyState,
   ErrorState,
   GitMergeIcon,
@@ -23,24 +30,34 @@ import {
   LoadingState,
   MenuIcon,
   NavBar,
+  NumberInput,
+  PlusIcon,
   RefreshIcon,
   ShieldCheckIcon,
   Sidebar,
   SidebarUtilities,
+  SparkleIcon,
   StatFilterCard,
+  Switch,
+  TextInput,
   defaultTableState,
   type TableColumn,
   type TableState,
 } from "@/components/ui";
 import {
+  createAdminSourceFeed,
+  deleteAdminSourceFeed,
   fetchAdminDataQuality,
   fetchAdminImplementations,
   mergeDuplicateInnovation,
   patchAdminInnovation,
+  patchAdminSourceFeed,
   runAdminIngestion,
+  scrapeAdminUrl,
   type AdminDataQualityResponse,
   type AdminImplementationOverview,
   type AdminInnovationItem,
+  type SourceFeedItem,
 } from "@/lib/radar-api";
 import {
   ORG_TYPE_LABELS,
@@ -82,6 +99,29 @@ const PRIORITY_ORDER: Record<VerificationStatus, number> = {
   verified: 3,
 };
 
+const SCRAPE_METHOD_OPTIONS = [
+  { value: "auto", label: "Auto-detekcja (HTML / PDF / API / RSS / OAI)" },
+  { value: "HTML", label: "Strona WWW (HTML)" },
+  { value: "PDF", label: "Dokument PDF (pypdf)" },
+  { value: "API", label: "JSON API (CORDIS / Dane.gov.pl / OpenAlex)" },
+  { value: "RSS", label: "Kanał RSS / Atom" },
+  { value: "OAI-PMH", label: "Repozytorium OAI-PMH (XML)" },
+] as const;
+
+const FEED_CATEGORY_OPTIONS = [
+  { value: "Projekty B+R", label: "Projekty B+R" },
+  { value: "Nauka i patenty", label: "Nauka i patenty" },
+  { value: "Administracja i edukacja", label: "Administracja i edukacja" },
+] as const;
+
+const FEED_METHOD_OPTIONS = [
+  { value: "API", label: "JSON API" },
+  { value: "RSS", label: "RSS / Atom" },
+  { value: "OAI-PMH", label: "OAI-PMH" },
+  { value: "HTML", label: "Strona HTML" },
+  { value: "PDF", label: "Dokument PDF" },
+] as const;
+
 function formatDateTime(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
@@ -118,6 +158,19 @@ export default function AdminPage() {
 
   const [busySlug, setBusySlug] = useState<string | null>(null);
   const [ingesting, setIngesting] = useState(false);
+  const [scrapeUrl, setScrapeUrl] = useState("");
+  const [scrapeRegistry, setScrapeRegistry] = useState("");
+  const [scrapeMethod, setScrapeMethod] = useState<"auto" | "HTML" | "PDF" | "API" | "RSS" | "OAI-PMH">("auto");
+  const [scrapingUrl, setScrapingUrl] = useState(false);
+  const [showAddFeed, setShowAddFeed] = useState(false);
+  const [feedName, setFeedName] = useState("");
+  const [feedCategory, setFeedCategory] = useState("Projekty B+R");
+  const [feedUrl, setFeedUrl] = useState("");
+  const [feedMethod, setFeedMethod] = useState("API");
+  const [feedMaxRecords, setFeedMaxRecords] = useState(10);
+  const [feedLiveFetch, setFeedLiveFetch] = useState(true);
+  const [savingFeed, setSavingFeed] = useState(false);
+  const [busyFeedId, setBusyFeedId] = useState<number | null>(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -212,18 +265,114 @@ export default function AdminPage() {
     }
   }
 
-  async function handleRunIngestion() {
+  async function handleRunIngestion(feedIds?: number[]) {
     setMessage("");
     setError("");
     setIngesting(true);
     try {
-      const run = await runAdminIngestion();
-      setMessage(`Odświeżono źródła: ${run.summary}`);
+      const run = await runAdminIngestion({
+        live_fetch: true,
+        ...(feedIds && feedIds.length > 0 ? { feed_ids: feedIds } : {}),
+      });
+      setMessage(`Pobrano aktualne dane ze źródeł: ${run.summary}`);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Błąd odświeżania źródeł.");
     } finally {
       setIngesting(false);
+    }
+  }
+
+  async function handleScrapeUrl(e: React.FormEvent) {
+    e.preventDefault();
+    if (!scrapeUrl.trim()) return;
+    setMessage("");
+    setError("");
+    setScrapingUrl(true);
+    try {
+      const res = await scrapeAdminUrl({
+        url: scrapeUrl.trim(),
+        registry: scrapeRegistry.trim() || undefined,
+        method: scrapeMethod,
+      });
+      const firstTitle = res.results[0]?.innovation.title_pl ?? scrapeUrl;
+      setMessage(
+        `Zescrapowano ${res.scraped_count} rekord(y): nowe ${res.created_count}, zaktualizowane ${res.updated_count}, duplikaty ${res.duplicate_count}. Ostatni: „${firstTitle}” (w kolejce do weryfikacji).`,
+      );
+      setScrapeUrl("");
+      setScrapeRegistry("");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nie udało się pobrać wskazanego URL.");
+    } finally {
+      setScrapingUrl(false);
+    }
+  }
+
+  async function handleCreateFeed(e: React.FormEvent) {
+    e.preventDefault();
+    if (!feedName.trim() || !feedUrl.trim()) return;
+    setMessage("");
+    setError("");
+    setSavingFeed(true);
+    try {
+      const created = await createAdminSourceFeed({
+        name: feedName.trim(),
+        category: feedCategory.trim() || "Projekty B+R",
+        url: feedUrl.trim(),
+        method: feedMethod,
+        config: {
+          live_fetch: feedLiveFetch,
+          max_records: feedMaxRecords,
+        },
+      });
+      setMessage(`Dodano kanał źródłowy „${created.name}”.`);
+      setFeedName("");
+      setFeedUrl("");
+      setShowAddFeed(false);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nie udało się dodać kanału źródłowego.");
+    } finally {
+      setSavingFeed(false);
+    }
+  }
+
+  async function handleToggleFeedLive(feed: SourceFeedItem) {
+    setMessage("");
+    setError("");
+    setBusyFeedId(feed.id);
+    try {
+      const nextLive = !(feed.config?.live_fetch ?? true);
+      await patchAdminSourceFeed(feed.id, {
+        config: {
+          ...(feed.config ?? {}),
+          live_fetch: nextLive,
+        },
+      });
+      setMessage(
+        `Kanał „${feed.name}”: automatyczne pobieranie ${nextLive ? "włączone" : "wyłączone"}.`,
+      );
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nie udało się zaktualizować kanału.");
+    } finally {
+      setBusyFeedId(null);
+    }
+  }
+
+  async function handleDeleteFeed(feed: SourceFeedItem) {
+    setMessage("");
+    setError("");
+    setBusyFeedId(feed.id);
+    try {
+      await deleteAdminSourceFeed(feed.id);
+      setMessage(`Usunięto kanał „${feed.name}”.`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Nie udało się usunąć kanału.");
+    } finally {
+      setBusyFeedId(null);
     }
   }
 
@@ -990,28 +1139,228 @@ export default function AdminPage() {
 
           {!loading && tab === "feeds" && quality ? (
             <div className="space-y-6">
-              <CardSurface variant="subtle" className="space-y-4 p-5">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-base font-bold text-[var(--color-text)]">
-                      Kanały pobierania danych ze źródeł publicznych ({filteredFeeds.length})
-                    </h2>
-                    {latestRun ? (
-                      <p className="text-xs text-[var(--color-text-muted)]">
-                        Ostatnie odświeżenie: {formatDateTime(latestRun.started_at)} ·{" "}
-                        {latestRun.summary}
-                      </p>
-                    ) : null}
+              <section
+                aria-labelledby="scrape-url-heading"
+                className="relative overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6"
+              >
+                <BrandBlobSoftBlueIcon
+                  size={170}
+                  className="pointer-events-none absolute -top-14 -right-12 opacity-45"
+                />
+                <BrandBlobLimeIcon
+                  size={125}
+                  className="pointer-events-none absolute right-24 -bottom-14 hidden opacity-35 sm:block"
+                />
+
+                <div className="relative z-10 flex items-start gap-4">
+                  <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] shadow-xs sm:h-16 sm:w-16">
+                    <BrandLimeBurstIcon
+                      size={22}
+                      className="pointer-events-none absolute -top-2.5 -left-2.5 -rotate-45"
+                    />
+                    <BrandSearchIdeaIcon size={38} className="sm:h-10 sm:w-10" />
                   </div>
-                  <Button
-                    size="compact"
-                    leadingIcon={<RefreshIcon className={ingesting ? "animate-spin" : undefined} />}
-                    disabled={ingesting}
-                    onClick={() => void handleRunIngestion()}
-                  >
-                    {ingesting ? "Odświeżanie…" : "Odśwież źródła teraz"}
-                  </Button>
+
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone="info" size="compact">
+                        Gemini AI + pypdf
+                      </Badge>
+                      <Badge tone="neutral" variant="outline" size="compact">
+                        Kolejka do weryfikacji
+                      </Badge>
+                    </div>
+                    <h2
+                      id="scrape-url-heading"
+                      className="text-lg font-extrabold tracking-tight text-[var(--color-text)] sm:text-xl"
+                    >
+                      Zescrapuj pojedynczy URL lub dokument PDF
+                    </h2>
+                    <p className="max-w-3xl text-sm text-[var(--color-text-muted)]">
+                      Wklej adres projektu, repozytorium, kanału RSS/OAI-PMH lub pliku PDF. System
+                      pobierze treść, wykluczy duplikaty i przekaże kartę do zakładki „Jakość i
+                      weryfikacja”.
+                    </p>
+                  </div>
                 </div>
+
+                <form
+                  onSubmit={handleScrapeUrl}
+                  className="relative z-10 mt-5 grid grid-cols-1 gap-4 border-t border-[var(--color-border-subtle)] pt-5 md:grid-cols-12"
+                >
+                  <div className="md:col-span-6">
+                    <TextInput
+                      id="scrape-url"
+                      type="url"
+                      required
+                      label="Adres URL strony, API lub PDF"
+                      placeholder="https://cordis.europa.eu/project/id/... lub https://.../raport.pdf"
+                      value={scrapeUrl}
+                      onChange={(e) => setScrapeUrl(e.target.value)}
+                    />
+                  </div>
+                  <div className="md:col-span-3">
+                    <TextInput
+                      id="scrape-registry"
+                      label="Źródło / rejestr"
+                      placeholder="np. CORDIS, BIP, UPRP"
+                      value={scrapeRegistry}
+                      onChange={(e) => setScrapeRegistry(e.target.value)}
+                    />
+                  </div>
+                  <div className="md:col-span-3">
+                    <Dropdown
+                      id="scrape-method"
+                      label="Format / adapter"
+                      options={SCRAPE_METHOD_OPTIONS}
+                      value={scrapeMethod}
+                      onValueChange={(val) =>
+                        setScrapeMethod(
+                          val as "auto" | "HTML" | "PDF" | "API" | "RSS" | "OAI-PMH",
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-3 md:col-span-12">
+                    <span className="text-xs text-[var(--color-text-muted)]">
+                      Zapisywana jest pełna migawka źródła i suma SHA-256 bez obchodzenia barier
+                      CAPTCHA.
+                    </span>
+                    <Button
+                      type="submit"
+                      variant="filled"
+                      loading={scrapingUrl}
+                      leadingIcon={<SparkleIcon size={16} />}
+                      disabled={!scrapeUrl.trim()}
+                    >
+                      {scrapingUrl ? "Pobieranie i klasyfikacja…" : "Pobierz i sklasyfikuj"}
+                    </Button>
+                  </div>
+                </form>
+              </section>
+
+              <CardSurface className="space-y-5 rounded-2xl p-5 sm:p-6">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)]">
+                      <BrandLayersIcon size={28} />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-base font-bold text-[var(--color-text)] sm:text-lg">
+                          Kanały źródeł publicznych
+                        </h2>
+                        <Badge tone="neutral" size="compact">
+                          {filteredFeeds.length}
+                        </Badge>
+                      </div>
+                      {latestRun ? (
+                        <p className="text-xs text-[var(--color-text-muted)]">
+                          Ostatnie odświeżenie: {formatDateTime(latestRun.started_at)} ·{" "}
+                          {latestRun.summary}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      leadingIcon={showAddFeed ? <CloseIcon size={16} /> : <PlusIcon size={16} />}
+                      onClick={() => setShowAddFeed((prev) => !prev)}
+                    >
+                      {showAddFeed ? "Zamknij" : "Dodaj kanał"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="filled"
+                      loading={ingesting}
+                      leadingIcon={<RefreshIcon size={16} />}
+                      onClick={() => void handleRunIngestion()}
+                    >
+                      {ingesting ? "Odświeżanie…" : "Odśwież źródła teraz"}
+                    </Button>
+                  </div>
+                </div>
+
+                {showAddFeed ? (
+                  <form
+                    onSubmit={handleCreateFeed}
+                    className="grid grid-cols-1 gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-canvas)] p-4 sm:p-5 md:grid-cols-12"
+                  >
+                    <div className="md:col-span-4">
+                      <TextInput
+                        id="feed-name"
+                        required
+                        label="Nazwa kanału"
+                        placeholder="np. Politechnika Rzeszowska — OAI"
+                        value={feedName}
+                        onChange={(e) => setFeedName(e.target.value)}
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <Dropdown
+                        id="feed-category"
+                        label="Kategoria"
+                        options={FEED_CATEGORY_OPTIONS}
+                        value={feedCategory}
+                        onValueChange={setFeedCategory}
+                      />
+                    </div>
+                    <div className="md:col-span-3">
+                      <Dropdown
+                        id="feed-method"
+                        label="Metoda pobierania"
+                        options={FEED_METHOD_OPTIONS}
+                        value={feedMethod}
+                        onValueChange={setFeedMethod}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <NumberInput
+                        id="feed-max"
+                        label="Limit / run"
+                        min={1}
+                        max={20}
+                        value={String(feedMaxRecords)}
+                        onChange={(e) => setFeedMaxRecords(Number(e.target.value) || 10)}
+                      />
+                    </div>
+                    <div className="md:col-span-8">
+                      <TextInput
+                        id="feed-url"
+                        type="url"
+                        required
+                        label="Adres URL kanału"
+                        placeholder="https://..."
+                        value={feedUrl}
+                        onChange={(e) => setFeedUrl(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex items-end md:col-span-4">
+                      <Switch
+                        label="Automatyczne pobieranie"
+                        accent="lime"
+                        checked={feedLiveFetch}
+                        onChange={(e) => setFeedLiveFetch(e.target.checked)}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex flex-wrap justify-end gap-2 md:col-span-12">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setShowAddFeed(false)}
+                      >
+                        Anuluj
+                      </Button>
+                      <Button type="submit" variant="filled" loading={savingFeed}>
+                        {savingFeed ? "Zapisywanie…" : "Zapisz kanał"}
+                      </Button>
+                    </div>
+                  </form>
+                ) : null}
 
                 {filteredFeeds.length === 0 ? (
                   <EmptyState
@@ -1020,52 +1369,113 @@ export default function AdminPage() {
                     description="Wyczyść frazę w wyszukiwarce, aby zobaczyć wszystkie kanały pobierania."
                   />
                 ) : (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    {filteredFeeds.map((f) => (
-                      <div
-                        key={f.id}
-                        className="space-y-2 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] p-4 text-xs"
-                      >
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <div>
-                            <div className="font-bold text-[var(--color-text)]">{f.name}</div>
-                            <div className="text-[var(--color-text-muted)]">{f.category}</div>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    {filteredFeeds.map((f) => {
+                      const isLive = f.config?.live_fetch !== false;
+                      return (
+                        <div
+                          key={f.id}
+                          className="flex flex-col justify-between gap-3 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] p-4 text-xs sm:p-5"
+                        >
+                          <div className="space-y-2.5">
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div className="space-y-0.5">
+                                <div className="text-sm font-bold text-[var(--color-text)]">
+                                  {f.name}
+                                </div>
+                                <div className="text-xs text-[var(--color-text-muted)]">
+                                  {f.category}
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                {isLive ? (
+                                  <Badge tone="info" variant="solid" size="compact">
+                                    Automatycznie
+                                  </Badge>
+                                ) : null}
+                                <Badge tone={FEED_STATUS_TONE[f.status]} size="compact">
+                                  {FEED_STATUS_LABELS[f.status]}
+                                </Badge>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[var(--color-text-muted)]">
+                              <span>
+                                Metoda: <strong className="text-[var(--color-text)]">{f.method}</strong>
+                              </span>
+                              <span>·</span>
+                              <span>
+                                Rekordy w bazie:{" "}
+                                <strong className="font-mono text-[var(--color-text)]">
+                                  {f.records_count}
+                                </strong>
+                              </span>
+                              <span>·</span>
+                              <span className="inline-flex items-center gap-1">
+                                <ClockIcon size={12} />
+                                {formatDateTime(f.last_synced_at)}
+                              </span>
+                            </div>
+
+                            <a
+                              href={f.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block break-all font-semibold text-[var(--color-accent-text)] underline"
+                            >
+                              {f.url} ↗
+                            </a>
+
+                            {f.error_message ? (
+                              <Banner tone="warning" title="Uwaga dla źródła">
+                                {f.error_message}
+                              </Banner>
+                            ) : null}
                           </div>
-                          <Badge tone={FEED_STATUS_TONE[f.status]} size="compact">
-                            {FEED_STATUS_LABELS[f.status]}
-                          </Badge>
-                        </div>
 
-                        <div className="text-[var(--color-text-muted)]">
-                          Metoda: <strong>{f.method}</strong> · Rekordy:{" "}
-                          <strong className="font-mono">{f.records_count}</strong> · Synchronizacja:{" "}
-                          {formatDateTime(f.last_synced_at)}
-                        </div>
-
-                        <div>
-                          <a
-                            href={f.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="break-all font-semibold text-[var(--color-accent-text)] underline"
-                          >
-                            {f.url} ↗
-                          </a>
-                        </div>
-
-                        {f.error_message ? (
-                          <div className="rounded-lg border border-[var(--color-warn-border)] bg-[var(--color-warn-bg)] p-2 font-semibold text-[var(--color-warn-text)]">
-                            {f.error_message}
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-border-subtle)] pt-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button
+                                type="button"
+                                size="compact"
+                                variant="outline"
+                                leadingIcon={<RefreshIcon size={14} />}
+                                disabled={ingesting || busyFeedId === f.id}
+                                onClick={() => void handleRunIngestion([f.id])}
+                              >
+                                Odśwież
+                              </Button>
+                              <Button
+                                type="button"
+                                size="compact"
+                                variant="outline"
+                                disabled={busyFeedId === f.id}
+                                onClick={() => void handleToggleFeedLive(f)}
+                              >
+                                {isLive ? "Wyłącz automat" : "Włącz automat"}
+                              </Button>
+                            </div>
+                            <Button
+                              type="button"
+                              size="compact"
+                              variant="ghost"
+                              tone="destructive"
+                              leadingIcon={<CloseIcon size={14} />}
+                              disabled={busyFeedId === f.id}
+                              onClick={() => void handleDeleteFeed(f)}
+                            >
+                              Usuń
+                            </Button>
                           </div>
-                        ) : null}
-                      </div>
-                    ))}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </CardSurface>
 
               {quality.ingestion_runs.length > 0 ? (
-                <CardSurface variant="subtle" className="space-y-3 p-5">
+                <CardSurface className="space-y-3 rounded-2xl p-5 sm:p-6">
                   <h2 className="text-base font-bold text-[var(--color-text)]">
                     Historia uruchomień synchronizacji
                   </h2>
@@ -1073,12 +1483,21 @@ export default function AdminPage() {
                     {quality.ingestion_runs.map((run) => (
                       <li
                         key={run.id}
-                        className="flex flex-wrap items-center justify-between gap-2 py-2.5"
+                        className="flex flex-wrap items-center justify-between gap-3 py-3"
                       >
-                        <span className="font-semibold text-[var(--color-text)]">
-                          {run.summary}
-                        </span>
-                        <span className="font-mono text-[var(--color-text-muted)]">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            tone={run.status === "completed" ? "success" : "warning"}
+                            size="compact"
+                          >
+                            {run.status === "completed" ? "Zakończono" : "Z ostrzeżeniami"}
+                          </Badge>
+                          <span className="font-semibold text-[var(--color-text)]">
+                            {run.summary}
+                          </span>
+                        </div>
+                        <span className="inline-flex items-center gap-1 font-mono text-[var(--color-text-muted)]">
+                          <ClockIcon size={12} />
                           {formatDateTime(run.started_at)}
                         </span>
                       </li>

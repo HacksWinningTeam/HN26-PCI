@@ -19,8 +19,9 @@ from django.utils.text import slugify
 from apps.discovery.models import ScoringConfig
 from apps.innovations.models import Evidence, Innovation, InnovationSource
 
-from .adapters import RawSourceRecord, fetch_feed_records
+from .adapters import RawSourceRecord, fetch_feed_batch, fetch_feed_records
 from .ai_service import extract_and_classify_innovation, normalize_whitespace
+from .locking import exclusive_ingestion
 from .models import IngestionRun, InnovationAuditLog, SourceFeed
 
 
@@ -202,12 +203,7 @@ def ingest_raw_record(
         is_synthetic_demo=bool(record.metadata.get("is_synthetic_demo", False)),
         fetched_at=today,
         last_verified_at=today,
-        scores={
-            "innovativeness": 70,
-            "application_potential": 72,
-            "transferability": 68,
-            "credibility": 65,
-        },
+        scores={},
         missing_info=extracted["missing_info"],
         conflicting_info=extracted["conflicting_info"],
         duplicate_of=dup_target,
@@ -266,27 +262,6 @@ def mark_stale_innovations() -> int:
     return count
 
 
-def _records_from_feed_config(feed: SourceFeed) -> list[RawSourceRecord]:
-    cfg = feed.config if isinstance(feed.config, dict) else {}
-    sample_items = cfg.get("sample_items") or []
-    records: list[RawSourceRecord] = []
-    for item in sample_items:
-        if not isinstance(item, dict):
-            continue
-        records.append(
-            RawSourceRecord(
-                title=str(item.get("title") or feed.name),
-                text=str(item.get("text") or ""),
-                url=str(item.get("url") or feed.url),
-                registry=str(item.get("registry") or feed.name.split("—")[0].strip()),
-                label=str(item.get("label") or item.get("title") or feed.name),
-                organization_name=str(item.get("organization_name") or ""),
-                metadata=item.get("metadata") if isinstance(item.get("metadata"), dict) else {},
-            )
-        )
-    return records
-
-
 def _precompute_extractions(records: list[RawSourceRecord]) -> dict[int, dict[str, Any]]:
     """Run AI/rule extraction in parallel for new or changed records without touching ORM."""
     if not records:
@@ -340,14 +315,17 @@ def _precompute_extractions(records: list[RawSourceRecord]) -> dict[int, dict[st
     return extracted_map
 
 
+@exclusive_ingestion
 def run_ingestion_pipeline(
     *,
     feed_ids: list[int] | None = None,
-    live_fetch: bool = False,
-    max_records: int = 5,
+    live_fetch: bool = True,
+    max_records: int = 10,
     actor: str = "system_ingestion",
 ) -> IngestionRun:
     """Execute ingestion across configured SourceFeeds, detect duplicates/stale, and log run."""
+    if not live_fetch:
+        raise ValueError("Tryb offline jest wyłączony. Synchronizacja pobiera rzeczywiste źródła.")
     now = timezone.now()
     feeds_qs = SourceFeed.objects.all()
     if feed_ids:
@@ -358,35 +336,34 @@ def run_ingestion_pipeline(
     updated_records = 0
     duplicates_found = 0
     conflicts_found = 0
+    skipped_irrelevant = 0
     errors_count = 0
 
     live_targets: list[tuple[SourceFeed, int]] = []
     feed_records: dict[int, list[RawSourceRecord]] = {}
     feed_errors: dict[int, str] = {}
+    next_states: dict[int, dict[str, Any]] = {}
 
     for feed in feeds:
         cfg = feed.config if isinstance(feed.config, dict) else {}
-        if feed.status == "error" and not live_fetch and not cfg.get("sample_items"):
-            errors_count += 1
+        if not feed_ids and not cfg.get("live_fetch", True):
             continue
-        feed_limit = int(cfg.get("max_records", max_records) or max_records)
-        if live_fetch or cfg.get("live_fetch"):
-            live_targets.append((feed, feed_limit))
-        else:
-            feed_records[feed.id] = _records_from_feed_config(feed)
+        feed_limit = max(1, min(25, int(cfg.get("max_records", max_records) or max_records)))
+        live_targets.append((feed, feed_limit))
 
     if live_targets:
-        def _fetch_one(target: tuple[SourceFeed, int]) -> tuple[int, list[RawSourceRecord], str]:
+        def _fetch_one(target: tuple[SourceFeed, int]):
             feed_obj, limit = target
             try:
-                recs = fetch_feed_records(
+                batch = fetch_feed_batch(
                     url=feed_obj.url,
                     method=feed_obj.method,
                     registry=feed_obj.name.split("—")[0].strip(),
                     label=feed_obj.name,
                     max_records=limit,
+                    state=feed_obj.harvest_state,
                 )
-                return feed_obj.id, recs, ""
+                return feed_obj.id, batch.records, batch.next_state, ""
             except (
                 urllib.error.URLError,
                 TimeoutError,
@@ -394,14 +371,15 @@ def run_ingestion_pipeline(
                 json.JSONDecodeError,
                 ET.ParseError,
             ) as exc:
-                return feed_obj.id, [], f"Błąd pobierania: {exc}"
+                return feed_obj.id, [], {}, f"Błąd pobierania: {exc}"
 
         with ThreadPoolExecutor(max_workers=min(4, len(live_targets))) as pool:
-            for fid, recs, err in pool.map(_fetch_one, live_targets):
+            for fid, recs, next_state, err in pool.map(_fetch_one, live_targets):
                 if err:
                     feed_errors[fid] = err
                 else:
                     feed_records[fid] = recs
+                    next_states[fid] = next_state
 
     # Precompute AI classifications in parallel across all fetched records
     flat_records: list[RawSourceRecord] = []
@@ -426,40 +404,38 @@ def run_ingestion_pipeline(
             continue
 
         start, end = feed_slices[feed.id]
-        feed_new = 0
         for idx in range(start, end):
-            _, outcome = ingest_raw_record(
+            extracted_item = precomputed.get(idx)
+            if extracted_item and extracted_item.get("is_relevant_innovation") is False:
+                skipped_irrelevant += 1
+                continue
+            innovation, outcome = ingest_raw_record(
                 flat_records[idx],
                 actor=actor,
-                precomputed_extracted=precomputed.get(idx),
+                precomputed_extracted=extracted_item,
             )
+            feed.sources.add(*innovation.sources.filter(url=flat_records[idx].url))
             if outcome == "created":
                 new_records += 1
-                feed_new += 1
             elif outcome == "updated":
                 updated_records += 1
             elif outcome == "duplicate":
                 new_records += 1
-                feed_new += 1
                 duplicates_found += 1
             elif outcome == "conflict":
                 updated_records += 1
                 conflicts_found += 1
 
         feed.last_synced_at = now
-        if feed_new > 0:
-            feed.records_count = feed.records_count + feed_new
-        if feed.status == "error":
-            feed.status = "active"
-            feed.error_message = ""
-        feed.save(update_fields=["last_synced_at", "records_count", "status", "error_message"])
+        feed.records_count = feed.local_records_count
+        feed.harvest_state = next_states[feed.id]
+        feed.status = "active"
+        feed.error_message = ""
+        feed.save(update_fields=[
+            "last_synced_at", "records_count", "harvest_state", "status", "error_message",
+        ])
 
     stale_marked = mark_stale_innovations()
-    if stale_marked > 0:
-        SourceFeed.objects.filter(category="Administracja i edukacja").update(
-            status="stale",
-            error_message=f"Wykryto {stale_marked} nieaktualnych rekordów (> 180 dni).",
-        )
 
     status_value = "completed_with_warnings" if (errors_count or conflicts_found) else "completed"
     summary_parts = [
@@ -467,6 +443,7 @@ def run_ingestion_pipeline(
         f"zaktualizowane: {updated_records}",
         f"duplikaty: {duplicates_found}",
         f"sprzeczności: {conflicts_found}",
+        f"pominięte (nieinnowacje): {skipped_irrelevant}",
         f"nieaktualne: {stale_marked}",
         f"błędy źródeł: {errors_count}",
     ]
@@ -480,6 +457,7 @@ def run_ingestion_pipeline(
     return run
 
 
+@exclusive_ingestion
 def scrape_url_and_ingest(
     *,
     url: str,
@@ -511,10 +489,14 @@ def scrape_url_and_ingest(
 
     results: list[tuple[Innovation, str]] = []
     for idx, rec in enumerate(raw_records):
+        if precomputed.get(idx, {}).get("is_relevant_innovation") is False:
+            continue
         inv, outcome = ingest_raw_record(
             rec,
             actor=actor,
             precomputed_extracted=precomputed.get(idx),
         )
         results.append((inv, outcome))
+    if not results:
+        raise ValueError("W pobranej treści nie znaleziono innowacji do zapisania.")
     return results

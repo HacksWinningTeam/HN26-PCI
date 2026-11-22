@@ -32,6 +32,10 @@
 
 - **Discovery layout (`DEC-015`–`DEC-017`, T03):** approved and implemented top search/filter panel replaces the filter sidebar, with full-width results, progressive disclosure of advanced criteria, selected-filter chips and a beneficiary multi-select. Filter reset retains query and adopter context; changed matching criteria request recalculation. Compact cards allocate extra height to description/metadata and stack footer actions at narrow card widths. Manual sign-off remains pending in T03.
 
+- **Real ingestion channels (`DEC-027`, T07):** CORDIS, RUJ UJ, Nauka w Polsce RSS and OpenAlex PL use a limit of 10 candidates per refresh. Removed seeded deliberate NCN error/homepage stale channel and fabricated run/counts. `SourceFeed.sources` preserves provenance; source cards/API count distinct non-merged local innovations, including pending review, dynamically. Migration backfills existing default imports without reseeding innovations or deleting custom feeds. Full live refresh added 23 records with 0 source errors; automated verification is tracked in T07, manual sign-off pending.
+
+- **Production harvesting (`DEC-028`, T08):** real-only periodic worker, persistent pagination and PostgreSQL import lock; production image excludes demo fixture command/tests. Fresh production has source configuration but no invented innovations/accounts. Local migration hides existing synthetic innovations without deleting them. Operator APIs now require existing PCI session roles. Automated checks passed; user sign-off remains pending.
+
 ## 4. Key Implementation Decisions & Trade-offs
 
 *(Link to `DEC-XXX` entries in [`04-decisions.md`](04-decisions.md) and note runtime constraints, data source adapters, AI usage/fallbacks, and known limitations here.)*

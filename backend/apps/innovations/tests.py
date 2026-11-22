@@ -1,4 +1,5 @@
 import pytest
+from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from rest_framework.test import APIClient
@@ -176,7 +177,10 @@ def test_auth_boundary_profile_plan_variants_and_pci_admin():
     assert step_patch.status_code == 200
     assert step_patch.data["status"] == "completed"
 
-    # PCI admin console endpoints are directly accessible on /admin without admin login
+    # Ordinary adopters are denied; the existing PCI role is required.
+    assert client.get("/api/admin/innovations/").status_code == 403
+    operator = get_user_model().objects.create_user(username="pci-operator", is_staff=True)
+    client.force_authenticate(operator)
     dq = client.get("/api/admin/innovations/")
     assert dq.status_code == 200
     assert len(dq.data["potential_duplicates"]) >= 1
@@ -253,6 +257,8 @@ def test_phase_a_provenance_oslo_public_flag_scoring_config_and_audit_log():
     assert top["overall_score"] == expected
 
     # 3. Admin PATCH writes InnovationAuditLog and can hide record from public catalog
+    operator = get_user_model().objects.create_user(username="pci-operator", is_staff=True)
+    client.force_authenticate(operator)
     patch_res = client.patch(
         "/api/admin/innovations/labmicrobe-ai/",
         {

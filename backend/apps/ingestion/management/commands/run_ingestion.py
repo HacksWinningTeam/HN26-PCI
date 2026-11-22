@@ -23,7 +23,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options) -> None:
         run = run_ingestion_pipeline(
             feed_ids=options.get("feed_ids"),
-            live_fetch=bool(options.get("live")),
+            live_fetch=True,
             actor="cli_run_ingestion",
         )
         self.stdout.write(

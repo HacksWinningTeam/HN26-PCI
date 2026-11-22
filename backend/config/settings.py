@@ -81,7 +81,7 @@ ASGI_APPLICATION = "config.asgi.application"
 
 if os.environ.get("DATABASE_URL"):
     DATABASES = {
-        "default": env.db("DATABASE_URL", conn_max_age=60),
+        "default": {**env.db("DATABASE_URL"), "CONN_MAX_AGE": 60},
     }
 elif os.environ.get("POSTGRES_DB"):
     DATABASES = {

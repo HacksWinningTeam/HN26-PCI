@@ -1,6 +1,18 @@
 from django.db import models
+from django.db.models import Count, Q
 
 from apps.innovations.models import Innovation
+
+
+class SourceFeedQuerySet(models.QuerySet):
+    def with_local_counts(self):
+        return self.annotate(
+            _local_records_count=Count(
+                "sources__innovation",
+                filter=Q(sources__innovation__is_merged=False),
+                distinct=True,
+            )
+        )
 
 
 class SourceFeed(models.Model):
@@ -19,12 +31,29 @@ class SourceFeed(models.Model):
     last_synced_at = models.DateTimeField()
     records_count = models.PositiveIntegerField(default=0)
     config = models.JSONField(default=dict, blank=True)
+    harvest_state = models.JSONField(default=dict, blank=True)
+    sources = models.ManyToManyField(
+        "innovations.InnovationSource", related_name="feeds", blank=True
+    )
+
+    objects = SourceFeedQuerySet.as_manager()
 
     class Meta:
         ordering = ["name"]
 
     def __str__(self) -> str:
         return f"{self.name} [{self.status}]"
+
+    @property
+    def local_records_count(self) -> int:
+        if hasattr(self, "_local_records_count"):
+            return self._local_records_count
+        return (
+            self.sources.filter(innovation__is_merged=False)
+            .values("innovation_id")
+            .distinct()
+            .count()
+        )
 
 
 class IngestionRun(models.Model):

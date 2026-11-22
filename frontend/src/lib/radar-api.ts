@@ -190,6 +190,12 @@ export interface AdminInnovationItem {
   is_merged: boolean;
 }
 
+export interface SourceFeedConfig {
+  live_fetch?: boolean;
+  max_records?: number;
+  adapter?: string;
+}
+
 export interface SourceFeedItem {
   id: number;
   name: string;
@@ -200,6 +206,22 @@ export interface SourceFeedItem {
   error_message: string;
   last_synced_at: string;
   records_count: number;
+  config?: SourceFeedConfig;
+}
+
+export interface ScrapeUrlResponse {
+  url: string;
+  scraped_count: number;
+  created_count: number;
+  updated_count: number;
+  unchanged_count: number;
+  duplicate_count: number;
+  conflict_count: number;
+  results: Array<{
+    innovation: AdminInnovationItem;
+    outcome: string;
+    potential_duplicate_slug: string;
+  }>;
 }
 
 export interface IngestionRunItem {
@@ -413,9 +435,57 @@ export function mergeDuplicateInnovation(slug: string) {
   );
 }
 
-export function runAdminIngestion() {
+export function runAdminIngestion(payload?: {
+  live_fetch?: boolean;
+  feed_ids?: number[];
+  max_records?: number;
+}) {
   return apiRequest<IngestionRunItem>("/api/admin/ingestion/run/", {
     method: "POST",
+    body: JSON.stringify(payload ?? {}),
+  });
+}
+
+export function scrapeAdminUrl(payload: {
+  url: string;
+  registry?: string;
+  label?: string;
+  organization_name?: string;
+  method?: "auto" | "HTML" | "PDF" | "API" | "RSS" | "OAI-PMH";
+  max_records?: number;
+}) {
+  return apiRequest<ScrapeUrlResponse>("/api/admin/ingestion/scrape-url/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createAdminSourceFeed(payload: {
+  name: string;
+  category: string;
+  url: string;
+  method: string;
+  config?: SourceFeedConfig;
+}) {
+  return apiRequest<SourceFeedItem>("/api/admin/source-feeds/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function patchAdminSourceFeed(
+  feedId: number,
+  payload: Partial<Pick<SourceFeedItem, "name" | "category" | "url" | "method" | "status" | "config">>,
+) {
+  return apiRequest<SourceFeedItem>(`/api/admin/source-feeds/${feedId}/`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteAdminSourceFeed(feedId: number) {
+  return apiRequest<void>(`/api/admin/source-feeds/${feedId}/`, {
+    method: "DELETE",
   });
 }
 

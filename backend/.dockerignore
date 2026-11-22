@@ -9,3 +9,6 @@ db.sqlite3
 staticfiles/
 .env
 .git/
+apps/**/tests.py
+apps/**/test_*.py
+apps/innovations/management/commands/seed_demo.py

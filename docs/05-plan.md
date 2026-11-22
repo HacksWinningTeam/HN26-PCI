@@ -41,6 +41,9 @@ Design-system refinement (`DEC-012`, `DEC-013`): sidebar stays left within a ful
 | `T04` | PCI admin cleanup · delivered subset retained; broader redesign cancelled (DEC-026) | Frontend | Yes | — (existing endpoints) | `CANCELLED` | [T04](tasks/T04-admin-cleanup.md) |
 | `T05` | Demo PCI login opens admin (DEC-019) | Frontend | No | — | `IN_PROGRESS` | [T05](tasks/T05-demo-pci-redirect.md) |
 | `T06` | Redesign innovation comparison screen (DEC-023) | Frontend | Yes | — (existing endpoints) | `VERIFIED` | [T06](tasks/T06-compare-redesign.md) |
+| `T07` | Real ingestion channels · limit 10 · local counts (DEC-027) | Full-Stack | Yes (bounded changes explicitly approved) | — | `IN_PROGRESS` | [T07](tasks/T07-real-source-counts.md) |
+
+| `T08` | Production live harvesting without runtime seeds (DEC-028) | Full-Stack / Infra | Yes (bounded controls authorized by request) | — (existing ingestion) | `IN_PROGRESS` | [T08](tasks/T08-production-harvesting.md) |
 
 ## Milestone 2 — Core Features
 

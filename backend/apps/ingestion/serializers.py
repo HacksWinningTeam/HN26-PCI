@@ -6,8 +6,27 @@ from apps.innovations.models import Innovation
 from .models import IngestionRun, InnovationAuditLog, SourceFeed
 
 
+class FeedConfigField(serializers.JSONField):
+    def to_internal_value(self, data):
+        config = super().to_internal_value(data)
+        if not isinstance(config, dict):
+            raise serializers.ValidationError("Konfiguracja musi być obiektem JSON.")
+        if "sample_items" in config:
+            raise serializers.ValidationError(
+                "Dane przykładowe nie są źródłem. Podaj publiczny URL."
+            )
+        if "max_records" in config:
+            limit = config["max_records"]
+            if isinstance(limit, bool) or not isinstance(limit, int) or not 1 <= limit <= 25:
+                raise serializers.ValidationError("max_records musi być liczbą całkowitą 1–25.")
+        if "live_fetch" in config and not isinstance(config["live_fetch"], bool):
+            raise serializers.ValidationError("live_fetch musi być wartością logiczną.")
+        return config
+
+
 class SourceFeedSerializer(serializers.ModelSerializer):
-    config = serializers.JSONField(required=False, default=dict)
+    config = FeedConfigField(required=False, default=dict)
+    records_count = serializers.IntegerField(source="local_records_count", read_only=True)
 
     class Meta:
         model = SourceFeed
@@ -31,8 +50,8 @@ class SourceFeedCreateSerializer(serializers.ModelSerializer):
     )
     error_message = serializers.CharField(required=False, allow_blank=True, default="")
     last_synced_at = serializers.DateTimeField(required=False)
-    records_count = serializers.IntegerField(min_value=0, required=False, default=0)
-    config = serializers.JSONField(required=False, default=dict)
+    records_count = serializers.IntegerField(read_only=True)
+    config = FeedConfigField(required=False, default=dict)
 
     class Meta:
         model = SourceFeed
@@ -56,7 +75,7 @@ class SourceFeedPatchSerializer(serializers.Serializer):
     method = serializers.CharField(max_length=64, required=False)
     status = serializers.ChoiceField(choices=SourceFeed.STATUS_CHOICES, required=False)
     error_message = serializers.CharField(required=False, allow_blank=True)
-    config = serializers.JSONField(required=False)
+    config = FeedConfigField(required=False)
 
 
 class IngestionRunSerializer(serializers.ModelSerializer):
@@ -176,13 +195,18 @@ class MergeDuplicateResponseSerializer(serializers.Serializer):
 
 
 class AdminRunIngestionRequestSerializer(serializers.Serializer):
-    live_fetch = serializers.BooleanField(required=False, default=False)
-    max_records = serializers.IntegerField(min_value=1, max_value=25, required=False, default=5)
+    live_fetch = serializers.BooleanField(required=False, default=True)
+    max_records = serializers.IntegerField(min_value=1, max_value=25, required=False, default=10)
     feed_ids = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         required=False,
         default=list,
     )
+
+    def validate_live_fetch(self, value):
+        if not value:
+            raise serializers.ValidationError("Synchronizacja działa wyłącznie na żywo.")
+        return value
 
 
 class AdminScrapeUrlRequestSerializer(serializers.Serializer):

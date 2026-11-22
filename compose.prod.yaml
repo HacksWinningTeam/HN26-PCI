@@ -18,7 +18,7 @@ services:
       retries: 10
       start_period: 5s
 
-  backend:
+  backend: &backend_service
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -27,7 +27,7 @@ services:
     env_file:
       - path: .env
         required: false
-    environment:
+    environment: &backend_environment
       DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env before deploying}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
@@ -46,6 +46,7 @@ services:
       GOOGLE_GENAI_ENTERPRISE: ${GOOGLE_GENAI_ENTERPRISE:-false}
       GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
       GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-global}
+      INGESTION_INTERVAL_SECONDS: ${INGESTION_INTERVAL_SECONDS:-3600}
     depends_on:
       db:
         condition: service_healthy
@@ -61,6 +62,19 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+
+  ingestion:
+    <<: *backend_service
+    command: ["python", "manage.py", "run_ingestion_worker"]
+    environment:
+      <<: *backend_environment
+      RUN_MIGRATIONS: "false"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    stop_grace_period: 2m
 
   frontend:
     build:

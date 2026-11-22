@@ -91,6 +91,42 @@ _BENEFICIARY_KEYWORDS: dict[str, tuple[str, ...]] = {
     "public_orgs_communities": ("gmin", "urzad", "samorzad", "spoleczn", "osp", "solectw"),
 }
 
+_INNOVATION_RELEVANCE_KEYWORDS = (
+    "innowac",
+    "system",
+    "aplikac",
+    "algorytm",
+    "prototyp",
+    "pilotaz",
+    "pilot",
+    "wdroz",
+    "czujnik",
+    "platform",
+    "narzedzi",
+    "badan",
+    "patent",
+    "trl",
+    "projekt",
+    "rozwiaz",
+    "uslug",
+    "technologi",
+    "cyfrow",
+    "edukac",
+    "gmin",
+    "urzad",
+    "ai",
+    "iot",
+    "sensor",
+    "software",
+    "device",
+    "innovation",
+    "prototype",
+    "digital",
+    "research",
+    "grant",
+    "komercjaliz",
+)
+
 _VOIVODESHIPS_OR_CITIES = (
     "Rzeszów",
     "Krosno",
@@ -345,6 +381,20 @@ def _rule_based_extract(
         "conflicting_info": list(meta.get("conflicting_info") or []),
         "evidences": evidences,
         "is_incomplete": len(missing_info) >= 2,
+        "is_relevant_innovation": (
+            bool(meta["is_relevant_innovation"])
+            if "is_relevant_innovation" in meta
+            else any(kw in norm_text for kw in _INNOVATION_RELEVANCE_KEYWORDS)
+        ),
+        "relevance_reason": (
+            ""
+            if (
+                bool(meta["is_relevant_innovation"])
+                if "is_relevant_innovation" in meta
+                else any(kw in norm_text for kw in _INNOVATION_RELEVANCE_KEYWORDS)
+            )
+            else "Brak sygnałów innowacji, technologii, prototypu lub projektu wdrożeniowego."
+        ),
         "ai_used": False,
     }
 
@@ -380,6 +430,10 @@ def extract_and_classify_innovation(
         "Przeanalizuj poniższy opis polskiej lub europejskiej innowacji wyłącznie na podstawie "
         "podanego tekstu (jeśli tekst jest po angielsku, przetłumacz pola _pl na język polski). "
         "Nie zmyślaj faktów ani danych kontaktowych. Zwróć JSON z kluczami: "
+        "is_relevant_innovation (boolean: true jeśli tekst dotyczy innowacji, technologii, "
+        "prototypu, projektu B+R, rozwiązania edukacyjnego/administracyjnego, wdrożenia lub "
+        "patentu; false jeśli to temat niezwiązany jak wypadek lotniczy, historia, polityka "
+        "zagraniczna czy ogólny felieton), relevance_reason (krótkie zdanie po polsku), "
         "title_pl, short_summary_pl, problem_pl, solution_pl, primary_area "
         "(technological|educational|administrative), innovation_character (lista z: "
         "product,process,organizational,social), sectors (lista z: administracja,edukacja,"
@@ -394,6 +448,11 @@ def extract_and_classify_innovation(
     ai_data = _call_gemini_structured(prompt)
     if not ai_data:
         return baseline
+
+    if isinstance(ai_data.get("is_relevant_innovation"), bool):
+        baseline["is_relevant_innovation"] = ai_data["is_relevant_innovation"]
+    if isinstance(ai_data.get("relevance_reason"), str) and ai_data["relevance_reason"].strip():
+        baseline["relevance_reason"] = normalize_whitespace(ai_data["relevance_reason"])
 
     provenance = dict(baseline["classification_provenance"])
     for text_field in ("title_pl", "short_summary_pl", "problem_pl", "solution_pl"):

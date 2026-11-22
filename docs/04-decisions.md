@@ -221,6 +221,20 @@
 - **Decision:** Keep the delivered scope: advanced quality-review DataTable, admin-only sidebar/home links and Demo PCI redirect. Cancel the remaining unapproved T04 redesign proposal (compact filter tiles, drawer editor and source/implementation list changes); retain its design as historical context and do not re-present it as pending work. Mark T04 `CANCELLED` for that unimplemented remainder, without claiming its delivered subset was reverted. User authorized a local checkpoint, not a push. No detailed manual verification results were supplied, so do not mark T05 verified or claim browser checks. Stage only admin changes, the Demo PCI redirect hunks and associated documentation; exclude concurrent login-form, registration, search/detail and generated-file changes.
 - **Affected Docs & Tasks:** `docs/01-brief.md`, `docs/05-plan.md`, T04, T05 closure note; delivered frontend files. Existing architecture/UI contracts remain valid.
 
+### `DEC-027` — Real Source Channels and Local Record Counts
+- **Date:** 2026-11-22 04:43
+- **Status:** Accepted
+- **Context / New Info:** User explicitly requested 10 records per channel, working sources instead of deliberately failing demo entries, and actual local counts on source cards.
+- **Decision:** Follow-up T07 implements this concrete request. Keep CORDIS, RUJ UJ and Nauka w Polsce; replace the two fabricated error/stale entries with OpenAlex PL. All four returned 10 parsed records during a live adapter check. Set default/configured channel limits to 10 and CORDIS remote page size to 10. Track source-to-feed provenance and count distinct non-merged local innovations dynamically; never increment external demo totals. Preserve custom feeds and existing innovation data; seed no fabricated ingestion failures. Real failures remain visible. Source-card layout stays unchanged; its label becomes “Rekordy w bazie”. This user instruction authorizes the bounded UI copy/default changes and implementation. No commit or push requested. Existing tasks and approvals remain unchanged. Code freeze is still unspecified.
+- **Affected Docs & Tasks:** docs/01-brief.md (REQ-01, REQ-12), docs/03-architecture.md, docs/05-plan.md, new T07; ingestion models/migrations, defaults, pipeline, serializers/views/tests, seed command and admin defaults/label. Shared UI tokens and primitives are unchanged.
+
+### `DEC-028` — Production Uses Live Harvesting, Not Demo Seeds
+- **Date:** 2026-11-22 04:56
+- **Status:** Accepted
+- **Context / New Info:** User explicitly wants server data to come from real scraping, without seeds. User also instructed that deadline questions must not block further work.
+- **Decision:** T08 removes runtime offline snapshots, defaults to live HTTP ingestion, excludes demo fixture command/test files from Docker build context, and adds a production harvesting process using the existing backend image. Keep source configuration independent of seed data. Persist per-feed pagination state and periodically revisit the first page while backfilling; bound each batch to 10 candidates by default. PostgreSQL advisory locking prevents overlapping imports. Preserve source hashes/provenance, real errors and pending-review classification. Remove fabricated imported scores; unknown assessments stay empty. Hide existing synthetic innovations without deleting the database. Existing session/PCI roles protect operator scraping/configuration endpoints. The existing source controls are narrowed to real refresh and automatic-harvesting enable/disable; no new visual design or shared primitives. This concrete production-data requirement authorizes these changes. No deployment, database wipe, commit or push. Remaining app/demo fixture cleanup outside ingestion is documented, not silently claimed complete.
+- **Affected Docs & Tasks:** T08, docs/01-brief.md REQ-01/REQ-12, docs/03-architecture.md, docs/05-plan.md, runtime/adapter/API tests, backend Docker context, Compose and .env.example. T07 remains awaiting user sign-off; its historical results are retained.
+
 <!-- Template for new entries:
 ### `DEC-XXX` — `<Short Title>`
 - **Date:** `<YYYY-MM-DD HH:MM from date '+%Y-%m-%d %H:%M'>`

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import re
@@ -11,7 +12,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from pypdf import PdfReader
 
@@ -238,24 +239,21 @@ def _parse_json_api_items(
     max_records: int,
 ) -> list[RawSourceRecord]:
     if isinstance(payload, dict) and isinstance(payload.get("hits"), dict):
-        cordis_records = _parse_cordis_hits(
+        return _parse_cordis_hits(
             payload,
             base_url=base_url,
             registry=registry,
             label=label,
             max_records=max_records,
         )
-        if cordis_records:
-            return cordis_records
 
     if isinstance(payload, list):
         items = payload
     elif isinstance(payload, dict):
-        items = (
-            payload.get("items")
-            or payload.get("results")
-            or payload.get("data")
-            or [payload]
+        if payload.get("error") or payload.get("errors"):
+            raise ValueError(f"API zwróciło błąd: {payload.get('error') or payload['errors']}")
+        items = next(
+            (payload[key] for key in ("items", "results", "data") if key in payload), [payload]
         )
         if isinstance(items, dict):
             items = [items]
@@ -444,6 +442,11 @@ def parse_api_payload(
     lowered = text.lower()
     if text.startswith("<") and ("<oai-pmh" in lowered or "openarchives.org/oai/" in lowered):
         root = ET.fromstring(text)
+        error = root.find("{http://www.openarchives.org/OAI/2.0/}error")
+        if error is not None:
+            if error.attrib.get("code") == "noRecordsMatch":
+                return []
+            raise ValueError(f"OAI-PMH {error.attrib.get('code', '')}: {error.text or ''}")
         return _parse_oai_pmh_records(
             root,
             base_url=base_url,
@@ -487,16 +490,7 @@ def parse_api_payload(
     return [parse_html_document(text, url=base_url, registry=registry, label=label)]
 
 
-def fetch_feed_records(
-    *,
-    url: str,
-    method: str,
-    registry: str,
-    label: str,
-    timeout: int = 15,
-    max_records: int = 5,
-) -> list[RawSourceRecord]:
-    """Fetch live records from a configured public API, RSS/OAI-PMH feed, HTML page, or PDF."""
+def _download(url: str, timeout: int = 15) -> tuple[bytes, str]:
     req = urllib.request.Request(
         url,
         headers={
@@ -509,8 +503,20 @@ def fetch_feed_records(
         method="GET",
     )
     with urllib.request.urlopen(req, timeout=timeout) as resp:
-        raw_bytes = resp.read()
-        content_type = resp.headers.get("Content-Type", "")
+        return resp.read(), resp.headers.get("Content-Type", "")
+
+
+def fetch_feed_records(
+    *,
+    url: str,
+    method: str,
+    registry: str,
+    label: str,
+    timeout: int = 15,
+    max_records: int = 10,
+) -> list[RawSourceRecord]:
+    """Fetch live records from a public API, RSS/OAI-PMH feed, HTML page, or PDF."""
+    raw_bytes, content_type = _download(url, timeout)
 
     ct_l = content_type.lower()
     method_l = method.lower()
@@ -573,3 +579,90 @@ def fetch_feed_records(
             label=label,
         )
     ]
+
+
+@dataclass
+class FeedBatch:
+    records: list[RawSourceRecord]
+    next_state: dict[str, Any]
+
+
+def _query_url(url: str, **updates: Any) -> str:
+    parts = urlparse(url)
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
+    query.update({key: str(value) for key, value in updates.items()})
+    return urlunparse(parts._replace(query=urlencode(query)))
+
+
+def fetch_feed_batch(
+    *, url: str, method: str, registry: str, label: str,
+    max_records: int = 10, state: dict[str, Any] | None = None,
+) -> FeedBatch:
+    """Fetch a bounded live batch; persist offsets/tokens and revisit the head every 5 batches."""
+    signature = hashlib.sha256(f"{method}|{url}|{max_records}".encode()).hexdigest()
+    current = dict(state or {})
+    if current.get("signature") != signature:
+        current = {}
+    revisit_head = current.get("batches", 0) >= 5
+    current_url = url if revisit_head else current.get("url", url)
+    offset = 0 if revisit_head else int(current.get("offset", 0))
+    base_host = urlparse(url).hostname or ""
+    is_cordis = base_host == "cordis.europa.eu"
+    is_openalex = base_host == "api.openalex.org"
+    if is_cordis:
+        current_url = _query_url(current_url, num=max_records)
+    elif is_openalex:
+        parts = urlparse(current_url)
+        query = dict(parse_qsl(parts.query))
+        query.pop("per-page", None)
+        query["per_page"] = str(max_records)
+        current_url = urlunparse(parts._replace(query=urlencode(query)))
+
+    raw, content_type = _download(current_url)
+    if "pdf" in content_type.lower() or raw.startswith(b"%PDF-"):
+        return FeedBatch([parse_pdf_document(raw, url=url, registry=registry, label=label)], {})
+    try:
+        records = parse_api_payload(
+            raw, content_type=content_type, base_url=current_url,
+            registry=registry, label=label, max_records=offset + max_records + 1,
+        )
+    except ValueError as exc:
+        if "badResumptionToken" not in str(exc) or current_url == url:
+            raise
+        # Expired OAI tokens are restarted through the normal public endpoint.
+        raw, content_type = _download(url)
+        current_url, offset = url, 0
+        records = parse_api_payload(
+            raw, content_type=content_type, base_url=url,
+            registry=registry, label=label, max_records=max_records + 1,
+        )
+
+    batch = records[offset:offset + max_records]
+    if revisit_head:
+        return FeedBatch(batch, {**current, "batches": 0})
+    next_state: dict[str, Any] = {
+        "signature": signature, "batches": int(current.get("batches", 0)) + 1,
+    }
+    if is_cordis or is_openalex:
+        params = dict(parse_qsl(urlparse(current_url).query))
+        key = "p" if is_cordis else "page"
+        page = int(params.get(key, 1))
+        if len(batch) == max_records and (not is_openalex or (page + 1) * max_records <= 10000):
+            next_state["url"] = _query_url(current_url, **{key: page + 1})
+        else:
+            next_state = {}
+    elif len(records) > offset + max_records:
+        next_state.update(url=current_url, offset=offset + max_records)
+    elif "oai" in method.lower():
+        root = ET.fromstring(raw)
+        token = root.find(".//{http://www.openarchives.org/OAI/2.0/}resumptionToken")
+        if token is not None and (token.text or "").strip():
+            # OAI requires resumptionToken to be exclusive of metadataPrefix/set/from/until.
+            parts = urlparse(url)
+            query = urlencode({"verb": "ListRecords", "resumptionToken": token.text.strip()})
+            next_state.update(url=urlunparse(parts._replace(query=query)), offset=0)
+        else:
+            next_state = {}
+    else:
+        next_state = {}
+    return FeedBatch(batch, next_state)

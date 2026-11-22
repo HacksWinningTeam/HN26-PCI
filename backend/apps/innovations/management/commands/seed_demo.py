@@ -2,7 +2,6 @@ from datetime import date, timedelta
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from django.utils import timezone
 
 from apps.accounts.models import AdopterProfile
 from apps.discovery.models import SavedComparison, SavedInnovation, ScoringConfig
@@ -14,7 +13,8 @@ from apps.implementation.planner import (
     select_plan_variant,
     select_recommendation_path,
 )
-from apps.ingestion.models import IngestionRun, InnovationAuditLog, SourceFeed
+from apps.ingestion.default_feeds import configure_default_feeds
+from apps.ingestion.models import InnovationAuditLog
 from apps.innovations.models import Evidence, Innovation, InnovationSource
 
 User = get_user_model()
@@ -772,72 +772,8 @@ class Command(BaseCommand):
             content_hash=InnovationSource.compute_hash(dup_snapshot),
         )
 
-        # Source feeds & ingestion runs
-        now = timezone.now()
-        SourceFeed.objects.all().delete()
-        SourceFeed.objects.bulk_create(
-            [
-                SourceFeed(
-                    name="CORDIS — Projekty B+R z udziałem Polski (EU Open Data)",
-                    category="Projekty B+R",
-                    url="https://cordis.europa.eu/search/en?q=contenttype%3D%27project%27%20AND%20%27Poland%27%20AND%20(%27innovation%27%20OR%20%27prototype%27%20OR%20%27pilot%27)&p=1&num=5&format=json",
-                    method="API",
-                    status="active",
-                    last_synced_at=now,
-                    records_count=263,
-                    config={"adapter": "cordis_json", "max_records": 2, "live_fetch": False},
-                ),
-                SourceFeed(
-                    name="RUJ UJ / Repozytoria Uczelniane (OAI-PMH)",
-                    category="Nauka i patenty",
-                    url="https://ruj.uj.edu.pl/server/oai/request?verb=ListRecords&metadataPrefix=oai_dc",
-                    method="OAI-PMH",
-                    status="active",
-                    last_synced_at=now,
-                    records_count=312,
-                    config={"adapter": "oai_pmh", "max_records": 2, "live_fetch": False},
-                ),
-                SourceFeed(
-                    name="Nauka w Polsce — Technologie i Innowacje (RSS)",
-                    category="Nauka i patenty",
-                    url="https://naukawpolsce.pl/technologia/rss.xml",
-                    method="RSS",
-                    status="active",
-                    last_synced_at=now,
-                    records_count=231,
-                    config={"adapter": "rss", "max_records": 2, "live_fetch": False},
-                ),
-                SourceFeed(
-                    name="NCN — Baza Projektów",
-                    category="Projekty B+R",
-                    url="https://projekty.ncn.gov.pl/",
-                    method="Web Crawl",
-                    status="error",
-                    error_message="HTTP 503 podczas ostatniego pobierania — źródło tymczasowo niedostępne.",
-                    last_synced_at=now - timedelta(days=2),
-                    records_count=84,
-                ),
-                SourceFeed(
-                    name="Samorządy, Szkoły, CTT & Startupy",
-                    category="Administracja i edukacja",
-                    url="https://samorzad.gov.pl/",
-                    method="Web Crawl",
-                    status="stale",
-                    error_message="Wykryto 1 rekord nieodświeżany od > 180 dni (Spokojna Głowa).",
-                    last_synced_at=now - timedelta(days=1),
-                    records_count=109,
-                ),
-            ]
-        )
-
-        if not IngestionRun.objects.exists():
-            IngestionRun.objects.create(
-                status="completed_with_warnings",
-                new_records=1,
-                updated_records=6,
-                errors_count=1,
-                summary="Zaindeksowano rekordy demo; 1 źródło (NCN) zwróciło HTTP 503.",
-            )
+        # Real public channels; no fabricated source counts or failed ingestion runs.
+        configure_default_feeds()
 
         # Demo Adopter + PCI Admin accounts
         adopter_user, created = User.objects.get_or_create(

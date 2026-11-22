@@ -77,20 +77,24 @@ def build_comparison_payload(
 
     score_leaders: dict[str, str] = {}
     for key in SCORE_KEYS:
-        best = max(innovations, key=lambda x: int((x.scores or {}).get(key, 0)))
-        score_leaders[key] = best.slug
+        assessed = [inv for inv in innovations if key in (inv.scores or {})]
+        if assessed:
+            best = max(assessed, key=lambda x: int(x.scores[key]))
+            score_leaders[key] = best.slug
 
     strongest = max(
-        innovations,
+        [inv for inv in innovations if all(key in (inv.scores or {}) for key in SCORE_KEYS)],
         key=lambda x: sum(int((x.scores or {}).get(k, 0)) for k in SCORE_KEYS),
+        default=None,
     )
     most_mature = max(
         innovations,
         key=lambda x: (MATURITY_ORDER.get(x.deployment_level, 0), x.trl or 0),
     )
     highest_credibility = max(
-        innovations,
+        [inv for inv in innovations if "credibility" in (inv.scores or {})],
         key=lambda x: int((x.scores or {}).get("credibility", 0)),
+        default=None,
     )
 
     differences: list[str] = []
@@ -114,9 +118,9 @@ def build_comparison_payload(
         "items": items,
         "score_leaders": score_leaders,
         "highlights": {
-            "strongest_overall": strongest.slug,
+            "strongest_overall": strongest.slug if strongest else "",
             "most_mature": most_mature.slug,
-            "highest_credibility": highest_credibility.slug,
+            "highest_credibility": highest_credibility.slug if highest_credibility else "",
         },
         "differences": differences,
     }
@@ -142,10 +146,10 @@ def render_comparison_markdown(comparison: dict[str, Any]) -> str:
         )
         lines.append(f"- **Problem:** {inv['problem_pl']}")
         lines.append(
-            f"- **Oceny:** Innowacyjność {scores.get('innovativeness', 0)}%, "
-            f"Potencjał {scores.get('application_potential', 0)}%, "
-            f"Transfer {scores.get('transferability', 0)}%, "
-            f"Wiarygodność {scores.get('credibility', 0)}%"
+            f"- **Oceny:** Innowacyjność {scores.get('innovativeness', '—')}%, "
+            f"Potencjał {scores.get('application_potential', '—')}%, "
+            f"Transfer {scores.get('transferability', '—')}%, "
+            f"Wiarygodność {scores.get('credibility', '—')}%"
         )
         lines.append(
             f"- **Dowody i źródła:** fakty={eq['verified_facts_count']}, "
