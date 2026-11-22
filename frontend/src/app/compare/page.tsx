@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useSession } from "@/components/SessionProvider";
 import {
@@ -141,6 +142,7 @@ function MatchCell({ match }: { match: MatchItem | undefined }) {
 }
 
 export default function ComparePage() {
+  const router = useRouter();
   const {
     auth,
     compareSlugs,
@@ -261,7 +263,11 @@ export default function ComparePage() {
   }
 
   async function handleSaveComparison() {
-    if (!auth.authenticated || details.length < 2 || saving) return;
+    if (!auth.authenticated) {
+      router.push(`/login?next=${encodeURIComponent("/compare")}`);
+      return;
+    }
+    if (details.length < 2 || saving) return;
     setSaving(true);
     setSaveError("");
     setSavedMessage("");
@@ -543,18 +549,16 @@ export default function ComparePage() {
             >
               PDF
             </Button>
-            {auth.authenticated ? (
-              <Button
-                type="button"
-                variant="filled"
-                loading={saving}
-                leadingIcon={<BrandBookmarkIcon size={18} />}
-                onClick={() => void handleSaveComparison()}
-                disabled={details.length < 2}
-              >
-                {saving ? "Zapisywanie…" : "Zapisz porównanie"}
-              </Button>
-            ) : null}
+            <Button
+              type="button"
+              variant="filled"
+              loading={saving}
+              leadingIcon={<BrandBookmarkIcon size={18} />}
+              onClick={() => void handleSaveComparison()}
+              disabled={details.length < 2}
+            >
+              {saving ? "Zapisywanie…" : "Zapisz porównanie"}
+            </Button>
           </div>
         </div>
 

@@ -304,7 +304,7 @@ function InnovationDetailInner() {
   const handleExploreDeployment = useCallback(() => {
     if (!auth.authenticated) {
       router.push(
-        `/register?next=${encodeURIComponent(`/innovations/${slug}?deploy=1`)}`,
+        `/login?next=${encodeURIComponent(`/innovations/${slug}?deploy=1`)}`,
       );
       return;
     }
