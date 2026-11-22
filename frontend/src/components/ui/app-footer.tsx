@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useSession } from "@/components/SessionProvider";
 import { useTranslations } from "@/i18n/provider";
 
 export function AppFooter({ fullWidth = false }: { fullWidth?: boolean }) {
   const t = useTranslations();
+  const { auth } = useSession();
+  const isPciAdmin = Boolean(auth.authenticated && auth.user?.is_pci_admin);
 
   return (
     <footer
@@ -30,9 +33,11 @@ export function AppFooter({ fullWidth = false }: { fullWidth?: boolean }) {
           <Link href="/design-system" className="inline-flex min-h-11 items-center hover:text-[var(--color-text)] hover:underline">
             {t("Design system")}
           </Link>
-          <Link href="/admin" className="inline-flex min-h-11 items-center hover:text-[var(--color-text)] hover:underline">
-            {t("Admin Panel")}
-          </Link>
+          {isPciAdmin ? (
+            <Link href="/admin" className="inline-flex min-h-11 items-center hover:text-[var(--color-text)] hover:underline">
+              {t("Admin Panel")}
+            </Link>
+          ) : null}
         </div>
       </div>
     </footer>

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useSession } from "@/components/SessionProvider";
@@ -14,6 +13,7 @@ import {
   BuildingsIcon,
   Button,
   CardSurface,
+  CheckCircleIcon,
   CloseIcon,
   DatabaseIcon,
   EmptyState,
@@ -89,8 +89,7 @@ function formatDateTime(iso: string): string {
 }
 
 export default function AdminPage() {
-  const router = useRouter();
-  const { auth, logout, setCompareSlugs } = useSession();
+  const { auth, authLoaded, logout, setCompareSlugs } = useSession();
   const editorRef = useRef<HTMLFormElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const navigationId = useId();
@@ -140,6 +139,9 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
+    if (!authLoaded || !auth.authenticated || !auth.user?.is_pci_admin) {
+      return;
+    }
     let active = true;
     void Promise.all([fetchAdminDataQuality(), fetchAdminImplementations()])
       .then(([q, a]) => {
@@ -162,13 +164,10 @@ export default function AdminPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [auth.authenticated, auth.user?.is_pci_admin, authLoaded]);
 
   async function handleLogout() {
-    if (auth.authenticated) {
-      await logout();
-    }
-    router.push("/");
+    await logout();
   }
 
   async function handleMergeDuplicate(slug: string) {
@@ -412,6 +411,15 @@ export default function AdminPage() {
         menuButton.current?.focus();
       },
     },
+    {
+      id: "workspace",
+      label: "Moje wdrożenia",
+      href: "/workspace",
+      icon: <CheckCircleIcon size={20} />,
+      onSelect: () => {
+        setMobileMenuOpen(false);
+      },
+    },
   ];
 
   const sectionMeta: Record<AdminTab, { title: string; breadcrumb: string }> = {
@@ -481,6 +489,25 @@ export default function AdminPage() {
 
   const latestRun = quality?.ingestion_runs?.[0] ?? null;
 
+  if (!authLoaded || !auth.authenticated || !auth.user?.is_pci_admin) {
+    return (
+      <>
+        <SkipToContentLink />
+        <main
+          id="main-content"
+          className="flex min-h-screen flex-1 items-center justify-center bg-[var(--color-canvas)] px-4 py-12"
+        >
+          <div className="w-full max-w-md">
+            <LoadingState
+              label="Sprawdzanie uprawnień operatora PCI…"
+              description="Chwilę, trwa weryfikacja sesji."
+            />
+          </div>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <SkipToContentLink />
@@ -503,8 +530,8 @@ export default function AdminPage() {
             label="Nawigacja panelu PCI"
             brand={
               <Link
-                href="/"
-                aria-label="Praktoteka — strona główna"
+                href="/workspace"
+                aria-label="Praktoteka — Moje wdrożenia"
                 className="inline-flex min-h-11 items-center rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-sidebar-focus)]"
               >
                 <BrandLogo />
@@ -519,7 +546,7 @@ export default function AdminPage() {
             <NavBar
               title={sectionMeta[tab].title}
               breadcrumbs={[
-                { label: "Praktoteka", href: "/" },
+                { label: "Praktoteka", href: "/workspace" },
                 { label: "Panel PCI" },
                 { label: sectionMeta[tab].breadcrumb },
               ]}

@@ -1,237 +1,351 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useId, useRef, useState, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useSession } from "@/components/SessionProvider";
-import { useTranslations } from "@/i18n/provider";
+import { SkipToContentLink } from "@/components/SkipToContentLink";
+import {
+  AppFooter,
+  AppShellLayout,
+  Badge,
+  CheckCircleIcon,
+  CloseIcon,
+  CompareIcon,
+  IconButton,
+  LoadingState,
+  MenuIcon,
+  NavBar,
+  SearchIcon,
+  ShieldCheckIcon,
+  Sidebar,
+  SidebarUtilities,
+  SignInIcon,
+  type SidebarItem,
+} from "@/components/ui";
+import {
+  getMainAppPageMeta,
+  getRouteRedirect,
+  isGuestOnlyRoute,
+  isMainAppRoute,
+  isProtectedRoute,
+} from "@/lib/route-access";
 
-export function AppShell({ children }: { children: ReactNode }) {
-  const t = useTranslations();
+function ShellSearchForm({
+  id,
+  onNavigate,
+}: {
+  id: string;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
-  const { auth, authLoaded, logout, compareSlugs } = useSession();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const mobileMenuId = useId();
-  const toggleBtnRef = useRef<HTMLButtonElement>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const urlQuery = pathname === "/innovations" ? (searchParams.get("q") ?? "") : "";
+  const routeKey = `${pathname}?${urlQuery}`;
+  const [draft, setDraft] = useState<{ key: string; value: string } | null>(null);
+  const value = draft && draft.key === routeKey ? draft.value : urlQuery;
 
-  const navItems = [
-    { href: "/solve", label: "Szukaj problemu", active: pathname === "/solve" },
-    {
-      href: "/innovations",
-      label: "Katalog",
-      active: pathname.startsWith("/innovations"),
-    },
-    {
-      href: "/compare",
-      label: `Porównanie (${compareSlugs.length})`,
-      active: pathname === "/compare",
-    },
-    {
-      href: "/workspace",
-      label: "Moje wdrożenia",
-      active: pathname.startsWith("/workspace"),
-    },
-  ];
-
-  function handleHeaderKeyDown(e: React.KeyboardEvent<HTMLElement>) {
-    if (e.key === "Escape" && mobileMenuOpen) {
-      setMobileMenuOpen(false);
-      toggleBtnRef.current?.focus();
-    }
-  }
-
-  if (
-    pathname === "/design-system" ||
-    pathname === "/" ||
-    pathname === "/login" ||
-    pathname === "/register" ||
-    pathname.startsWith("/admin")
-  ) {
-    return children;
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = value.trim();
+    onNavigate?.();
+    router.push(trimmed ? `/innovations?q=${encodeURIComponent(trimmed)}` : "/innovations");
   }
 
   return (
+    <form onSubmit={handleSubmit} role="search" className="w-full">
+      <label htmlFor={id} className="sr-only">
+        Szukaj innowacji w katalogu
+      </label>
+      <input
+        id={id}
+        type="search"
+        value={value}
+        onChange={(event) => setDraft({ key: routeKey, value: event.target.value })}
+        placeholder="Szukaj w katalogu…"
+        className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
+      />
+    </form>
+  );
+}
+
+function ShellAuthButtons({
+  pathname,
+  mobile = false,
+}: {
+  pathname: string;
+  mobile?: boolean;
+}) {
+  const searchParams = useSearchParams();
+  const query = searchParams.toString();
+  const nextPath = query ? `${pathname}?${query}` : pathname;
+  const loginHref = `/login?next=${encodeURIComponent(nextPath)}`;
+  const registerHref = `/register?next=${encodeURIComponent(nextPath)}`;
+
+  if (mobile) {
+    return (
+      <Link
+        href={loginHref}
+        aria-label="Zaloguj się"
+        title="Zaloguj się"
+        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg bg-[var(--color-accent)] text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+      >
+        <SignInIcon size={20} />
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Badge tone="neutral" size="compact">
+        Tryb publiczny
+      </Badge>
+      <Link
+        href={registerHref}
+        className="inline-flex min-h-11 items-center justify-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2 text-xs font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+      >
+        Załóż konto
+      </Link>
+      <Link
+        href={loginHref}
+        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--color-accent)] px-3.5 py-2 text-xs font-semibold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+      >
+        Zaloguj się
+      </Link>
+    </div>
+  );
+}
+
+export function AppShell({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { auth, authLoaded, isLoggingOut, logout, compareSlugs } = useSession();
+  const [menuOpenPath, setMenuOpenPath] = useState<string | null>(null);
+  const mobileMenuOpen = menuOpenPath === pathname;
+  const navigationId = useId();
+  const searchId = useId();
+  const menuButton = useRef<HTMLButtonElement>(null);
+
+  const isAuthenticated = Boolean(auth.authenticated && auth.user);
+  const isPciAdmin = Boolean(isAuthenticated && auth.user?.is_pci_admin);
+
+  useEffect(() => {
+    if (!authLoaded || isLoggingOut) return;
+    const search = typeof window !== "undefined" ? window.location.search : "";
+    const target = getRouteRedirect({
+      pathname,
+      search,
+      authenticated: isAuthenticated,
+      isPciAdmin,
+    });
+    if (target) {
+      router.replace(target);
+    }
+  }, [authLoaded, isAuthenticated, isLoggingOut, isPciAdmin, pathname, router]);
+
+  const sidebarItems = useMemo<SidebarItem[]>(() => {
+    const items: SidebarItem[] = [];
+
+    if (isAuthenticated) {
+      items.push({
+        id: "workspace",
+        label: "Moje wdrożenia",
+        href: "/workspace",
+        icon: <CheckCircleIcon size={20} />,
+        active: pathname === "/workspace" || pathname.startsWith("/workspace/"),
+        current: "page",
+        onSelect: () => setMenuOpenPath(null),
+      });
+    }
+
+    items.push(
+      {
+        id: "solve",
+        label: "Szukaj rozwiązania",
+        href: "/solve",
+        icon: <SearchIcon size={20} />,
+        active: pathname === "/solve",
+        current: "page",
+        onSelect: () => setMenuOpenPath(null),
+      },
+      {
+        id: "innovations",
+        label: "Katalog innowacji",
+        href: "/innovations",
+        icon: <MenuIcon size={20} />,
+        active: pathname === "/innovations" || pathname.startsWith("/innovations/"),
+        current: "page",
+        onSelect: () => setMenuOpenPath(null),
+      },
+      {
+        id: "compare",
+        label:
+          compareSlugs.length > 0
+            ? `Porównanie (${compareSlugs.length})`
+            : "Porównanie",
+        href: "/compare",
+        icon: <CompareIcon size={20} />,
+        active: pathname === "/compare",
+        current: "page",
+        onSelect: () => setMenuOpenPath(null),
+      },
+    );
+
+    if (isPciAdmin) {
+      items.push({
+        id: "admin",
+        label: "Panel PCI",
+        href: "/admin",
+        icon: <ShieldCheckIcon size={20} />,
+        active: pathname === "/admin" || pathname.startsWith("/admin/"),
+        current: "page",
+        onSelect: () => setMenuOpenPath(null),
+      });
+    }
+
+    return items;
+  }, [compareSlugs.length, isAuthenticated, isPciAdmin, pathname]);
+
+  const isWaitingForAuthOnProtected = !authLoaded && isProtectedRoute(pathname);
+  const isBlockedProtected =
+    authLoaded &&
+    !isLoggingOut &&
+    isProtectedRoute(pathname) &&
+    (!isAuthenticated || (pathname.startsWith("/admin") && !isPciAdmin));
+  const isRedirectingAuthenticatedGuestOnly =
+    authLoaded && isAuthenticated && isGuestOnlyRoute(pathname);
+
+  if (isWaitingForAuthOnProtected || isBlockedProtected || isRedirectingAuthenticatedGuestOnly) {
+    return (
+      <>
+        <SkipToContentLink />
+        <main
+          id="main-content"
+          className="flex min-h-screen flex-1 items-center justify-center bg-[var(--color-canvas)] px-4 py-12"
+        >
+          <div className="w-full max-w-md">
+            <LoadingState
+              label={
+                isRedirectingAuthenticatedGuestOnly
+                  ? "Przekierowywanie do panelu…"
+                  : "Sprawdzanie dostępu…"
+              }
+              description="Chwilę, trwa weryfikacja sesji i uprawnień."
+            />
+          </div>
+        </main>
+      </>
+    );
+  }
+
+  if (!isMainAppRoute(pathname)) {
+    return children;
+  }
+
+  const pageMeta = getMainAppPageMeta(pathname, isAuthenticated);
+  const userDisplayName =
+    auth.user?.full_name || auth.user?.email || "";
+
+  return (
     <>
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:inline-flex focus:min-h-11 focus:items-center focus:rounded-md focus:bg-[var(--color-accent)] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[var(--color-on-accent)] focus:shadow-md"
-      >
-        {t("Skip to main content")}
-      </a>
+      <SkipToContentLink />
 
-      <header
-        onKeyDown={handleHeaderKeyDown}
-        className="border-b border-[var(--color-border)] bg-[var(--color-surface)] print:hidden"
-      >
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <Link
-            href="/"
-            onClick={() => setMobileMenuOpen(false)}
-            aria-label="Praktoteka — strona główna"
-            className="inline-flex min-h-11 items-center rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
-          >
-            <BrandLogo size="sm" />
-          </Link>
-
-          {/* Desktop navigation */}
-          <nav aria-label="Nawigacja główna" className="hidden items-center gap-1 md:flex">
-            {navItems.map((item) => (
+      <AppShellLayout
+        viewport
+        contentAs="main"
+        contentId="main-content"
+        navigationId={navigationId}
+        mobileMenuOpen={mobileMenuOpen}
+        mobileSearch={
+          <Suspense fallback={null}>
+            <ShellSearchForm
+              id={`${searchId}-mobile`}
+              onNavigate={() => setMenuOpenPath(null)}
+            />
+          </Suspense>
+        }
+        onKeyDown={(event) => {
+          if (event.key === "Escape" && mobileMenuOpen) {
+            setMenuOpenPath(null);
+            menuButton.current?.focus();
+          }
+        }}
+        sidebar={
+          <Sidebar
+            label="Nawigacja główna"
+            brand={
               <Link
-                key={item.href}
-                href={item.href}
-                aria-current={item.active ? "page" : undefined}
-                className={`inline-flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
-                  item.active
-                    ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-                    : "text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
-                }`}
+                href={isAuthenticated ? "/workspace" : "/"}
+                onClick={() => setMenuOpenPath(null)}
+                aria-label={
+                  isAuthenticated
+                    ? "Praktoteka — Moje wdrożenia"
+                    : "Praktoteka — strona główna"
+                }
+                className="inline-flex min-h-11 items-center rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-sidebar-focus)]"
               >
-                {item.label}
+                <BrandLogo />
               </Link>
-            ))}
-          </nav>
-
-          {/* Desktop auth */}
-          <div className="hidden min-w-28 items-center justify-end gap-2 md:flex">
-            {!authLoaded ? (
-              <div className="min-h-11 w-24" aria-hidden="true" />
-            ) : auth.authenticated && auth.user ? (
-              <div className="flex items-center gap-2">
-                <span className="max-w-[180px] truncate text-xs font-medium text-[var(--color-text-muted)]">
-                  {auth.user.email}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => void logout()}
-                  className="min-h-11 shrink-0 cursor-pointer rounded-md border border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text)] hover:border-[var(--color-accent)]"
+            }
+            items={sidebarItems}
+            footer={
+              <SidebarUtilities
+                onLogout={isAuthenticated ? logout : undefined}
+                userName={isAuthenticated ? userDisplayName : undefined}
+              />
+            }
+          />
+        }
+        navbar={
+          <header>
+            <NavBar
+              title={pageMeta.title}
+              breadcrumbs={pageMeta.breadcrumbs}
+              leading={
+                <IconButton
+                  ref={menuButton}
+                  variant="outline"
+                  className="md:hidden"
+                  aria-label={
+                    mobileMenuOpen ? "Zamknij menu nawigacji" : "Otwórz menu nawigacji"
+                  }
+                  aria-expanded={mobileMenuOpen}
+                  aria-controls={navigationId}
+                  onClick={() =>
+                    setMenuOpenPath((prev) => (prev === pathname ? null : pathname))
+                  }
                 >
-                  Wyloguj
-                </button>
-              </div>
-            ) : (
-              <Link
-                href="/login"
-                className="inline-flex min-h-11 shrink-0 items-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 text-sm font-semibold text-[var(--color-text)] hover:border-[var(--color-accent)]"
-              >
-                Zaloguj się
-              </Link>
-            )}
-          </div>
-
-          {/* Mobile hamburger button */}
-          <button
-            ref={toggleBtnRef}
-            type="button"
-            onClick={() => setMobileMenuOpen((prev) => !prev)}
-            aria-expanded={mobileMenuOpen}
-            aria-controls={mobileMenuId}
-            aria-label={mobileMenuOpen ? "Zamknij menu nawigacji" : "Otwórz menu nawigacji"}
-            className="inline-flex min-h-11 min-w-11 cursor-pointer items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] text-[var(--color-text)] hover:border-[var(--color-accent)] md:hidden"
-          >
-            {mobileMenuOpen ? (
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                aria-hidden="true"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
-            ) : (
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                aria-hidden="true"
-              >
-                <path d="M4 6h16" />
-                <path d="M4 12h16" />
-                <path d="M4 18h16" />
-              </svg>
-            )}
-          </button>
-        </div>
-
-        {/* Mobile navigation drawer */}
-        {mobileMenuOpen ? (
-          <div
-            id={mobileMenuId}
-            className="border-t border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-4 py-3 md:hidden"
-          >
-            <nav aria-label="Nawigacja mobilna" className="flex flex-col gap-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={item.active ? "page" : undefined}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`inline-flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-semibold transition-colors ${
-                    item.active
-                      ? "bg-[var(--color-accent)] text-[var(--color-on-accent)]"
-                      : "text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-
-            <div className="mt-3 border-t border-[var(--color-border-subtle)] pt-3">
-              {!authLoaded ? (
-                <div className="min-h-11 w-full" aria-hidden="true" />
-              ) : auth.authenticated && auth.user ? (
-                <div className="flex items-center justify-between gap-3">
-                  <span className="truncate text-xs font-medium text-[var(--color-text-muted)]">
-                    {auth.user.email}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      void logout();
-                    }}
-                    className="min-h-11 shrink-0 cursor-pointer rounded-md border border-[var(--color-border)] px-3 text-xs font-semibold text-[var(--color-text)] hover:border-[var(--color-accent)]"
-                  >
-                    Wyloguj
-                  </button>
-                </div>
-              ) : (
-                <Link
-                  href="/login"
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 text-sm font-semibold text-[var(--color-text)] hover:border-[var(--color-accent)]"
-                >
-                  Zaloguj się
-                </Link>
-              )}
-            </div>
-          </div>
-        ) : null}
-      </header>
-
-      <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6">
+                  {mobileMenuOpen ? <CloseIcon size={20} /> : <MenuIcon size={20} />}
+                </IconButton>
+              }
+              search={
+                <Suspense fallback={null}>
+                  <ShellSearchForm id={`${searchId}-desktop`} />
+                </Suspense>
+              }
+              actions={
+                !authLoaded || isAuthenticated ? undefined : (
+                  <Suspense fallback={null}>
+                    <ShellAuthButtons pathname={pathname} />
+                  </Suspense>
+                )
+              }
+              mobileActions={
+                !authLoaded || isAuthenticated ? undefined : (
+                  <Suspense fallback={null}>
+                    <ShellAuthButtons pathname={pathname} mobile />
+                  </Suspense>
+                )
+              }
+            />
+          </header>
+        }
+        footer={<AppFooter />}
+      >
         {children}
-      </main>
-
-      <footer className="border-t border-[var(--color-border-subtle)] bg-[var(--color-surface)] py-5 text-xs text-[var(--color-text-muted)] print:hidden">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-6 px-4 sm:px-6">
-          <span>Praktoteka © 2026 • Stworzone na HackNation 2026</span>
-          <Link href="/admin" className="hover:underline">
-            Panel Admina
-          </Link>
-        </div>
-      </footer>
-
+      </AppShellLayout>
     </>
   );
 }

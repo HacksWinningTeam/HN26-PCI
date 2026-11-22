@@ -27,9 +27,11 @@ import { MinusIcon as PhosphorMinusIcon } from "@phosphor-icons/react/dist/ssr/M
 import { PlusIcon as PhosphorPlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import { ShieldCheckIcon as PhosphorShieldCheckIcon } from "@phosphor-icons/react/dist/ssr/ShieldCheck";
 import { SidebarSimpleIcon as PhosphorSidebarSimpleIcon } from "@phosphor-icons/react/dist/ssr/SidebarSimple";
+import { SignInIcon as PhosphorSignInIcon } from "@phosphor-icons/react/dist/ssr/SignIn";
 import { SignOutIcon as PhosphorSignOutIcon } from "@phosphor-icons/react/dist/ssr/SignOut";
 import { SlidersHorizontalIcon as PhosphorSlidersHorizontalIcon } from "@phosphor-icons/react/dist/ssr/SlidersHorizontal";
 import { SparkleIcon as PhosphorSparkleIcon } from "@phosphor-icons/react/dist/ssr/Sparkle";
+import { UserIcon as PhosphorUserIcon } from "@phosphor-icons/react/dist/ssr/User";
 import { WarningIcon as PhosphorWarningIcon } from "@phosphor-icons/react/dist/ssr/Warning";
 import { WarningCircleIcon as PhosphorWarningCircleIcon } from "@phosphor-icons/react/dist/ssr/WarningCircle";
 import { XIcon as PhosphorXIcon } from "@phosphor-icons/react/dist/ssr/X";
@@ -179,6 +181,14 @@ export function RefreshIcon({ size = 16, weight = "regular", ...props }: UIIconP
   return <PhosphorArrowsClockwiseIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
 }
 
+export function SignInIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
+  return <PhosphorSignInIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
+}
+
 export function SignOutIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
   return <PhosphorSignOutIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
+}
+
+export function UserIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
+  return <PhosphorUserIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
 }

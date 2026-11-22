@@ -7,11 +7,13 @@ import { AuthShell } from "@/components/AuthShell";
 import { useSession } from "@/components/SessionProvider";
 import { ArrowRightIcon, Banner } from "@/components/ui";
 import { loginAccount } from "@/lib/radar-api";
+import { sanitizeNextUrl } from "@/lib/route-access";
 
 function LoginFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextUrl = searchParams.get("next") || "/workspace";
+  const rawNext = searchParams.get("next");
+  const nextUrl = sanitizeNextUrl(rawNext, "/workspace");
   const { refreshAuth } = useSession();
 
   const [email, setEmail] = useState("");
@@ -24,8 +26,13 @@ function LoginFormInner() {
     setError("");
     try {
       await loginAccount(eMail, pass);
-      await refreshAuth();
-      router.push(nextUrl);
+      const nextAuth = await refreshAuth();
+      const target = sanitizeNextUrl(
+        rawNext,
+        "/workspace",
+        Boolean(nextAuth.user?.is_pci_admin),
+      );
+      router.replace(target);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Błąd logowania.");
     } finally {
@@ -126,15 +133,26 @@ function LoginFormInner() {
             </Link>
           </p>
 
-          <button
-            type="button"
-            disabled={loading}
-            title="Zaloguj się na konto demonstracyjne"
-            onClick={() => void doLogin("soltys@trzebownisko.pl", "demo1234")}
-            className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface)] disabled:opacity-60"
-          >
-            Demo
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={loading}
+              title="Zaloguj się na konto demonstracyjne organizacji"
+              onClick={() => void doLogin("soltys@trzebownisko.pl", "demo1234")}
+              className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface)] disabled:opacity-60"
+            >
+              Demo
+            </button>
+            <button
+              type="button"
+              disabled={loading}
+              title="Zaloguj się na konto demonstracyjne operatora PCI"
+              onClick={() => void doLogin("admin@pcinn.org", "admin1234")}
+              className="inline-flex min-h-11 cursor-pointer items-center rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface)] disabled:opacity-60"
+            >
+              Demo PCI
+            </button>
+          </div>
         </div>
       </div>
     </AuthShell>

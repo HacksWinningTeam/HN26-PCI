@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -30,6 +31,7 @@ export interface SolvePrefillContext {
 interface SessionContextValue {
   auth: AuthState;
   authLoaded: boolean;
+  isLoggingOut: boolean;
   refreshAuth: () => Promise<AuthState>;
   logout: () => Promise<void>;
   compareSlugs: string[];
@@ -59,12 +61,15 @@ const MATCH_STORAGE_KEY = "pci-match-results";
 const SessionContext = createContext<SessionContextValue | null>(null);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [auth, setAuth] = useState<AuthState>({
     authenticated: false,
     user: null,
     profile: null,
   });
   const [authLoaded, setAuthLoaded] = useState(false);
+  const [logoutStarted, setLogoutStarted] = useState(false);
   const [compareSlugs, setCompareSlugsState] = useState<string[]>([]);
   const [solveContext, setSolveContextState] = useState<SolvePrefillContext>(
     DEFAULT_SOLVE_CONTEXT,
@@ -176,18 +181,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    setLogoutStarted(true);
     try {
       await logoutAccount();
     } finally {
       setAuth({ authenticated: false, user: null, profile: null });
       setAuthLoaded(true);
+      router.replace("/");
     }
-  }, []);
+  }, [router]);
+
+  const isLoggingOut = logoutStarted && pathname !== "/" && !auth.authenticated;
 
   const value = useMemo<SessionContextValue>(
     () => ({
       auth,
       authLoaded,
+      isLoggingOut,
       refreshAuth,
       logout,
       compareSlugs,
@@ -202,6 +212,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [
       auth,
       authLoaded,
+      isLoggingOut,
       refreshAuth,
       logout,
       compareSlugs,

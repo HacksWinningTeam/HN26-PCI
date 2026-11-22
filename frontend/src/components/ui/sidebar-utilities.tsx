@@ -5,17 +5,24 @@ import { SettingsPanel } from "@/components/SettingsPanel";
 import { AccessibilityIcon } from "@/components/accessibility/AccessibilityIcon";
 import { AccessibilityPreferencesControls } from "@/components/accessibility/AccessibilityPreferencesControls";
 import { useTranslations } from "@/i18n/provider";
-import { SettingsIcon, SignOutIcon } from "./icons";
+import { IconButton } from "./button";
+import { SettingsIcon, SignOutIcon, UserIcon } from "./icons";
 import { Sheet } from "./sheet";
 import styles from "./sidebar.module.css";
 
 export type SidebarUtilitiesProps = {
   onLogout?: () => void | Promise<void>;
   logoutLabel?: string;
+  /** Compact footer row with user name + destructive icon logout button (omitted in Admin where full-width button is kept). */
+  userName?: string;
 };
 
-/** Sidebar footer: compact Settings & Accessibility icon row plus optional full-width sign-out action. */
-export function SidebarUtilities({ onLogout, logoutLabel }: SidebarUtilitiesProps) {
+/** Sidebar footer: compact Settings & Accessibility icon row plus user/sign-out controls. */
+export function SidebarUtilities({
+  onLogout,
+  logoutLabel,
+  userName,
+}: SidebarUtilitiesProps) {
   const t = useTranslations();
   const [panel, setPanel] = useState<"settings" | "accessibility" | null>(null);
   const signOutText = logoutLabel ?? t("Log out");
@@ -48,7 +55,28 @@ export function SidebarUtilities({ onLogout, logoutLabel }: SidebarUtilitiesProp
           </button>
         </div>
 
-        {onLogout ? (
+        {onLogout && userName ? (
+          <div className={styles.accountRow}>
+            <div className={styles.accountMeta}>
+              <UserIcon size={18} className={styles.icon} />
+              <span className={styles.accountName} title={userName}>
+                {userName}
+              </span>
+            </div>
+            <div className={styles.accountLogoutWrap}>
+              <IconButton
+                variant="ghost"
+                tone="destructive"
+                aria-label={signOutText}
+                title={signOutText}
+                className={styles.accountLogoutButton}
+                onClick={() => void onLogout()}
+              >
+                <SignOutIcon size={18} />
+              </IconButton>
+            </div>
+          </div>
+        ) : onLogout ? (
           <button
             type="button"
             className={`${styles.item} ${styles.logoutItem}`}

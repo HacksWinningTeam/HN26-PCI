@@ -7,11 +7,13 @@ import { AuthShell } from "@/components/AuthShell";
 import { useSession } from "@/components/SessionProvider";
 import { ArrowRightIcon, Banner } from "@/components/ui";
 import { registerAccount } from "@/lib/radar-api";
+import { sanitizeNextUrl } from "@/lib/route-access";
 
 function RegisterFormInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextUrl = searchParams.get("next") || "/workspace";
+  const rawNext = searchParams.get("next");
+  const nextUrl = sanitizeNextUrl(rawNext, "/workspace");
   const { refreshAuth, solveContext } = useSession();
 
   const [fullName, setFullName] = useState("");
@@ -32,8 +34,13 @@ function RegisterFormInner() {
         organization_type: solveContext.organization_type || "public_institution",
         deployment_location: solveContext.deployment_location || "",
       });
-      await refreshAuth();
-      router.push(nextUrl);
+      const nextAuth = await refreshAuth();
+      const target = sanitizeNextUrl(
+        rawNext,
+        "/workspace",
+        Boolean(nextAuth.user?.is_pci_admin),
+      );
+      router.replace(target);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Rejestracja nie powiodła się.");
     } finally {
