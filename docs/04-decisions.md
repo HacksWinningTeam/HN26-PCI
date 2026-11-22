@@ -257,6 +257,13 @@
 - **Decision:** T11 adds two real default channels: CTT UŁ technology offers for business and IBE pedagogical innovations. Discover individual documents from the publishers' catalogues; never import a catalogue/homepage as an innovation. Bound each batch to 10 candidates, persist listing offsets/pagination, periodically revisit the head and reuse existing source hashes, quality assessment, review status, counters and ingestion lock. Migrations add configuration only, preserve custom/existing feeds and never access the network. Existing source cards display the new channels without frontend changes. This explicit implementation request authorizes the bounded addition; other audit findings remain outside T11. No commit, push, deployment or invented data.
 - **Affected Docs & Tasks:** docs/01-brief.md REQ-01/REQ-12, docs/03-architecture.md, docs/05-plan.md, docs/PROJECT_KNOWLEDGE.md, DATA_SOURCES.md and new T11. Shared UI/API/env contracts remain unchanged.
 
+### `DEC-032` — Idempotent Bootstrap Accounts & PCI Verification Preservation on Refresh
+- **Date:** 2026-11-22 06:25
+- **Status:** Accepted
+- **Context / New Info:** User requested that pushing `main` provisions ready-to-use admin, demo, and `tester@test.com` accounts on fresh production databases alongside live scheduled harvesting, and audit testing showed `ingest_raw_record` could overwrite `pci_verified` `trl`/`deployment_level`/`oslo_compliant` and delete source-linked `verified_fact` evidences during source refreshes.
+- **Decision:** Add idempotent `ensure_demo_accounts` management command (`admin@pcinn.org`, `soltys@trzebownisko.pl`, `tester@test.com`) invoked from `backend/entrypoint.sh` when `RUN_MIGRATIONS=true` and `BOOTSTRAP_DEMO_ACCOUNTS=true` (enabled by default in `.env.example`, `compose.yaml`, and `compose.prod.yaml`, creating missing users only without overwriting existing passwords/profiles). Fix `backend/apps/ingestion/pipeline.py` so `pci_verified` `trl`, `deployment_level`, and `oslo_compliant` values and `verified_fact` evidence rows are preserved across single-source refreshes.
+- **Affected Docs & Tasks:** `backend/apps/accounts/management/commands/ensure_demo_accounts.py`, `backend/entrypoint.sh`, `backend/apps/ingestion/pipeline.py`, `.env.example`, `compose.yaml`, `compose.prod.yaml`, `docs/04-decisions.md`.
+
 <!-- Template for new entries:
 ### `DEC-XXX` — `<Short Title>`
 - **Date:** `<YYYY-MM-DD HH:MM from date '+%Y-%m-%d %H:%M'>`

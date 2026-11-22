@@ -138,9 +138,24 @@ def ingest_raw_record(
                 changes[field] = {"old": old_val, "new": new_val}
                 setattr(inv, field, new_val)
 
-        # TRL: progression within one source updates; regression or multi-source conflict flags.
+        # TRL: protect PCI-verified values; progression updates; regression/mismatch conflicts.
         extracted_trl = extracted["trl"]
-        if extracted_trl is not None and inv.trl is not None and extracted_trl != inv.trl:
+        if old_prov.get("trl") == "pci_verified":
+            if (
+                other_sources_count > 0
+                and extracted_trl is not None
+                and inv.trl is not None
+                and extracted_trl != inv.trl
+            ):
+                conflict_msg = (
+                    f"Źródło {record.registry} wskazuje TRL {extracted_trl}, "
+                    f"podczas gdy w rekordzie zapisano TRL {inv.trl}."
+                )
+                if conflict_msg not in conflicts:
+                    conflicts.append(conflict_msg)
+                inv.verification_status = "conflict"
+                outcome = "conflict"
+        elif extracted_trl is not None and inv.trl is not None and extracted_trl != inv.trl:
             if other_sources_count > 0 or extracted_trl < inv.trl:
                 conflict_msg = (
                     f"Źródło {record.registry} wskazuje TRL {extracted_trl}, "
@@ -165,23 +180,23 @@ def ingest_raw_record(
             _apply_field("trl", None)
             old_prov["trl"] = "unknown"
 
-        # Deployment level: refresh on source change (conflict only on multi-source PCI mismatch).
+        # Deployment level: protect PCI-verified values; refresh unverified on source change.
         new_level = extracted["deployment_level"]
         if new_level != inv.deployment_level:
-            if (
-                other_sources_count > 0
-                and old_prov.get("deployment_level") == "pci_verified"
-                and deployment_order.get(new_level, 0)
-                < deployment_order.get(inv.deployment_level, 0)
-            ):
-                conflict_msg = (
-                    f"Źródło {record.registry} wskazuje poziom wdrożenia „{new_level}”, "
-                    f"podczas gdy w rekordzie potwierdzono „{inv.deployment_level}”."
-                )
-                if conflict_msg not in conflicts:
-                    conflicts.append(conflict_msg)
-                inv.verification_status = "conflict"
-                outcome = "conflict"
+            if old_prov.get("deployment_level") == "pci_verified":
+                if (
+                    other_sources_count > 0
+                    and deployment_order.get(new_level, 0)
+                    < deployment_order.get(inv.deployment_level, 0)
+                ):
+                    conflict_msg = (
+                        f"Źródło {record.registry} wskazuje poziom wdrożenia „{new_level}”, "
+                        f"podczas gdy w rekordzie potwierdzono „{inv.deployment_level}”."
+                    )
+                    if conflict_msg not in conflicts:
+                        conflicts.append(conflict_msg)
+                    inv.verification_status = "conflict"
+                    outcome = "conflict"
             else:
                 _apply_field("deployment_level", new_level)
                 old_prov["deployment_level"] = new_prov.get("deployment_level", "rule_based")
@@ -222,7 +237,7 @@ def ingest_raw_record(
             if cls_field in new_prov:
                 old_prov[cls_field] = new_prov[cls_field]
 
-        if old_prov.get("oslo_compliant") != "pci_verified" or "deployment_level" in changes:
+        if old_prov.get("oslo_compliant") != "pci_verified":
             _apply_field("oslo_compliant", extracted["oslo_compliant"])
             _apply_field("oslo_assessment", extracted["oslo_assessment"])
             old_prov["oslo_compliant"] = new_prov.get("oslo_compliant", "rule_based")
@@ -266,7 +281,9 @@ def ingest_raw_record(
         existing_source.save()
 
         # Refresh auto-extracted evidences while preserving PCI verified_fact entries.
-        Evidence.objects.filter(innovation=inv, assessment_key="").filter(
+        Evidence.objects.filter(innovation=inv, assessment_key="").exclude(
+            kind="verified_fact"
+        ).filter(
             Q(source=existing_source)
             | Q(source__isnull=True, kind__in=["source_declaration", "ai_estimate", "missing_info"])
         ).delete()

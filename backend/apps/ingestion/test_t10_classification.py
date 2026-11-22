@@ -245,3 +245,63 @@ def test_pci_admin_edits_provenance_and_exports_reflect_facts_vs_estimates(setti
     md_text = md_res.content.decode("utf-8")
     assert "potwierdzone przez PCI" in md_text
     assert json.loads(json.dumps(patch_res.data["oslo_assessment"]))["status"] == "compliant"
+
+
+@pytest.mark.django_db
+def test_source_refresh_preserves_pci_verified_fields_and_source_linked_verified_facts(settings):
+    settings.GEMINI_API_KEY = ""
+    url = "https://example.org/pci-protected-sensor"
+
+    initial = RawSourceRecord(
+        title="System Monitoringu Wód",
+        text="Prototyp systemu monitoringu wód, TRL 4.",
+        url=url,
+        registry="RUJ UJ",
+        label="Monitoring Wód",
+    )
+    inv, outcome = ingest_raw_record(initial)
+    assert outcome == "created"
+    src = inv.sources.get()
+
+    client = _pci_client()
+    patch_res = client.patch(
+        f"/api/admin/innovations/{inv.slug}/",
+        {
+            "deployment_level": "pilot",
+            "trl": 6,
+            "oslo_compliant": True,
+            "verification_status": "verified",
+        },
+        format="json",
+    )
+    assert patch_res.status_code == 200
+
+    Evidence.objects.create(
+        innovation=inv,
+        source=src,
+        kind="verified_fact",
+        text_pl="Zweryfikowano raport pilotażu w dwóch gminach.",
+        text_en="Pilot report verified in two municipalities.",
+    )
+
+    changed_source = RawSourceRecord(
+        title="System Monitoringu Wód",
+        text="Wdrożenie w praktyce w całym województwie, TRL 8.",
+        url=url,
+        registry="RUJ UJ",
+        label="Monitoring Wód",
+    )
+    refreshed, outcome = ingest_raw_record(changed_source)
+    assert outcome == "updated"
+    assert refreshed.trl == 6
+    assert refreshed.deployment_level == "pilot"
+    assert refreshed.oslo_compliant is True
+    assert refreshed.classification_provenance["trl"] == "pci_verified"
+    assert refreshed.classification_provenance["deployment_level"] == "pci_verified"
+    assert refreshed.classification_provenance["oslo_compliant"] == "pci_verified"
+    assert refreshed.verification_status == "verified"
+    assert refreshed.evidences.filter(
+        kind="verified_fact",
+        source=src,
+        text_pl="Zweryfikowano raport pilotażu w dwóch gminach.",
+    ).exists()
