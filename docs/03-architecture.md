@@ -44,6 +44,8 @@ Source details, stored data, URL processing and access checks are documented in 
 
 ## Frontend Routes & Modules (`frontend/`)
 
+The user-facing walkthrough is in [`USER_FLOW.md`](USER_FLOW.md). Guest access to protected routes redirects to `/login?next=...`; an authenticated non-PCI user opening `/admin` returns to `/workspace`. Switching from an organization account to an operator account requires logout first. An existing operator session can open `/admin` directly; ordinary login defaults to `/workspace`, while **Demo PCI** always opens `/admin`. The organization questionnaire opens in the innovation detail's **Zaplanuj wdrożenie** sheet; `/workspace` shows saved items, comparisons and plans.
+
 | Route | Component / Type | Purpose | API Endpoints Used | Task |
 | --- | --- | --- | --- | --- |
 | `/` | `src/app/page.tsx` (Server Component) | Public landing page with search and catalog/problem discovery entrances | None | Product landing |

@@ -12,6 +12,8 @@
 
 > **Admin table (`DEC-022`, supersedes `DEC-021`):** delivered advanced `DataTable` for quality review, with sorting, column filters, pagination and column visibility controls.
 
+> **Mentor walkthrough:** [`USER_FLOW.md`](USER_FLOW.md) documents current navigation, public/account/PCI access boundaries and the organization-to-operator demo sequence. This is a documentation addition; task statuses, implementation scope and approvals remain unchanged.
+
 ## Task Status Legend
 
 Status lives in each task file's `Status` field; this table mirrors it.

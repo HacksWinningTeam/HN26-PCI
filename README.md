@@ -3,6 +3,7 @@
 Radar Innowacji dla Podkarpackiego Centrum Innowacji (HackNation 2026). Aplikacja zbiera dane o polskich rozwiązaniach technologicznych, edukacyjnych i administracyjnych z publicznych źródeł, porządkuje je i prowadzi odbiorcę od opisu problemu lub katalogu, przez porównanie, aż po pięciofazowy plan wdrożenia.
 
 Dodatkowe opisy dla oceniających:
+- [`docs/USER_FLOW.md`](docs/USER_FLOW.md) — nawigacja krok po kroku, granice logowania, zmiana konta na operatora PCI i scenariusz demo.
 - [`AI_USAGE.md`](AI_USAGE.md) — rola AI, obliczenia regułowe, dane wejściowe i interpretacja rekomendacji.
 - [`DATA_SOURCES.md`](DATA_SOURCES.md) — lista źródeł, sposób cyklicznego pobierania, obsługa duplikatów/konfliktów i ochrona danych.
 
@@ -18,7 +19,7 @@ Dodatkowe opisy dla oceniających:
 - **„Powiadom mnie”:** zapis zapytania i kontaktu do osoby zainteresowanej rozwiązaniem — kolejny punkt kontaktu między potrzebami organizacji a rozwijającym się katalogiem innowacji.
 
 ### Po rejestracji (plan i realizacja)
-- **Kontekst organizacji (`/workspace`):** krótka ankieta (typ i nazwa instytucji, rola, lokalizacja, skala odbiorców, obecne podejście, zasoby, kompetencje, termin i ograniczenia).
+- **Kontekst organizacji:** ankieta w panelu „Zaplanuj wdrożenie” na karcie innowacji (typ i nazwa instytucji, rola, lokalizacja, skala odbiorców, obecne podejście, zasoby, kompetencje, termin i ograniczenia). „Moje wdrożenia” (`/workspace`) zbiera zapisane innowacje, porównania i plany.
 - **Plan wdrożeniowy (`/workspace/plans/[id]`):** system dobiera jeden z trzech wariantów (walidacja, pilotaż albo transfer/wdrożenie) i konkretną ścieżkę działania (np. kontakt z właścicielem IP przy aktywnym patencie, partnerstwo, pilotaż lub transfer). Plan ma pięć faz, blokery braków, ryzyka, mierniki sukcesu, interaktywną checklistę oraz dane kontaktowe ze źródła lub weryfikacji PCI. Gotowy plan można wyeksportować do JSON, Markdown i CSV.
 - **Raportowanie efektów:** na końcu planu organizacja zgłasza przygotowania, rozpoczęcie pilotażu lub zakończenie wdrożenia; uzupełnia opis efektu, mierniki przed/po, liczbę odbiorców i preferencję widoczności podsumowania. Może dodać, pobrać lub usunąć jeden załącznik z wynikami (do 10 MB), przechowywany w PostgreSQL. Załącznik pobiera właściciel planu lub operator PCI.
 

@@ -24,6 +24,7 @@ flowchart LR
 | [`../README.md`](../README.md) | Product overview, startup, routes, accounts and verification commands | Agents / Team |
 | [`../AI_USAGE.md`](../AI_USAGE.md) | AI inputs, deterministic calculations, validation and interpretation of recommendations | Agents / Team |
 | [`../DATA_SOURCES.md`](../DATA_SOURCES.md) | Six configured sources, refresh behavior, persisted data and access checks | Agents / Team |
+| [`USER_FLOW.md`](USER_FLOW.md) | Polish navigation guide, login boundaries, PCI account switching and mentor demo scenario | Agents / Team |
 | [`TASK_KNOWLEDGE.md`](TASK_KNOWLEDGE.md) | Authoritative HackNation 2026 PCI / Radar Innowacji challenge spec, organizer FAQ, judging criteria, and domain requirements | Organizer docs / User |
 | [`PROJECT_KNOWLEDGE.md`](PROJECT_KNOWLEDGE.md) | Living implementation knowledge: what we built, architecture in practice, modules, and trade-offs | Agents / Team as code evolves |
 | [`inputs/organizer-brief/`](inputs/organizer-brief/) | Raw organizer PDFs and challenge specs (tracked in Git) | User at kickoff |

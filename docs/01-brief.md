@@ -40,6 +40,8 @@ Organizer criteria and challenge context are recorded in [`TASK_KNOWLEDGE.md`](T
 
 ## Core User Flows
 
+Szczegółowe kroki nawigacji, granice logowania i zmiana konta organizacji na operatora PCI: [`USER_FLOW.md`](USER_FLOW.md). Przewodnik opisuje obecną implementację, w tym ankietę w panelu „Zaplanuj wdrożenie” przy karcie innowacji.
+
 1. **Problem → dopasowanie → wdrożenie:** użytkownik otwiera „Szukaj innowacji” i rozwija opis problemu → opisuje problem → system stopniowo prosi o branżę, beneficjentów, lokalizację wdrożenia i typ organizacji → pokazuje jakość opisu oraz ranking z rozbiciem wyniku 40/20/20/20 → użytkownik otwiera kartę i porównuje rozwiązania → wybiera „Odkryj plan” → rejestruje się i uzupełnia ankietę organizacji → otrzymuje pięciofazowy plan walidacji, pilotażu albo transferu/wdrożenia → zapisuje postęp na checkliście.
 2. **Katalog → porównanie → wdrożenie:** użytkownik otwiera ten sam ekran „Szukaj innowacji” → korzysta z wyszukiwania, wspólnych filtrów oraz widoku kart/tabeli → porównuje 2–3 rekordy → otwiera szczegóły → po rejestracji generuje plan dostosowany do swojej organizacji.
 3. **Brak wyniku → powiadomienie:** użytkownik nie otrzymuje wystarczająco dobrych dopasowań → zmienia kryteria albo wybiera „Powiadom mnie” → podaje e-mail lub, jeśli jest zalogowany, zatwierdza e-mail konta.

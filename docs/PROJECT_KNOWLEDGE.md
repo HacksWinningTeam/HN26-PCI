@@ -12,6 +12,7 @@
 - **System Architecture:** [`03-architecture.md`](03-architecture.md)
 - **Decision Log:** [`04-decisions.md`](04-decisions.md)
 - **Implementation Plan:** [`05-plan.md`](05-plan.md)
+- **Navigation & Access Boundaries:** [`USER_FLOW.md`](USER_FLOW.md) — Polish walkthrough and mentor demo scenario.
 
 ## 2. Current Implementation Status
 
