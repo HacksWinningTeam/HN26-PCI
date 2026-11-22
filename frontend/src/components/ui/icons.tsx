@@ -33,6 +33,7 @@ import { MinusIcon as PhosphorMinusIcon } from "@phosphor-icons/react/dist/ssr/M
 import { PlusIcon as PhosphorPlusIcon } from "@phosphor-icons/react/dist/ssr/Plus";
 import { ShareNetworkIcon as PhosphorShareNetworkIcon } from "@phosphor-icons/react/dist/ssr/ShareNetwork";
 import { ShieldCheckIcon as PhosphorShieldCheckIcon } from "@phosphor-icons/react/dist/ssr/ShieldCheck";
+import { SidebarIcon as PhosphorSidebarIcon } from "@phosphor-icons/react/dist/ssr/Sidebar";
 import { SidebarSimpleIcon as PhosphorSidebarSimpleIcon } from "@phosphor-icons/react/dist/ssr/SidebarSimple";
 import { SignInIcon as PhosphorSignInIcon } from "@phosphor-icons/react/dist/ssr/SignIn";
 import { SignOutIcon as PhosphorSignOutIcon } from "@phosphor-icons/react/dist/ssr/SignOut";
@@ -165,6 +166,10 @@ export function FilterIcon({ size = 16, weight = "regular", ...props }: UIIconPr
 
 export function DrawerIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
   return <PhosphorSidebarSimpleIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
+}
+
+export function SidebarIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {
+  return <PhosphorSidebarIcon size={size} weight={weight} aria-hidden="true" focusable="false" {...props} />;
 }
 
 export function EyeIcon({ size = 16, weight = "regular", ...props }: UIIconProps) {

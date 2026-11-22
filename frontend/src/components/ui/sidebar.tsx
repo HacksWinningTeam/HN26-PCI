@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useId, useState, type ReactNode } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useTranslations } from "@/i18n/provider";
-import { ChevronLeftIcon, ChevronRightIcon, MenuIcon } from "./icons";
+import { MenuIcon, SidebarIcon } from "./icons";
 import { SidebarUtilities } from "./sidebar-utilities";
 export { SidebarUtilities, type SidebarUtilitiesProps } from "./sidebar-utilities";
 import styles from "./sidebar.module.css";
@@ -64,7 +64,7 @@ export function Sidebar({
             if (collapsed === undefined) setInternalCollapsed(next);
             onCollapsedChange?.(next);
           }}>
-          {isCollapsed ? <ChevronRightIcon size={20} /> : <ChevronLeftIcon size={20} />}
+          <SidebarIcon size={20} />
         </button>
       </div>
       <nav id={navigationId} aria-label={label} className={styles.navigation}>
