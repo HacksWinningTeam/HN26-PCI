@@ -29,7 +29,7 @@ Dodatkowe opisy dla oceniających:
 - Podgląd planów wdrożeniowych organizacji, ich bieżącej fazy i zgłaszanych trudności.
 
 ### Dostępność i języki
-- Pięć motywów (jasny, ciemny, dwa warianty wysokiego kontrastu, skala szarości), skalowanie tekstu 25%–200%, podkreślanie linków i odczyt na głos (`speechSynthesis`) w `/settings/accessibility`.
+- Pięć motywów (jasny, ciemny, dwa warianty wysokiego kontrastu, skala szarości), skalowanie tekstu 25%–200%, podkreślanie linków i odczyt na głos (`speechSynthesis`) w panelu „Dostępność”, otwieranym z górnej nawigacji publicznej lub panelu bocznego aplikacji.
 - Interfejs w języku polskim (domyślnym) i angielskim.
 
 ---

@@ -6,7 +6,7 @@ Applies to Django 5.2 LTS, Django REST Framework, `drf-spectacular`, and `uv`.
 
 - Place new domain apps under `backend/apps/<feature>/` with `AppConfig.name = "apps.<feature>"`.
 - Register each new app in `INSTALLED_APPS` in `backend/config/settings.py` and include its URLs under `api/` in `backend/config/urls.py`.
-- Keep `backend/apps/core/views.py` (`GET /api/health/`) publicly accessible (`authentication_classes = []`, `permission_classes = []`) so Docker healthchecks keep passing even if auth is added later.
+- Keep `backend/apps/core/views.py` (`GET /api/health/`) publicly accessible (`authentication_classes = []`, `permission_classes = []`) so Docker healthchecks do not require a session.
 
 ## DRF & OpenAPI (`drf-spectacular`)
 
@@ -15,8 +15,9 @@ Applies to Django 5.2 LTS, Django REST Framework, `drf-spectacular`, and `uv`.
 
 ## Authentication & CSRF
 
-- The MVP has no API auth: `REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = []` in `backend/config/settings.py`. Do not remove it casually — with DRF's default `SessionAuthentication`, any browser `POST/PUT/PATCH/DELETE` to `/api/...` fails with `403 CSRF Failed` as soon as someone is logged into `/admin/` (same origin through the Next.js proxy).
-- If API auth is explicitly requested later, log a `DEC-XXX`, enable it in settings or per view, and make the frontend send the `X-CSRFToken` header (from the `csrftoken` cookie) on unsafe requests.
+- The API uses Django sessions with per-view `SessionAuthentication`. Profile, saved comparisons, implementation plans and their progress require `IsAuthenticated`; operator endpoints require `IsPCIAdmin` and applicable object-level access checks.
+- Keep `REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"] = []` in `backend/config/settings.py` as the public-endpoint default. Enable session authentication explicitly on views that use the current account, with the appropriate permission classes. This avoids imposing session CSRF checks on anonymous discovery endpoints merely because the browser also has an admin session.
+- Browser mutations use `frontend/src/lib/api.ts`, which ensures the `csrftoken` cookie via `/api/auth/me/` and sends `X-CSRFToken` on unsafe requests. Preserve same-origin session cookies, CSRF handling and owner/PCI access checks when changing protected endpoints.
 
 ## Models, Migrations & Settings
 

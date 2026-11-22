@@ -22,7 +22,7 @@
 
 ### Implemented Foundations
 - **Localization (`pl-PL` default / `en-US`):** `frontend/src/i18n/` with `localStorage` persistence (`hn26-locale`) and synchronous pre-hydration (`frontend/src/lib/prehydrate.ts`) (`DEC-001`).
-- **WCAG 2.2 AA Accessibility System:** `AccessibilityProvider`, `AccessibilityMenu` (floating control), `/settings/accessibility`, 5 resolved themes (`light`, `dark`, `hc-black-white`, `hc-black-yellow`, `grayscale`), text scale `25%–200%`, link underlining, and browser `speechSynthesis` Read Aloud (`DEC-002`).
+- **WCAG 2.2 AA Accessibility System:** `AccessibilityProvider` and shared `AccessibilityPreferencesControls` in sheets opened from `PublicNavBar` / `SidebarUtilities`; 5 resolved themes (`light`, `dark`, `hc-black-white`, `hc-black-yellow`, `grayscale`), text scale `25%–200%`, link underlining, and browser `speechSynthesis` Read Aloud (`DEC-002`, `DEC-035`).
 - **App Shell:** `AppShell` (`frontend/src/components/AppShell.tsx`) provides session-aware product navigation, skip-to-content and `<main id="main-content">`. Sidebar remains at the left; full-width navbar/footer frame centered content capped at 1600px. The unified discovery screen has one navigation entry and omits duplicate shell search (`DEC-012`–`DEC-014`).
 - **Design System Gallery (`/design-system`):** Interactive token/component gallery (`frontend/src/app/design-system/`) with section search and hash navigation (`DEC-003`).
 

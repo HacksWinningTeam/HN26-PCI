@@ -4,7 +4,7 @@
 
 ## Purpose
 
-The application targets **WCAG 2.2 AA** across every page, component, and user journey. Semantic HTML, keyboard operability, visible focus indicators, and sufficient contrast are the default for everyone; the floating accessibility control and settings view provide additional presentation preferences on top of that baseline.
+The application targets **WCAG 2.2 AA** across every page, component, and user journey. Semantic HTML, keyboard operability, visible focus indicators, and sufficient contrast are the default for everyone; accessibility sheets opened from navigation provide additional presentation preferences on top of that baseline.
 
 ## Guiding Principles
 
@@ -56,11 +56,11 @@ In `@media (forced-colors: active)`, defer to system colors. In `@media (prefers
 
 ## Accessibility Control & Settings Surface
 
-1. **Floating `AccessibilityMenu` (`frontend/src/components/accessibility/AccessibilityMenu.tsx`):**
-   - Native `<button>` launcher with `aria-expanded` and `aria-controls`, hidden on `/settings/accessibility`.
-   - Non-modal `role="dialog"` panel (no focus trap; Tab continues naturally; `Escape` or launcher closes and returns focus to launcher; outside pointer closes without stealing focus).
-   - Opening moves focus to the currently checked appearance radio input.
-2. **Controls (`AccessibilityPreferencesControls.tsx`, shared between popover and `/settings/accessibility`):**
+1. **Navigation access (`PublicNavBar` / `SidebarUtilities`):**
+   - Public landing/account pages expose an accessibility button in the top navigation; application pages expose it in the sidebar utilities.
+   - Native `<button>` launchers use localized accessible names, `aria-haspopup="dialog"` and `aria-expanded`.
+   - Both open the shared modal `Sheet` with focus management, Escape dismissal and focus restoration. Preferences do not require navigating to a separate page.
+2. **Controls (`AccessibilityPreferencesControls.tsx`, shared by both navigation sheets):**
    - **Display Mode:** Radio group (`System`, `Light`, `Dark`, `High Contrast: Black/White`, `High Contrast: Black/Yellow`, `Grayscale`) — all labels localized in `pl-PL` and `en-US`.
    - **Text Size:** Decrease (`A−`), `<output aria-live="polite">` showing current `%`, Increase (`A+`), and Reset (`100%`), with native `disabled` at bounds (`25%` / `200%`).
    - **Underline Links:** Native `<input type="checkbox" role="switch">`.
@@ -73,7 +73,7 @@ In `@media (forced-colors: active)`, defer to system colors. In `@media (prefers
    - Extend `frontend/src/appearance/` + `frontend/src/lib/prehydrate.ts` into the full `AccessibilityProvider` contract.
    - Add `hc-black-white`, `hc-black-yellow`, `grayscale`, `data-text-scale`, and `data-underline-links` token maps to `frontend/src/app/globals.css`.
    - Add Polish & English translations for all accessibility labels and live announcements to `frontend/src/i18n/messages.ts`.
-   - Build `AccessibilityMenu`, `AccessibilityPreferencesControls`, and `/settings/accessibility` route.
+   - Use `AccessibilityPreferencesControls` in accessibility sheets opened from `PublicNavBar` and `SidebarUtilities`.
 2. **Verification:**
    - Unit tests (`node --test`) for preference parsing/validation, pre-hydration script syntax, and i18n catalog parity.
    - `npm run typecheck`, `npm run lint`, and production build.

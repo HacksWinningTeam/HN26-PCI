@@ -21,8 +21,8 @@ Browser (same-origin) -> Next.js 16 (src/proxy.ts / SSR via API_INTERNAL_URL) ->
 
 | Method & Path | View / App | Purpose | Auth / Permissions | Task |
 | --- | --- | --- | --- | --- |
-| `GET /api/health/` | `HealthCheckView` (`apps.core`) | DB + service readiness | Public | Starter |
-| `GET /api/schema/`, `/api/docs/`, `/api/redoc/` | `drf-spectacular` | OpenAPI 3 spec & docs UI | Public | Starter |
+| `GET /api/health/` | `HealthCheckView` (`apps.core`) | DB + service readiness | Public | Infrastructure |
+| `GET /api/schema/`, `/api/docs/`, `/api/redoc/` | `drf-spectacular` | OpenAPI 3 spec & docs UI | Public | Infrastructure |
 | `GET /api/innovations/` | `apps.innovations` | Search, filter, sort, grid/table data | Public | TBD |
 | `GET /api/innovations/{id}/` | `apps.innovations` | Detailed card, evidence and sources | Public | TBD |
 | `POST /api/discovery/match/` | `apps.discovery` | Refine a problem and return explained matches | Public | TBD |
@@ -42,7 +42,7 @@ Browser (same-origin) -> Next.js 16 (src/proxy.ts / SSR via API_INTERNAL_URL) ->
 
 | Route | Component / Type | Purpose | API Endpoints Used | Task |
 | --- | --- | --- | --- | --- |
-| `/` | `src/app/page.tsx` (SSR `force-dynamic`) | Starter connectivity check | `GET /api/health/` | Starter |
+| `/` | `src/app/page.tsx` (Server Component) | Public landing page with search and catalog/problem discovery entrances | None | Product landing |
 | `/innovations` | Unified innovation discovery | Keyword/catalog search, optional problem context, shared filters, grid/table and match explanations | `GET /api/innovations/`, `POST /api/discovery/match/` | T03 / DEC-014 |
 | `/innovations/[id]` | Innovation detail | Public level-2 detail with evidence/sources and registered level-3 “Odkryj” plan/contact CTA | `GET /api/innovations/{id}/` | TBD |
 | `/solve` | Server redirect | Legacy entry to `/innovations?mode=problem`; preserves query parameters | None | T03 / DEC-014 |
@@ -52,7 +52,8 @@ Browser (same-origin) -> Next.js 16 (src/proxy.ts / SSR via API_INTERNAL_URL) ->
 | `/workspace/plans/[id]` | Plan workspace | Five-step plan and progress checklist | Implementation APIs | TBD |
 | `/admin` | PCI operations | Record verification and adoption oversight | Admin APIs | TBD |
 | `/design-system` | `src/app/design-system/page.tsx` | Design system tokens, foundations, and planned UI slots | None | `DEC-003` |
-| `/settings/accessibility` | `src/app/settings/accessibility/page.tsx` | WCAG 2.2 AA appearance, text scale, link underline, and read-aloud settings | None | `DEC-002` |
+
+Accessibility preferences use `AccessibilityPreferencesControls` inside a `Sheet`, opened from `PublicNavBar` on public/account pages or `SidebarUtilities` in the application shell. They are shared controls rather than a separate route.
 
 ### Unified discovery behavior (`DEC-014`)
 

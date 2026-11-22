@@ -67,13 +67,13 @@ test("createTranslator interpolates parameters and translates to Polish", () => 
   const tEn = createTranslator("en-US");
   const tPl = createTranslator("pl-PL");
 
-  assert.equal(tEn("API Status: {0}", { 0: "Healthy" }), "API Status: Healthy");
-  assert.equal(tPl("API Status: {0}", { 0: "Sprawne" }), "Status API: Sprawne");
+  assert.equal(tEn("Comparison tray: {0}", { 0: 3 }), "Comparison tray: 3");
+  assert.equal(tPl("Comparison tray: {0}", { 0: 3 }), "Porównanie: 3");
   assert.equal(tPl("Appearance"), "Wygląd");
   assert.equal(tPl("Language"), "Język");
 });
 
 test("translateModelMessage leaves unknown messages unchanged", () => {
-  assert.equal(translateModelMessage("pl-PL", "Healthy"), "Sprawne");
+  assert.equal(translateModelMessage("pl-PL", "Read aloud"), "Czytanie na głos");
   assert.equal(translateModelMessage("pl-PL", "Custom User Label"), "Custom User Label");
 });

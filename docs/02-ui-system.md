@@ -39,7 +39,6 @@ Track reusable components as tasks create or update them:
 
 | Component | Path | Purpose | Introduced In |
 | --- | --- | --- | --- |
-| `HealthStatusCard` | `frontend/src/components/HealthStatusCard.tsx` | Live API & DB connectivity banner pattern | Starter template |
 | `DesignSystemPage` & `GalleryShell` | `frontend/src/app/design-system/` | Interactive design system gallery (`/design-system`) with section search, hash navigation, foundations, and planned slots | `DEC-003` |
 | `PublicNavBar` | `frontend/src/components/ui/public-nav-bar.tsx` | Responsive public header with landing/login/register variants, settings and accessibility sheets; interactive previews in Navigation bars | `DEC-008` |
 | `Popover` | `frontend/src/components/ui/popover.tsx` | Anchored floating card with viewport placement, Escape/outside dismissal, and mobile modal dialog fallback | `DEC-006` |

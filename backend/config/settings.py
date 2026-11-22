@@ -177,10 +177,9 @@ if DEBUG:
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": _renderers,
-    # No API auth in the MVP. DRF's default SessionAuthentication would enforce CSRF on
-    # every unsafe /api/ request once a user is logged into /admin/ (same origin via the
-    # Next.js proxy), causing "403 CSRF Failed". If API auth is added later, set it here
-    # (or per view) and send the X-CSRFToken header from the frontend.
+    # Public endpoints have no authentication by default. Views using the current
+    # account explicitly enable SessionAuthentication and the appropriate permissions;
+    # the frontend forwards X-CSRFToken on unsafe requests.
     "DEFAULT_AUTHENTICATION_CLASSES": [],
 }
 
