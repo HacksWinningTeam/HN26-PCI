@@ -73,7 +73,6 @@ export default function AppShellExamples() {
           style={{ height: 620 }}
           navigationId={navigationId}
           mobileMenuOpen={menuOpen}
-          mobileSearch={searchField(`${searchId}-mobile`)}
           onKeyDown={(event) => {
             if (event.key === "Escape" && menuOpen) {
               setMenuOpen(false);
@@ -85,6 +84,7 @@ export default function AppShellExamples() {
             <Sidebar
               layout={mobile ? "mobile" : "responsive"}
               label="Nawigacja boczna — podgląd"
+              mobileSearch={searchField(`${searchId}-mobile`)}
               items={sections.filter((section) => section.label.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).map((section) => ({
                 ...section,
                 active: section.id === active,

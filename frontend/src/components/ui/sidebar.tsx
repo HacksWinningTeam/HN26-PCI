@@ -23,6 +23,7 @@ export type SidebarItem = {
 export type SidebarProps = {
   label: string;
   brand?: ReactNode;
+  mobileSearch?: ReactNode;
   items: readonly SidebarItem[];
   footer?: ReactNode;
   collapsed?: boolean;
@@ -35,6 +36,7 @@ export type SidebarProps = {
 export function Sidebar({
   label,
   brand = <BrandLogo />,
+  mobileSearch,
   items,
   footer,
   collapsed,
@@ -53,6 +55,7 @@ export function Sidebar({
     <div className={styles.panel} data-layout={layout} data-collapsed={isCollapsed ? "true" : undefined}>
       <div className={styles.brand}>
         <div className={styles.brandMark}>{brand}</div>
+        {mobileSearch && <div className={styles.mobileSearch}>{mobileSearch}</div>}
         <button type="button" className={styles.collapseButton}
           aria-label={toggleLabel} title={toggleLabel} aria-expanded={!isCollapsed}
           aria-controls={navigationId}

@@ -5,7 +5,6 @@ import { SettingsPanel } from "@/components/SettingsPanel";
 import { AccessibilityIcon } from "@/components/accessibility/AccessibilityIcon";
 import { AccessibilityPreferencesControls } from "@/components/accessibility/AccessibilityPreferencesControls";
 import { useTranslations } from "@/i18n/provider";
-import { IconButton } from "./button";
 import { SettingsIcon, SignOutIcon, UserIcon } from "./icons";
 import { Sheet } from "./sheet";
 import styles from "./sidebar.module.css";
@@ -41,6 +40,7 @@ export function SidebarUtilities({
             onClick={() => setPanel("settings")}
           >
             <SettingsIcon size={20} className={styles.icon} />
+            <span className={styles.utilityLabel}>{t("Settings")}</span>
           </button>
           <button
             type="button"
@@ -52,6 +52,7 @@ export function SidebarUtilities({
             onClick={() => setPanel("accessibility")}
           >
             <AccessibilityIcon className="h-5 w-5 shrink-0" />
+            <span className={styles.utilityLabel}>{t("Accessibility")}</span>
           </button>
         </div>
 
@@ -64,16 +65,16 @@ export function SidebarUtilities({
               </span>
             </div>
             <div className={styles.accountLogoutWrap}>
-              <IconButton
-                variant="ghost"
-                tone="destructive"
+              <button
+                type="button"
                 aria-label={signOutText}
                 title={signOutText}
                 className={styles.accountLogoutButton}
                 onClick={() => void onLogout()}
               >
-                <SignOutIcon size={18} />
-              </IconButton>
+                <SignOutIcon size={18} className={styles.icon} />
+                <span className={styles.accountLogoutLabel}>{signOutText}</span>
+              </button>
             </div>
           </div>
         ) : onLogout ? (

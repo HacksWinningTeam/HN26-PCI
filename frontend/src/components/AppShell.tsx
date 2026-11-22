@@ -260,14 +260,6 @@ export function AppShell({ children }: { children: ReactNode }) {
         contentId="main-content"
         navigationId={navigationId}
         mobileMenuOpen={mobileMenuOpen}
-        mobileSearch={
-          <Suspense fallback={null}>
-            <ShellSearchForm
-              id={`${searchId}-mobile`}
-              onNavigate={() => setMenuOpenPath(null)}
-            />
-          </Suspense>
-        }
         onKeyDown={(event) => {
           if (event.key === "Escape" && mobileMenuOpen) {
             setMenuOpenPath(null);
@@ -277,6 +269,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         sidebar={
           <Sidebar
             label="Nawigacja główna"
+            mobileSearch={
+              <Suspense fallback={null}>
+                <ShellSearchForm
+                  id={`${searchId}-mobile`}
+                  onNavigate={() => setMenuOpenPath(null)}
+                />
+              </Suspense>
+            }
             brand={
               <Link
                 href={isAuthenticated ? "/workspace" : "/"}

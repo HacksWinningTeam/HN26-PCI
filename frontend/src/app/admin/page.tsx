@@ -518,7 +518,6 @@ export default function AdminPage() {
         contentId="main-content"
         navigationId={navigationId}
         mobileMenuOpen={mobileMenuOpen}
-        mobileSearch={searchField(`${searchId}-mobile`)}
         onKeyDown={(event) => {
           if (event.key === "Escape" && mobileMenuOpen) {
             setMobileMenuOpen(false);
@@ -528,6 +527,7 @@ export default function AdminPage() {
         sidebar={
           <Sidebar
             label="Nawigacja panelu PCI"
+            mobileSearch={searchField(`${searchId}-mobile`)}
             brand={
               <Link
                 href="/workspace"

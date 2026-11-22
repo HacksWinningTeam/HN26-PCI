@@ -88,7 +88,6 @@ export default function GalleryShell({ children }: { children: ReactNode }) {
         contentId="main-content"
         navigationId={navigationId}
         mobileMenuOpen={mobileMenuOpen}
-        mobileSearch={searchField("design-system-search-mobile")}
         onClickCapture={handleNavigate}
         onKeyDown={(event) => {
           if (event.key === "Escape" && mobileMenuOpen) {
@@ -99,6 +98,7 @@ export default function GalleryShell({ children }: { children: ReactNode }) {
         sidebar={
           <Sidebar
             label={t("Design system sections")}
+            mobileSearch={searchField("design-system-search-mobile")}
             items={matching.map((section) => ({
               id: section.id,
               label: section.name,

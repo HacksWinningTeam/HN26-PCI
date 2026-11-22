@@ -3,7 +3,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  padding: 20px 12px 12px;
+  padding: 16px 12px 12px;
   background: var(--color-sidebar-bg);
   color: var(--color-sidebar-text);
 }
@@ -12,14 +12,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
   min-height: 44px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
-.brandMark { display: flex; min-width: 0; align-items: center; }
+.brandMark { display: flex; flex-shrink: 0; min-width: 0; align-items: center; }
 .brand img { width: 164px; max-width: 100%; height: auto; }
+.brand:has(.mobileSearch) img { width: 124px; }
+.mobileSearch { display: block; flex: 1 1 0%; min-width: 0; }
 
 .label { min-width: 0; flex: 1; }
 .collapseButton {
@@ -39,6 +41,14 @@
 
 /* Desktop collapse state never changes the mobile menu's full presentation. */
 @media (min-width: 768px) {
+  .panel:not([data-layout="mobile"]) { padding: 20px 12px 12px; }
+  .panel:not([data-layout="mobile"]) .brand { gap: 8px; margin-bottom: 24px; }
+  .panel:not([data-layout="mobile"]) .brand:has(.mobileSearch) img { width: 164px; }
+  .panel:not([data-layout="mobile"]) .mobileSearch { display: none; }
+  .panel:not([data-layout="mobile"]) .utilityButton { gap: 0; padding-inline: 0; }
+  .panel:not([data-layout="mobile"]) .utilityLabel { display: none; }
+  .panel:not([data-layout="mobile"]) .accountLogoutButton { width: 44px; gap: 0; padding-inline: 0; }
+  .panel:not([data-layout="mobile"]) .accountLogoutLabel { display: none; }
   .panel:not([data-layout="mobile"]) .collapseButton { display: inline-flex; }
   .panel:not([data-layout="mobile"])[data-collapsed] .brandMark { display: none; }
   .panel:not([data-layout="mobile"])[data-collapsed] .brand { justify-content: center; }
@@ -147,15 +157,28 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   width: 100%;
   min-width: 44px;
   min-height: 44px;
+  padding-inline: 10px;
   border: 1px solid transparent;
   border-radius: 10px;
   background: transparent;
   color: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25;
   cursor: pointer;
   transition: background-color 150ms, color 150ms;
+}
+
+.utilityLabel {
+  display: inline;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .utilityButton:hover { background: var(--color-sidebar-hover); }
@@ -206,5 +229,34 @@
 }
 
 .accountLogoutButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  padding-inline: 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
   color: var(--color-error-border);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms;
+}
+
+.accountLogoutButton:hover {
+  background: var(--color-error-bg);
+}
+
+.accountLogoutButton:focus-visible {
+  outline: 2px solid var(--color-sidebar-focus);
+  outline-offset: 2px;
+}
+
+.accountLogoutLabel {
+  display: inline;
 }
