@@ -1,4 +1,8 @@
+from collections import Counter
+from datetime import timedelta
+
 from django.http import HttpResponse
+from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -17,6 +21,7 @@ from .comparison import (
 )
 from .matching import evaluate_query_sufficiency, score_innovation_for_query
 from .models import (
+    AnalyticsEvent,
     InnovationMatch,
     MatchNotification,
     ProblemQuery,
@@ -25,6 +30,8 @@ from .models import (
     ScoringConfig,
 )
 from .serializers import (
+    AnalyticsTrackSerializer,
+    AnalyticsTrendsResponseSerializer,
     ComparisonExportRequestSerializer,
     DiscoveryCompareRequestSerializer,
     DiscoveryCompareResponseSerializer,
@@ -75,6 +82,11 @@ class DiscoveryMatchView(APIView):
                 deployment_location=data["deployment_location"],
                 problem_scale=data["problem_scale"],
                 preferred_maturity=data["preferred_maturity"],
+            )
+            AnalyticsEvent.objects.create(
+                event_type="search",
+                sector=data["sector"],
+                beneficiary_group=(data["beneficiary_groups"] or [""])[0],
             )
 
         config = ScoringConfig.get_active()
@@ -392,3 +404,125 @@ class ComparisonExportView(APIView):
         )
         resp["Content-Disposition"] = 'attachment; filename="comparison.md"'
         return resp
+
+
+class AnalyticsTrackView(APIView):
+    """Record GDPR-compliant anonymous analytics events (views, filters, searches)."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(
+        tags=["Analytics"],
+        request=AnalyticsTrackSerializer,
+        responses={201: AnalyticsTrackSerializer},
+        summary="Track anonymous view, filter, or search event (no PII)",
+    )
+    def post(self, request):
+        serializer = AnalyticsTrackSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        event = AnalyticsEvent.objects.create(**serializer.validated_data)
+        return Response(
+            AnalyticsTrackSerializer(event).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class AnalyticsTrendsView(APIView):
+    """Aggregate anonymous trend metrics for PCI and discovery insights."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(
+        tags=["Analytics"],
+        responses={200: AnalyticsTrendsResponseSerializer},
+        summary="Get GDPR-compliant trend analytics (areas, sectors, views, rising trends)",
+    )
+    def get(self, request):
+        events = list(AnalyticsEvent.objects.all())
+        now = timezone.now()
+        recent_cutoff = now - timedelta(days=7)
+        previous_cutoff = now - timedelta(days=14)
+
+        area_counts: Counter[str] = Counter()
+        sector_counts: Counter[str] = Counter()
+        ben_counts: Counter[str] = Counter()
+        filter_counts: Counter[tuple[str, str]] = Counter()
+        view_counts: Counter[str] = Counter()
+
+        recent_sectors: Counter[str] = Counter()
+        prev_sectors: Counter[str] = Counter()
+
+        for ev in events:
+            if ev.primary_area:
+                area_counts[ev.primary_area] += 1
+            if ev.sector:
+                sector_counts[ev.sector] += 1
+                if ev.created_at >= recent_cutoff:
+                    recent_sectors[ev.sector] += 1
+                elif ev.created_at >= previous_cutoff:
+                    prev_sectors[ev.sector] += 1
+            if ev.beneficiary_group:
+                ben_counts[ev.beneficiary_group] += 1
+            if ev.event_type == "filter" and ev.filter_key and ev.filter_value:
+                filter_counts[(ev.filter_key, ev.filter_value)] += 1
+            if ev.event_type == "view" and ev.innovation_slug:
+                view_counts[ev.innovation_slug] += 1
+
+        # Include anonymous sector/beneficiary trends from ProblemQuery without reading user
+        for pq in ProblemQuery.objects.all():
+            if pq.sector:
+                sector_counts[pq.sector] += 1
+            for bg in pq.beneficiary_groups or []:
+                ben_counts[bg] += 1
+
+        slug_titles = dict(
+            Innovation.objects.filter(slug__in=list(view_counts.keys())).values_list(
+                "slug", "title_pl"
+            )
+        )
+        rising = []
+        for sec, rec_cnt in recent_sectors.items():
+            prev_cnt = prev_sectors.get(sec, 0)
+            delta = rec_cnt - prev_cnt
+            if delta > 0:
+                rising.append(
+                    {
+                        "category": "sector",
+                        "key": sec,
+                        "recent_count": rec_cnt,
+                        "previous_count": prev_cnt,
+                        "delta": delta,
+                    }
+                )
+        rising.sort(key=lambda r: r["delta"], reverse=True)
+
+        return Response(
+            {
+                "gdpr_compliant": True,
+                "total_events": len(events),
+                "top_areas": [
+                    {"key": k, "count": c} for k, c in area_counts.most_common(5)
+                ],
+                "top_sectors": [
+                    {"key": k, "count": c} for k, c in sector_counts.most_common(7)
+                ],
+                "top_beneficiaries": [
+                    {"key": k, "count": c} for k, c in ben_counts.most_common(8)
+                ],
+                "top_filters": [
+                    {"filter_key": k, "filter_value": v, "count": c}
+                    for (k, v), c in filter_counts.most_common(8)
+                ],
+                "most_viewed_innovations": [
+                    {
+                        "slug": slug,
+                        "title_pl": slug_titles.get(slug, slug),
+                        "views_count": cnt,
+                    }
+                    for slug, cnt in view_counts.most_common(5)
+                ],
+                "rising_trends": rising[:5],
+            }
+        )

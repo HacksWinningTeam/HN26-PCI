@@ -237,3 +237,87 @@ def test_ingestion_pipeline_dedup_change_conflict_stale_and_error(settings, monk
     assert feed.status == "error"
     assert "connection refused" in feed.error_message
     assert IngestionRun.objects.exists()
+
+
+@pytest.mark.django_db
+def test_phase_e_admin_manual_import_reject_merge_history_and_scoring_config():
+    call_command("seed_demo")
+    client = APIClient()
+
+    # 1. Manual verified import + potential duplicate check
+    create_res = client.post(
+        "/api/admin/innovations/",
+        {
+            "title_pl": "Asystent Obywatela — Formularze Gminne",
+            "short_summary_pl": "Proste formularze wniosków dla mieszkańców gmin.",
+            "problem_pl": "Składanie wniosków w urzędzie wymaga wsparcia.",
+            "solution_pl": "Kreator krok po kroku dostępny w przeglądarce.",
+            "primary_area": "administrative",
+            "sectors": ["administracja"],
+            "beneficiary_groups": ["seniors_60_plus"],
+            "organization_name": "Gmina Krosno",
+            "organization_type": "public_institution",
+            "origin_location": "Krosno, Podkarpackie",
+            "deployment_level": "pilot",
+            "source_url": "https://krosno.pl/asystent",
+        },
+        format="json",
+    )
+    assert create_res.status_code == 201
+    new_slug = create_res.data["innovation"]["slug"]
+    assert create_res.data["innovation"]["verification_status"] == "verified"
+
+    # History endpoint lists creation entry
+    hist = client.get(f"/api/admin/innovations/{new_slug}/history/")
+    assert hist.status_code == 200
+    assert len(hist.data) >= 1
+
+    # 2. Reject hides record from public catalog & writes reject audit log
+    rej = client.post(
+        f"/api/admin/innovations/{new_slug}/reject/",
+        {"reason": "Duplikat merytoryczny"},
+        format="json",
+    )
+    assert rej.status_code == 200
+    assert rej.data["is_public"] is False
+    assert client.get(f"/api/innovations/{new_slug}/").status_code == 404
+
+    hist_after_rej = client.get(f"/api/admin/innovations/{new_slug}/history/")
+    assert hist_after_rej.data[0]["action"] == "reject"
+
+    # 3. Merge any two records via explicit target_slug
+    merge_res = client.post(
+        f"/api/admin/innovations/{new_slug}/merge-duplicate/",
+        {"target_slug": "e-urzad-senior"},
+        format="json",
+    )
+    assert merge_res.status_code == 200
+    assert merge_res.data["target_slug"] == "e-urzad-senior"
+    assert Innovation.objects.get(slug=new_slug).is_merged is True
+
+    # 4. ScoringConfig GET/PATCH validates sum == 100 and versions config
+    cfg_get = client.get("/api/admin/scoring-config/")
+    assert cfg_get.status_code == 200
+    assert cfg_get.data["active"]["version"] == "v1.0"
+
+    bad_cfg = client.patch(
+        "/api/admin/scoring-config/",
+        {"problem_weight": 80, "sector_weight": 20, "beneficiary_weight": 20},
+        format="json",
+    )
+    assert bad_cfg.status_code == 400
+
+    good_cfg = client.patch(
+        "/api/admin/scoring-config/",
+        {
+            "version": "v2.0",
+            "problem_weight": 50,
+            "sector_weight": 20,
+            "beneficiary_weight": 20,
+            "organization_fit_weight": 10,
+        },
+        format="json",
+    )
+    assert good_cfg.status_code == 200
+    assert good_cfg.data["active"]["version"] == "v2.0"
+    assert len(good_cfg.data["versions"]) >= 2

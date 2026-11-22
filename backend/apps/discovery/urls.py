@@ -1,6 +1,8 @@
 from django.urls import path
 
 from .views import (
+    AnalyticsTrackView,
+    AnalyticsTrendsView,
     ComparisonExportView,
     DiscoveryCompareView,
     DiscoveryMatchView,
@@ -13,6 +15,8 @@ from .views import (
 urlpatterns = [
     path("discovery/match/", DiscoveryMatchView.as_view(), name="discovery-match"),
     path("discovery/compare/", DiscoveryCompareView.as_view(), name="discovery-compare"),
+    path("analytics/track/", AnalyticsTrackView.as_view(), name="analytics-track"),
+    path("analytics/trends/", AnalyticsTrendsView.as_view(), name="analytics-trends"),
     path(
         "notifications/matches/", MatchNotificationCreateView.as_view(), name="match-notifications"
     ),

@@ -106,6 +106,31 @@ class InnovationMatch(models.Model):
         return f"Query#{self.query_id} -> {self.innovation.slug} ({self.overall_score}%)"
 
 
+class AnalyticsEvent(models.Model):
+    """GDPR-compliant anonymous usage telemetry (no user FK, IP, or session ID)."""
+
+    EVENT_TYPE_CHOICES = [
+        ("view", "Wyświetlenie karty innowacji"),
+        ("filter", "Użycie filtra katalogu"),
+        ("search", "Wyszukiwanie lub dopasowanie"),
+    ]
+
+    event_type = models.CharField(max_length=16, choices=EVENT_TYPE_CHOICES)
+    innovation_slug = models.SlugField(max_length=120, blank=True, default="")
+    primary_area = models.CharField(max_length=32, blank=True, default="")
+    sector = models.CharField(max_length=64, blank=True, default="")
+    beneficiary_group = models.CharField(max_length=64, blank=True, default="")
+    filter_key = models.CharField(max_length=64, blank=True, default="")
+    filter_value = models.CharField(max_length=120, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.event_type}: {self.innovation_slug or self.sector or self.filter_key}"
+
+
 class MatchNotification(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

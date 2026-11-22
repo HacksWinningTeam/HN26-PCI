@@ -5,7 +5,12 @@ from apps.innovations.serializers import (
     InnovationSummarySerializer,
 )
 
-from .models import MatchNotification, SavedComparison, SavedInnovation
+from .models import (
+    AnalyticsEvent,
+    MatchNotification,
+    SavedComparison,
+    SavedInnovation,
+)
 
 
 class DiscoveryMatchRequestSerializer(serializers.Serializer):
@@ -108,6 +113,52 @@ class ComparisonExportRequestSerializer(DiscoveryCompareRequestSerializer):
         required=False,
         default="md",
     )
+
+
+class AnalyticsTrackSerializer(serializers.Serializer):
+    event_type = serializers.ChoiceField(choices=AnalyticsEvent.EVENT_TYPE_CHOICES)
+    innovation_slug = serializers.SlugField(required=False, allow_blank=True, default="")
+    primary_area = serializers.CharField(required=False, allow_blank=True, default="")
+    sector = serializers.CharField(required=False, allow_blank=True, default="")
+    beneficiary_group = serializers.CharField(required=False, allow_blank=True, default="")
+    filter_key = serializers.CharField(required=False, allow_blank=True, default="")
+    filter_value = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class TrendCountItemSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    count = serializers.IntegerField()
+
+
+class TopFilterItemSerializer(serializers.Serializer):
+    filter_key = serializers.CharField()
+    filter_value = serializers.CharField()
+    count = serializers.IntegerField()
+
+
+class ViewedInnovationItemSerializer(serializers.Serializer):
+    slug = serializers.SlugField()
+    title_pl = serializers.CharField()
+    views_count = serializers.IntegerField()
+
+
+class RisingTrendItemSerializer(serializers.Serializer):
+    category = serializers.CharField()
+    key = serializers.CharField()
+    recent_count = serializers.IntegerField()
+    previous_count = serializers.IntegerField()
+    delta = serializers.IntegerField()
+
+
+class AnalyticsTrendsResponseSerializer(serializers.Serializer):
+    gdpr_compliant = serializers.BooleanField()
+    total_events = serializers.IntegerField()
+    top_areas = TrendCountItemSerializer(many=True)
+    top_sectors = TrendCountItemSerializer(many=True)
+    top_beneficiaries = TrendCountItemSerializer(many=True)
+    top_filters = TopFilterItemSerializer(many=True)
+    most_viewed_innovations = ViewedInnovationItemSerializer(many=True)
+    rising_trends = RisingTrendItemSerializer(many=True)
 
 
 class MatchNotificationCreateSerializer(serializers.Serializer):

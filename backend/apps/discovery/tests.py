@@ -141,3 +141,35 @@ def test_compare_endpoint_and_exports():
     )
     assert cmp_csv.status_code == 200
     assert b"aqua-guard-gdynia" in cmp_csv.content
+
+
+@pytest.mark.django_db
+def test_gdpr_analytics_tracking_and_trends():
+    call_command("seed_demo")
+    client = APIClient()
+
+    # Viewing detail triggers anonymous view tracking
+    assert client.get("/api/innovations/e-urzad-senior/").status_code == 200
+    assert client.get("/api/innovations/e-urzad-senior/").status_code == 200
+
+    # Explicit filter and search events
+    tr = client.post(
+        "/api/analytics/track/",
+        {
+            "event_type": "filter",
+            "sector": "administracja",
+            "filter_key": "sector",
+            "filter_value": "administracja",
+        },
+        format="json",
+    )
+    assert tr.status_code == 201
+
+    trends = client.get("/api/analytics/trends/")
+    assert trends.status_code == 200
+    assert trends.data["gdpr_compliant"] is True
+    assert trends.data["total_events"] >= 3
+    assert trends.data["most_viewed_innovations"][0]["slug"] == "e-urzad-senior"
+    assert trends.data["most_viewed_innovations"][0]["views_count"] == 2
+    assert trends.data["top_filters"][0]["filter_value"] == "administracja"
+    assert len(trends.data["rising_trends"]) >= 1

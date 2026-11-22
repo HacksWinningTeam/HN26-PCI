@@ -153,7 +153,17 @@ class InnovationDetailView(RetrieveAPIView):
 
     @extend_schema(tags=["Innovations"], summary="Retrieve public level-2 innovation detail")
     def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
+        response = super().get(request, *args, **kwargs)
+        if response.status_code == 200 and isinstance(response.data, dict):
+            from apps.discovery.models import AnalyticsEvent
+
+            AnalyticsEvent.objects.create(
+                event_type="view",
+                innovation_slug=response.data.get("slug", ""),
+                primary_area=response.data.get("primary_area", ""),
+                sector=(response.data.get("sectors") or [""])[0],
+            )
+        return response
 
 
 class InnovationRegisteredDetailView(RetrieveAPIView):
