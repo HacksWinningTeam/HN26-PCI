@@ -9,7 +9,13 @@ from apps.innovations.models import Innovation
 from apps.innovations.serializers import InnovationSummarySerializer
 
 from .matching import evaluate_query_sufficiency, score_innovation_for_query
-from .models import MatchNotification, ProblemQuery, SavedComparison, SavedInnovation
+from .models import (
+    MatchNotification,
+    ProblemQuery,
+    SavedComparison,
+    SavedInnovation,
+    ScoringConfig,
+)
 from .serializers import (
     DiscoveryMatchRequestSerializer,
     DiscoveryMatchResponseSerializer,
@@ -58,7 +64,15 @@ class DiscoveryMatchView(APIView):
                 preferred_maturity=data["preferred_maturity"],
             )
 
-        candidates = Innovation.objects.filter(is_merged=False)
+        config = ScoringConfig.get_active()
+        weights = (
+            config.problem_weight,
+            config.sector_weight,
+            config.beneficiary_weight,
+            config.organization_fit_weight,
+        )
+
+        candidates = Innovation.objects.filter(is_merged=False, is_public=True)
         scored: list[dict] = []
         filtered_by_maturity = 0
         for inv in candidates:
@@ -69,17 +83,20 @@ class DiscoveryMatchView(APIView):
                 beneficiary_groups=data["beneficiary_groups"],
                 organization_type=data["organization_type"],
                 preferred_maturity=data["preferred_maturity"],
+                weights=weights,
             )
             if not m["meets_maturity"]:
-                if m["overall_score"] >= 30:
+                if m["overall_score"] >= config.min_score_threshold:
                     filtered_by_maturity += 1
                 continue
-            if m["overall_score"] >= 30:
+            if m["overall_score"] >= config.min_score_threshold:
                 scored.append({"innovation": inv, **m})
 
         scored.sort(key=lambda x: x["overall_score"], reverse=True)
 
-        low_confidence = len(scored) == 0 or scored[0]["overall_score"] < 45
+        low_confidence = (
+            len(scored) == 0 or scored[0]["overall_score"] < config.low_confidence_threshold
+        )
         low_confidence_reason = ""
         if len(scored) == 0 and filtered_by_maturity > 0:
             low_confidence_reason = (
@@ -93,8 +110,8 @@ class DiscoveryMatchView(APIView):
             )
         elif low_confidence:
             low_confidence_reason = (
-                "Najlepsze dopasowanie jest poniżej 45% — warto doprecyzować "
-                "opis problemu lub zmienić wybrane filtry."
+                f"Najlepsze dopasowanie jest poniżej {config.low_confidence_threshold}% — "
+                "warto doprecyzować opis problemu lub zmienić wybrane filtry."
             )
 
         payload = {
@@ -102,6 +119,7 @@ class DiscoveryMatchView(APIView):
             "guidance_message": guidance["message"],
             "low_confidence": low_confidence,
             "low_confidence_reason": low_confidence_reason,
+            "scoring_version": config.version,
             "results": [
                 {
                     "innovation": InnovationSummarySerializer(item["innovation"]).data,

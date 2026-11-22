@@ -35,6 +35,7 @@ class DiscoveryMatchResponseSerializer(serializers.Serializer):
     guidance_message = serializers.CharField()
     low_confidence = serializers.BooleanField()
     low_confidence_reason = serializers.CharField(allow_blank=True)
+    scoring_version = serializers.CharField(default="v1.0")
     results = MatchItemSerializer(many=True)
 
 

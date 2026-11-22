@@ -92,8 +92,9 @@ def score_innovation_for_query(
     beneficiary_groups: list[str] | None = None,
     organization_type: str = "",
     preferred_maturity: str = "",
+    weights: tuple[int, int, int, int] = (40, 20, 20, 20),
 ) -> dict:
-    """Compute explainable 40/20/20/20 need-similarity match."""
+    """Compute explainable weighted need-similarity match (default 40/20/20/20)."""
     beneficiaries = beneficiary_groups or []
     q_tokens = _tokens(problem_text)
     target_text = (
@@ -136,8 +137,15 @@ def score_innovation_for_query(
         pref_rank = MATURITY_ORDER[preferred_maturity]
         meets_maturity = inv_rank >= pref_rank
 
+    w_prob, w_sec, w_ben, w_org = weights
     overall_score = round(
-        0.40 * problem_score + 0.20 * sector_score + 0.20 * beneficiary_score + 0.20 * org_fit_score
+        (
+            w_prob * problem_score
+            + w_sec * sector_score
+            + w_ben * beneficiary_score
+            + w_org * org_fit_score
+        )
+        / 100
     )
 
     reasons: list[str] = []

@@ -1,7 +1,61 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from apps.innovations.models import Innovation
+
+
+class ScoringConfig(models.Model):
+    """Versioned matching weights, thresholds, and classification rules."""
+
+    version = models.CharField(max_length=32, unique=True)
+    is_active = models.BooleanField(default=True)
+    problem_weight = models.PositiveSmallIntegerField(default=40)
+    sector_weight = models.PositiveSmallIntegerField(default=20)
+    beneficiary_weight = models.PositiveSmallIntegerField(default=20)
+    organization_fit_weight = models.PositiveSmallIntegerField(default=20)
+    min_score_threshold = models.PositiveSmallIntegerField(default=30)
+    low_confidence_threshold = models.PositiveSmallIntegerField(default=45)
+    classification_rules = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-id"]
+
+    def __str__(self) -> str:
+        return (
+            f"{self.version} ({self.problem_weight}/{self.sector_weight}/"
+            f"{self.beneficiary_weight}/{self.organization_fit_weight})"
+        )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        if self.is_active:
+            ScoringConfig.objects.filter(is_active=True).exclude(pk=self.pk).update(
+                is_active=False
+            )
+        super().save(*args, **kwargs)
+
+    def clean(self) -> None:
+        total = (
+            self.problem_weight
+            + self.sector_weight
+            + self.beneficiary_weight
+            + self.organization_fit_weight
+        )
+        if total != 100:
+            raise ValidationError("Suma wag scoringu musi wynosić dokładnie 100%.")
+
+    @classmethod
+    def get_active(cls) -> "ScoringConfig":
+        active = cls.objects.filter(is_active=True).order_by("-updated_at", "-id").first()
+        if active:
+            return active
+        config, _ = cls.objects.get_or_create(
+            version="v1.0",
+            defaults={"is_active": True},
+        )
+        return config
 
 
 class ProblemQuery(models.Model):

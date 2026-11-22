@@ -1,3 +1,5 @@
+import hashlib
+
 from django.db import models
 
 
@@ -29,6 +31,20 @@ class Innovation(models.Model):
         ("startup", "Startup"),
         ("other", "Inna organizacja"),
     ]
+    PATENT_STATUS_CHOICES = [
+        ("none", "Brak zgłoszenia"),
+        ("application_filed", "Zgłoszenie patentowe (UPRP/EPO)"),
+        ("patent_granted", "Udzielony patent"),
+        ("unknown", "Nieustalony"),
+    ]
+    RADAR_USER_TYPES = [
+        ("investors_commercial", "Inwestorzy i podmioty komercyjne"),
+        ("public_institutions", "Instytucje publiczne i samorządy"),
+        ("universities_science", "Uczelnie i jednostki naukowe"),
+        ("schools_education", "Szkoły i placówki edukacyjne"),
+        ("startups_enterprises", "Startupy i przedsiębiorstwa"),
+        ("individual_innovators", "Indywidualni innowatorzy i wynalazcy"),
+    ]
 
     slug = models.SlugField(max_length=120, unique=True)
     title_pl = models.CharField(max_length=255)
@@ -54,6 +70,14 @@ class Innovation(models.Model):
     deployment_level = models.CharField(max_length=32, choices=DEPLOYMENT_LEVEL_CHOICES)
     trl = models.PositiveSmallIntegerField(null=True, blank=True)
     oslo_compliant = models.BooleanField(default=True)
+    oslo_assessment = models.JSONField(default=dict)
+    classification_provenance = models.JSONField(default=dict)
+    radar_user_types = models.JSONField(default=list)
+    patent_status = models.CharField(
+        max_length=32,
+        choices=PATENT_STATUS_CHOICES,
+        default="none",
+    )
 
     verification_status = models.CharField(
         max_length=32,
@@ -61,6 +85,9 @@ class Innovation(models.Model):
         default="verified",
     )
     verification_method = models.CharField(max_length=255, default="")
+    is_public = models.BooleanField(default=True)
+    is_incomplete = models.BooleanField(default=False)
+    is_synthetic_demo = models.BooleanField(default=False)
     fetched_at = models.DateField()
     last_verified_at = models.DateField()
     updated_at = models.DateTimeField(auto_now=True)
@@ -107,9 +134,20 @@ class InnovationSource(models.Model):
     fetched_at = models.DateField()
     last_verified_at = models.DateField()
     is_available = models.BooleanField(default=True)
+    raw_snapshot = models.TextField(blank=True, default="")
+    content_hash = models.CharField(max_length=64, blank=True, default="")
 
     def __str__(self) -> str:
         return f"{self.registry}: {self.label}"
+
+    def save(self, *args, **kwargs):
+        if self.raw_snapshot and not self.content_hash:
+            self.content_hash = self.compute_hash(self.raw_snapshot)
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def compute_hash(text: str) -> str:
+        return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 class Evidence(models.Model):

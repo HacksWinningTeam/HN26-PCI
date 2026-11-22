@@ -5,10 +5,10 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from apps.accounts.models import AdopterProfile
-from apps.discovery.models import SavedComparison, SavedInnovation
+from apps.discovery.models import SavedComparison, SavedInnovation, ScoringConfig
 from apps.implementation.models import ImplementationPlan, ImplementationStep
 from apps.implementation.planner import build_five_phases, select_plan_variant
-from apps.ingestion.models import IngestionRun, SourceFeed
+from apps.ingestion.models import IngestionRun, InnovationAuditLog, SourceFeed
 from apps.innovations.models import Evidence, Innovation, InnovationSource
 
 User = get_user_model()
@@ -606,17 +606,83 @@ class Command(BaseCommand):
             },
         ]
 
+        ScoringConfig.objects.get_or_create(
+            version="v1.0",
+            defaults={
+                "is_active": True,
+                "problem_weight": 40,
+                "sector_weight": 20,
+                "beneficiary_weight": 20,
+                "organization_fit_weight": 20,
+                "min_score_threshold": 30,
+                "low_confidence_threshold": 45,
+                "classification_rules": {
+                    "stale_after_days": 180,
+                    "oslo_criteria": ["novelty", "implementation_or_availability", "value"],
+                },
+            },
+        )
+
+        radar_users_by_slug = {
+            "e-urzad-senior": ["public_institutions", "individual_innovators"],
+            "aqua-guard-gdynia": ["public_institutions", "universities_science"],
+            "matematyka-ar-krosno": ["schools_education", "universities_science"],
+            "aerosense-ndt": ["investors_commercial", "startups_enterprises", "universities_science"],
+            "satguard-agro": ["public_institutions", "startups_enterprises", "investors_commercial"],
+            "labmicrobe-ai": ["universities_science", "investors_commercial", "startups_enterprises"],
+            "spokojna-glowa-szkoly": ["schools_education", "public_institutions"],
+        }
+        patent_status_by_slug = {
+            "aerosense-ndt": "application_filed",
+            "aqua-guard-gdynia": "patent_granted",
+            "labmicrobe-ai": "unknown",
+        }
+
         created_innovations: dict[str, Innovation] = {}
         for rec in records:
+            slug = rec["slug"]
             sources_data = rec.pop("sources")
             evidences_data = rec.pop("evidences")
-            inv, _ = Innovation.objects.update_or_create(slug=rec["slug"], defaults=rec)
+            rec.setdefault("is_public", True)
+            rec.setdefault("is_synthetic_demo", True)
+            rec.setdefault("is_incomplete", len(rec.get("missing_info", [])) >= 2)
+            rec.setdefault("patent_status", patent_status_by_slug.get(slug, "none"))
+            rec.setdefault(
+                "radar_user_types",
+                radar_users_by_slug.get(slug, ["public_institutions", "startups_enterprises"]),
+            )
+            rec.setdefault(
+                "classification_provenance",
+                {
+                    "primary_area": "rule_based",
+                    "innovation_character": "rule_based",
+                    "sectors": "source",
+                    "beneficiary_groups": "rule_based",
+                    "trl": "ai_suggested" if slug == "satguard-agro" else "source",
+                    "deployment_level": "source",
+                },
+            )
+            rec.setdefault(
+                "oslo_assessment",
+                {
+                    "compliant": True,
+                    "novelty": "Rozwiązanie wprowadza istotnie ulepszony produkt lub proces w skali organizacji/sektora.",
+                    "implementation_or_availability": f"Poziom wdrożenia: {rec['deployment_level']}.",
+                    "value_rationale": rec["short_summary_pl"],
+                },
+            )
+
+            inv, _ = Innovation.objects.update_or_create(slug=slug, defaults=rec)
             created_innovations[inv.slug] = inv
 
             inv.sources.all().delete()
             inv.evidences.all().delete()
             first_src = None
             for label, registry, url in sources_data:
+                snapshot = (
+                    f"[{registry}] {label} — {inv.title_pl}. "
+                    f"Organizacja: {inv.organization_name}. Problem: {inv.problem_pl}"
+                )
                 src = InnovationSource.objects.create(
                     innovation=inv,
                     label=label,
@@ -625,6 +691,8 @@ class Command(BaseCommand):
                     fetched_at=inv.fetched_at,
                     last_verified_at=inv.last_verified_at,
                     is_available=True,
+                    raw_snapshot=snapshot,
+                    content_hash=InnovationSource.compute_hash(snapshot),
                 )
                 if first_src is None:
                     first_src = src
@@ -638,6 +706,16 @@ class Command(BaseCommand):
                     source=first_src if kind == "verified_fact" else None,
                     confidence=conf,
                     limitation_note=lim,
+                )
+
+            if not inv.audit_logs.exists():
+                InnovationAuditLog.objects.create(
+                    innovation=inv,
+                    action="verify" if inv.verification_status == "verified" else "ingest",
+                    actor="system",
+                    verification_method=inv.verification_method,
+                    changes={"verification_status": {"old": None, "new": inv.verification_status}},
+                    note="Rekord zaindeksowany i zweryfikowany w pakiecie startowym.",
                 )
 
         # Duplicate candidate for Admin merge demonstration
@@ -666,6 +744,9 @@ class Command(BaseCommand):
                 "trl": 8,
                 "verification_status": "pending_review",
                 "verification_method": "Potencjalny duplikat (podobieństwo > 85%)",
+                "is_public": True,
+                "is_incomplete": True,
+                "is_synthetic_demo": True,
                 "fetched_at": today,
                 "last_verified_at": today,
                 "duplicate_of": aqua,
@@ -673,6 +754,7 @@ class Command(BaseCommand):
             },
         )
         dup.sources.all().delete()
+        dup_snapshot = "[PARP] Wpis równoległy PARP — System HydroAlert, Uczelnia Techniczna w Gdyni."
         InnovationSource.objects.create(
             innovation=dup,
             label="Wpis równoległy PARP",
@@ -680,6 +762,8 @@ class Command(BaseCommand):
             url="https://www.parp.gov.pl/",
             fetched_at=today,
             last_verified_at=today,
+            raw_snapshot=dup_snapshot,
+            content_hash=InnovationSource.compute_hash(dup_snapshot),
         )
 
         # Source feeds & ingestion runs

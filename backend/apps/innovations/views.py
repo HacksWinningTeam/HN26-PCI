@@ -49,7 +49,7 @@ class InnovationListView(ListAPIView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        qs = Innovation.objects.filter(is_merged=False)
+        qs = Innovation.objects.filter(is_merged=False, is_public=True)
         params = self.request.query_params
 
         q = params.get("q", "").strip().lower()
@@ -118,7 +118,7 @@ class InnovationDetailView(RetrieveAPIView):
     lookup_field = "slug"
 
     def get_queryset(self):
-        return Innovation.objects.filter(is_merged=False).prefetch_related(
+        return Innovation.objects.filter(is_merged=False, is_public=True).prefetch_related(
             "sources", "evidences__source"
         )
 
@@ -136,7 +136,7 @@ class InnovationRegisteredDetailView(RetrieveAPIView):
     lookup_field = "slug"
 
     def get_queryset(self):
-        return Innovation.objects.filter(is_merged=False).prefetch_related(
+        return Innovation.objects.filter(is_merged=False, is_public=True).prefetch_related(
             "sources", "evidences__source"
         )
 

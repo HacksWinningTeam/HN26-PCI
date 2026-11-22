@@ -1,7 +1,10 @@
 import pytest
+from django.core.exceptions import ValidationError
 from django.core.management import call_command
 from rest_framework.test import APIClient
 
+from apps.discovery.models import ScoringConfig
+from apps.ingestion.models import InnovationAuditLog
 from apps.innovations.models import Innovation
 
 
@@ -186,3 +189,98 @@ def test_auth_boundary_profile_plan_variants_and_pci_admin():
     impls = client.get("/api/admin/implementations/")
     assert impls.status_code == 200
     assert len(impls.data) >= 2
+
+
+@pytest.mark.django_db
+def test_phase_a_provenance_oslo_public_flag_scoring_config_and_audit_log():
+    call_command("seed_demo")
+    client = APIClient()
+
+    # 1. Seeded record exposes provenance, oslo_assessment, radar_user_types, source snapshot & hash
+    detail = client.get("/api/innovations/aerosense-ndt/")
+    assert detail.status_code == 200
+    assert detail.data["patent_status"] == "application_filed"
+    assert detail.data["is_synthetic_demo"] is True
+    assert detail.data["classification_provenance"]["primary_area"] == "rule_based"
+    assert detail.data["oslo_assessment"]["compliant"] is True
+    assert "investors_commercial" in detail.data["radar_user_types"]
+    assert detail.data["sources"][0]["raw_snapshot"]
+    assert len(detail.data["sources"][0]["content_hash"]) == 64
+
+    # 2. ScoringConfig validates weight sum == 100 and affects matching
+    bad_cfg = ScoringConfig(
+        version="v-bad",
+        problem_weight=50,
+        sector_weight=20,
+        beneficiary_weight=20,
+        organization_fit_weight=20,
+    )
+    with pytest.raises(ValidationError):
+        bad_cfg.full_clean()
+
+    custom_cfg = ScoringConfig.objects.create(
+        version="v1.1-test",
+        is_active=True,
+        problem_weight=70,
+        sector_weight=10,
+        beneficiary_weight=10,
+        organization_fit_weight=10,
+        min_score_threshold=20,
+        low_confidence_threshold=40,
+    )
+    match_res = client.post(
+        "/api/discovery/match/",
+        {
+            "problem_text": "Seniorzy mają trudność z e-usługami i wizytami w urzędzie",
+            "sector": "administracja",
+            "beneficiary_groups": ["seniors_60_plus"],
+            "organization_type": "public_institution",
+        },
+        format="json",
+    )
+    assert match_res.status_code == 200
+    assert match_res.data["scoring_version"] == custom_cfg.version
+    top = match_res.data["results"][0]
+    expected = round(
+        (
+            70 * top["problem_score"]
+            + 10 * top["sector_score"]
+            + 10 * top["beneficiary_score"]
+            + 10 * top["organization_fit_score"]
+        )
+        / 100
+    )
+    assert top["overall_score"] == expected
+
+    # 3. Admin PATCH writes InnovationAuditLog and can hide record from public catalog
+    patch_res = client.patch(
+        "/api/admin/innovations/labmicrobe-ai/",
+        {
+            "is_public": False,
+            "verification_status": "verified",
+            "verification_method": "Zweryfikowano testem",
+        },
+        format="json",
+    )
+    assert patch_res.status_code == 200
+    assert patch_res.data["is_public"] is False
+
+    # Hidden from public list, detail, and discovery match
+    pub_list = client.get("/api/innovations/")
+    assert all(item["slug"] != "labmicrobe-ai" for item in pub_list.data)
+    assert client.get("/api/innovations/labmicrobe-ai/").status_code == 404
+
+    logs = InnovationAuditLog.objects.filter(innovation__slug="labmicrobe-ai")
+    assert logs.exists()
+    latest = logs.first()
+    assert latest is not None
+    assert latest.action == "verify"
+    assert "is_public" in latest.changes
+    assert latest.changes["is_public"] == {"old": True, "new": False}
+
+    # Merge also creates audit logs on target and duplicate
+    merge_res = client.post("/api/admin/innovations/aqua-guard-gdynia-dup/merge-duplicate/")
+    assert merge_res.status_code == 200
+    assert InnovationAuditLog.objects.filter(
+        innovation__slug="aqua-guard-gdynia", action="merge"
+    ).exists()

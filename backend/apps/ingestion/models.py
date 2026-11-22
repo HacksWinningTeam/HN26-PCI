@@ -1,5 +1,7 @@
 from django.db import models
 
+from apps.innovations.models import Innovation
+
 
 class SourceFeed(models.Model):
     STATUS_CHOICES = [
@@ -37,3 +39,32 @@ class IngestionRun(models.Model):
 
     def __str__(self) -> str:
         return f"{self.started_at:%Y-%m-%d %H:%M} [{self.status}]"
+
+
+class InnovationAuditLog(models.Model):
+    ACTION_CHOICES = [
+        ("ingest", "Pozyskanie"),
+        ("edit", "Edycja"),
+        ("verify", "Weryfikacja"),
+        ("reject", "Odrzucenie"),
+        ("merge", "Scalenie duplikatu"),
+        ("classification_update", "Aktualizacja klasyfikacji"),
+    ]
+
+    innovation = models.ForeignKey(
+        Innovation,
+        on_delete=models.CASCADE,
+        related_name="audit_logs",
+    )
+    action = models.CharField(max_length=32, choices=ACTION_CHOICES)
+    actor = models.CharField(max_length=150, default="system")
+    verification_method = models.CharField(max_length=255, blank=True, default="")
+    changes = models.JSONField(default=dict)
+    note = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self) -> str:
+        return f"{self.innovation.slug}: {self.action} ({self.actor})"

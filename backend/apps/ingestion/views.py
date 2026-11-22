@@ -7,7 +7,7 @@ from rest_framework.views import APIView
 
 from apps.innovations.models import Innovation
 
-from .models import IngestionRun, SourceFeed
+from .models import IngestionRun, InnovationAuditLog, SourceFeed
 from .serializers import (
     AdminDataQualityResponseSerializer,
     AdminInnovationItemSerializer,
@@ -34,6 +34,7 @@ class AdminDataQualityView(APIView):
         conflicts_or_missing = [i for i in active if (i.conflicting_info or i.missing_info)]
         potential_duplicates = [i for i in active if i.duplicate_of is not None]
         stale_records = [i for i in active if i.verification_status == "stale"]
+        incomplete_records = [i for i in active if i.is_incomplete or bool(i.missing_info)]
 
         runs = IngestionRun.objects.all()[:10]
 
@@ -47,6 +48,9 @@ class AdminDataQualityView(APIView):
                     potential_duplicates, many=True
                 ).data,
                 "stale_records": AdminInnovationItemSerializer(stale_records, many=True).data,
+                "incomplete_records": AdminInnovationItemSerializer(
+                    incomplete_records, many=True
+                ).data,
                 "all_records": AdminInnovationItemSerializer(active, many=True).data,
                 "source_feeds": SourceFeed.objects.values(
                     "id",
@@ -81,13 +85,38 @@ class AdminInnovationUpdateView(APIView):
 
         serializer = AdminInnovationPatchSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        changes: dict[str, dict[str, object]] = {}
         for field, value in serializer.validated_data.items():
+            old_val = getattr(innovation, field)
+            if old_val != value:
+                changes[field] = {"old": old_val, "new": value}
             setattr(innovation, field, value)
         if serializer.validated_data.get("verification_status") == "verified":
             innovation.last_verified_at = timezone.localdate()
             if not innovation.verification_method:
                 innovation.verification_method = "Zweryfikowano ręcznie przez administratora PCI"
         innovation.save()
+
+        if changes:
+            user = getattr(request, "user", None)
+            actor = (
+                user.email
+                if user and getattr(user, "is_authenticated", False) and user.email
+                else "pci_admin"
+            )
+            action = (
+                "verify"
+                if serializer.validated_data.get("verification_status") == "verified"
+                else "edit"
+            )
+            InnovationAuditLog.objects.create(
+                innovation=innovation,
+                action=action,
+                actor=actor,
+                verification_method=innovation.verification_method,
+                changes=changes,
+            )
+
         return Response(AdminInnovationItemSerializer(innovation).data)
 
 
@@ -119,6 +148,28 @@ class AdminMergeDuplicateView(APIView):
             src.save(update_fields=["innovation"])
         dup.is_merged = True
         dup.save(update_fields=["is_merged"])
+
+        user = getattr(request, "user", None)
+        actor = (
+            user.email
+            if user and getattr(user, "is_authenticated", False) and user.email
+            else "pci_admin"
+        )
+        InnovationAuditLog.objects.create(
+            innovation=target,
+            action="merge",
+            actor=actor,
+            verification_method=target.verification_method,
+            changes={"merged_duplicate_slug": {"old": None, "new": dup.slug}},
+            note=f"Scalono duplikat {dup.slug} do {target.slug}.",
+        )
+        InnovationAuditLog.objects.create(
+            innovation=dup,
+            action="merge",
+            actor=actor,
+            changes={"is_merged": {"old": False, "new": True}},
+            note=f"Rekord scalony z rekordem głównym {target.slug}.",
+        )
 
         return Response({"merged_slug": dup.slug, "target_slug": target.slug})
 
