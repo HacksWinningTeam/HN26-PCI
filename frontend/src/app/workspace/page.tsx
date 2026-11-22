@@ -3,7 +3,26 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "@/components/SessionProvider";
-import { Badge, IconButton, LoadingState, StarSlashedIcon } from "@/components/ui";
+import {
+  Badge,
+  BrandBlobLimeIcon,
+  BrandBlobSoftBlueIcon,
+  BrandBookmarkIcon,
+  BrandChecklistIcon,
+  BrandLimeBurstIcon,
+  BrandScalesIcon,
+  BrandUserIcon,
+  BuildingsIcon,
+  CheckCircleIcon,
+  GridViewIcon,
+  IconButton,
+  LoadingState,
+  SearchIcon,
+  ShieldCheckIcon,
+  StarSlashedIcon,
+  TargetIcon,
+  UserIcon,
+} from "@/components/ui";
 import {
   fetchImplementationPlans,
   fetchSavedComparisons,
@@ -55,46 +74,187 @@ export default function WorkspacePage() {
     );
   }
 
+  const primaryTitle =
+    auth.profile?.organization_name || auth.user?.full_name || auth.user?.email || "";
+  const totalSteps = plans.reduce((sum, plan) => sum + plan.steps.length, 0);
+  const completedSteps = plans.reduce(
+    (sum, plan) => sum + plan.steps.filter((step) => step.status === "completed").length,
+    0,
+  );
+  const overallProgressPct =
+    totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : null;
+
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="text-base font-bold text-[var(--color-text)]">
-              {auth.profile?.organization_name || auth.user?.full_name || auth.user?.email}
-            </p>
-            {auth.profile?.organization_type ? (
-              <Badge tone="neutral" size="compact">
-                {ORG_TYPE_LABELS[auth.profile.organization_type] ?? auth.profile.organization_type}
-              </Badge>
-            ) : null}
+      <section
+        aria-labelledby="workspace-profile-heading"
+        className="relative overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-5 shadow-xs sm:p-6"
+      >
+        <BrandBlobSoftBlueIcon
+          size={180}
+          className="pointer-events-none absolute -top-14 -right-12 opacity-55"
+        />
+        <BrandBlobLimeIcon
+          size={135}
+          className="pointer-events-none absolute right-24 -bottom-14 hidden opacity-45 sm:block"
+        />
+
+        <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <div className="relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] shadow-xs sm:h-16 sm:w-16">
+              <BrandLimeBurstIcon
+                size={22}
+                className="pointer-events-none absolute -top-2.5 -left-2.5 -rotate-45"
+              />
+              <BrandUserIcon size={40} className="sm:h-11 sm:w-11" />
+            </div>
+
+            <div className="min-w-0 flex-1 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {auth.profile?.organization_type ? (
+                  <Badge
+                    tone="info"
+                    size="compact"
+                    leadingIcon={<BuildingsIcon size={12} />}
+                  >
+                    {ORG_TYPE_LABELS[auth.profile.organization_type] ??
+                      auth.profile.organization_type}
+                  </Badge>
+                ) : null}
+                {auth.user?.is_pci_admin ? (
+                  <Badge
+                    tone="lime"
+                    size="compact"
+                    leadingIcon={<ShieldCheckIcon size={12} />}
+                  >
+                    Operator PCI
+                  </Badge>
+                ) : null}
+                {auth.profile ? (
+                  <Badge
+                    tone={auth.profile.is_complete ? "success" : "neutral"}
+                    size="compact"
+                    leadingIcon={
+                      auth.profile.is_complete ? <CheckCircleIcon size={12} /> : undefined
+                    }
+                  >
+                    {auth.profile.is_complete
+                      ? "Profil wdrożeniowy gotowy"
+                      : "Profil uzupełnisz przy planie"}
+                  </Badge>
+                ) : null}
+              </div>
+
+              <h2
+                id="workspace-profile-heading"
+                className="truncate text-xl font-extrabold tracking-tight text-[var(--color-text)] sm:text-2xl"
+                title={primaryTitle}
+              >
+                {primaryTitle}
+              </h2>
+
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-[var(--color-text-muted)]">
+                {auth.profile?.organization_name && auth.user?.full_name ? (
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--color-text)]">
+                    <UserIcon size={14} className="shrink-0 text-[var(--color-accent-text)]" />
+                    <span>{auth.user.full_name}</span>
+                  </span>
+                ) : null}
+                {auth.profile?.role_title ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <span
+                      aria-hidden="true"
+                      className="h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-accent)]"
+                    />
+                    <span>{auth.profile.role_title}</span>
+                  </span>
+                ) : null}
+                {auth.profile?.deployment_location ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <TargetIcon size={14} className="shrink-0 text-[var(--color-accent-text)]" />
+                    <span>{auth.profile.deployment_location}</span>
+                  </span>
+                ) : null}
+                {auth.user?.email ? (
+                  <span className="truncate font-mono text-[11px]">{auth.user.email}</span>
+                ) : null}
+              </div>
+            </div>
           </div>
-          <p className="text-xs text-[var(--color-text-muted)]">
-            {[
-              auth.profile?.role_title,
-              auth.profile?.deployment_location,
-              auth.user?.email,
-            ]
-              .filter(Boolean)
-              .join(" · ")}
-          </p>
+
+          <div className="flex flex-wrap items-center gap-2.5 lg:shrink-0">
+            <Link
+              href="/innovations?mode=problem"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--color-accent)] px-4 py-2.5 text-xs font-bold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+            >
+              <SearchIcon size={16} weight="bold" />
+              <span>Dopasuj kolejne rozwiązanie</span>
+            </Link>
+            <Link
+              href="/innovations"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2.5 text-xs font-bold text-[var(--color-text)] transition-colors hover:border-[var(--color-accent)] hover:bg-[var(--color-surface-raised)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+            >
+              <GridViewIcon size={16} />
+              <span>Przeglądaj katalog</span>
+            </Link>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/solve"
-            className="inline-flex min-h-11 items-center rounded-lg bg-[var(--color-accent)] px-4 py-2 text-xs font-semibold text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
-          >
-            Dopasuj kolejne rozwiązanie
-          </Link>
-          <Link
-            href="/innovations"
-            className="inline-flex min-h-11 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-xs font-semibold text-[var(--color-text)] hover:bg-[var(--color-surface-raised)]"
-          >
-            Przeglądaj katalog
-          </Link>
+        <div className="relative z-10 mt-5 grid grid-cols-1 gap-3 border-t border-[var(--color-border-subtle)] pt-4 sm:grid-cols-3">
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] px-3.5 py-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center">
+              <BrandChecklistIcon size={28} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+                Aktywne plany
+              </p>
+              <p className="text-sm font-bold tabular-nums text-[var(--color-text)]">
+                {plans.length}{" "}
+                <span className="text-xs font-normal text-[var(--color-text-muted)]">
+                  {overallProgressPct !== null
+                    ? `· ${completedSteps}/${totalSteps} faz (${overallProgressPct}%)`
+                    : "· brak aktywnych"}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] px-3.5 py-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center">
+              <BrandBookmarkIcon size={28} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+                Zapisane innowacje
+              </p>
+              <p className="text-sm font-bold tabular-nums text-[var(--color-text)]">
+                {savedInnovations.length}{" "}
+                <span className="text-xs font-normal text-[var(--color-text-muted)]">
+                  {savedInnovations.length > 0 ? "· w ulubionych" : "· dodaj z katalogu"}
+                </span>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] px-3.5 py-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center">
+              <BrandScalesIcon size={28} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold text-[var(--color-text-muted)]">
+                Zapisane porównania
+              </p>
+              <p className="text-sm font-bold tabular-nums text-[var(--color-text)]">
+                {comparisons.length}{" "}
+                <span className="text-xs font-normal text-[var(--color-text-muted)]">
+                  {comparisons.length > 0 ? "· gotowe zestawienia" : "· porównaj min. 2"}
+                </span>
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Plans & Nearest Tasks */}
       <section className="space-y-4">
@@ -106,7 +266,7 @@ export default function WorkspacePage() {
               katalogu
             </Link>{" "}
             lub opisz problem w{" "}
-            <Link href="/solve" className="font-semibold text-[var(--color-accent-text)] underline">
+            <Link href="/innovations?mode=problem" className="font-semibold text-[var(--color-accent-text)] underline">
               wyszukiwarce problemów
             </Link>
             .
