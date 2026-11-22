@@ -2,6 +2,7 @@
 export const polish = {
   "Public navigation": "Nawigacja strony",
   "Catalog": "Katalog",
+  "Search innovations": "Szukaj innowacji",
   "How it works?": "Jak to działa?",
   "About the platform": "O platformie",
   "Browse innovations": "Przeglądaj innowacje",

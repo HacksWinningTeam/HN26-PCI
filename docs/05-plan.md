@@ -6,6 +6,8 @@
 
 > **Contract note (`DEC-005`):** real tasks must keep area separate from location, use `TRL`, implement the area/character taxonomy, expose the explained 40/20/20/20 match breakdown, preserve the three nested information levels, generate maturity-aware five-phase plans, and provide detailed PCI oversight.
 
+> **Discovery consolidation (`DEC-014`):** user approved merging the existing catalog and problem screen before further development. T03 tracks this bounded refactor independently of the still-placeholder T01/T02 rows.
+
 ## Task Status Legend
 
 Design-system addition (`DEC-007`): themed brand icons and three organic photo frames are maintained in `/design-system`; user approved the supplied visual reference and requested a local commit. Existing template task statuses are unchanged.
@@ -31,6 +33,7 @@ Design-system refinement (`DEC-012`, `DEC-013`): sidebar stays left within a ful
 | --- | --- | --- | --- | --- | --- | --- |
 | `T01` | `<Example: Core domain model + CRUD API>` | Backend | No | — | `TODO` | [T01](tasks/_template.md) |
 | `T02` | `<Example: Primary user workflow screen>` | Full-Stack | Yes | `T01` | `TODO` | [T02](tasks/_template.md) |
+| `T03` | Unified innovation discovery · horizontal filters (DEC-015) | Frontend | Yes | — (existing endpoints) | `IN_PROGRESS` | [T03](tasks/T03-unified-discovery.md) |
 
 ## Milestone 2 — Core Features
 

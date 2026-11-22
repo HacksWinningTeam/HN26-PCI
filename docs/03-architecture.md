@@ -40,9 +40,9 @@ Browser (same-origin) -> Next.js 16 (src/proxy.ts / SSR via API_INTERNAL_URL) ->
 | Route | Component / Type | Purpose | API Endpoints Used | Task |
 | --- | --- | --- | --- | --- |
 | `/` | `src/app/page.tsx` (SSR `force-dynamic`) | Starter connectivity check | `GET /api/health/` | Starter |
-| `/innovations` | Catalog | Browse, search, filter and switch grid/table | `GET /api/innovations/` | TBD |
+| `/innovations` | Unified innovation discovery | Keyword/catalog search, optional problem context, shared filters, grid/table and match explanations | `GET /api/innovations/`, `POST /api/discovery/match/` | T03 / DEC-014 |
 | `/innovations/[id]` | Innovation detail | Public level-2 detail with evidence/sources and registered level-3 “Odkryj” plan/contact CTA | `GET /api/innovations/{id}/` | TBD |
-| `/solve` | Problem discovery | Progressive problem refinement and explained matches | `POST /api/discovery/match/` | TBD |
+| `/solve` | Server redirect | Legacy entry to `/innovations?mode=problem`; preserves query parameters | None | T03 / DEC-014 |
 | `/compare` | Comparison | Compare 2–3 innovations and match evidence | Innovation + comparison APIs | TBD |
 | `/register`, `/login` | Account access | Account boundary for personalized features | Auth APIs | TBD |
 | `/workspace` | Registered dashboard | Saved comparisons, implementation plans and progress | Profile + implementation APIs | TBD |
@@ -50,6 +50,13 @@ Browser (same-origin) -> Next.js 16 (src/proxy.ts / SSR via API_INTERNAL_URL) ->
 | `/admin` | PCI operations | Record verification and adoption oversight | Admin APIs | TBD |
 | `/design-system` | `src/app/design-system/page.tsx` | Design system tokens, foundations, and planned UI slots | None | `DEC-003` |
 | `/settings/accessibility` | `src/app/settings/accessibility/page.tsx` | WCAG 2.2 AA appearance, text scale, link underline, and read-aloud settings | None | `DEC-002` |
+
+### Unified discovery behavior (`DEC-014`)
+
+- Keyword submission uses the existing catalog endpoint; problem matching runs explicitly against the existing discovery endpoint. No API/model changes.
+- Shared client-side constraints filter the returned complete lists in either mode. Multiple selected beneficiary groups use OR; categories combine with AND. Source organization type remains separate from the adopter organization used for matching.
+- Structural filtering/sorting does not create new problem-query records. Changing the matching context marks the old scores as pending recalculation until explicit submission.
+- Match requests cancel stale UI updates on cleanup. Context and match scores continue through `SessionProvider` to comparison and implementation planning.
 
 ## Environment Variables & External Integrations
 

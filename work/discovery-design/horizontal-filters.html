@@ -1,0 +1,126 @@
+<div id="radar-discovery-proposal" aria-label="Proponowany układ wyszukiwarki Radar">
+  <style>
+    #radar-discovery-proposal { --rd-bg:light-dark(#f7f8fa,#141416); --rd-surface:light-dark(#fff,#202023); --rd-text:light-dark(#20212a,#f1f1f3); --rd-muted:light-dark(#595b66,#b9b9c2); --rd-line:light-dark(#c0c2ca,#74747e); --rd-soft:light-dark(#eceef2,#2a2a2f); --rd-accent:light-dark(#007da4,#06b8e7); --rd-on-accent:light-dark(#fff,#08242d); font-family:Inter,system-ui,sans-serif; font-size:14px; line-height:1.5; color:var(--rd-text); }
+    #radar-discovery-proposal * { box-sizing:border-box; }
+    #radar-discovery-proposal .rd-shell { display:grid; grid-template-columns:155px minmax(0,1fr); background:var(--rd-bg); border:1px solid var(--rd-line); border-radius:18px; overflow:hidden; }
+    #radar-discovery-proposal .rd-nav { padding:24px 12px; background:var(--rd-surface); border-right:1px solid var(--rd-line); }
+    #radar-discovery-proposal .rd-logo { font-size:24px; font-weight:700; letter-spacing:-1px; padding:0 8px 30px; }
+    #radar-discovery-proposal .rd-nav-item { display:flex; align-items:center; gap:8px; padding:12px 8px; margin-bottom:8px; border-radius:9px; font-size:12px; }
+    #radar-discovery-proposal .rd-selected { background:var(--rd-soft); font-weight:600; }
+    #radar-discovery-proposal .rd-main { min-width:0; padding:24px; display:grid; gap:20px; align-content:start; }
+    #radar-discovery-proposal .rd-heading { display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; }
+    #radar-discovery-proposal h2 { font-size:22px; line-height:1.25; font-weight:650; margin:0; }
+    #radar-discovery-proposal h3 { font-size:15px; line-height:1.4; font-weight:600; margin:0; }
+    #radar-discovery-proposal p { margin:0; }
+    #radar-discovery-proposal .rd-muted { color:var(--rd-muted); font-size:12px; }
+    #radar-discovery-proposal .rd-panel { background:var(--rd-surface); border:1px solid var(--rd-line); padding:20px; border-radius:14px; display:grid; gap:14px; }
+    #radar-discovery-proposal .rd-search { display:flex; align-items:end; gap:10px; }
+    #radar-discovery-proposal .rd-query { flex:1; min-width:0; }
+    #radar-discovery-proposal label:not(.rd-check) { display:grid; gap:6px; font-size:12px; font-weight:550; min-width:0; }
+    #radar-discovery-proposal input:not([type=checkbox]), #radar-discovery-proposal select, #radar-discovery-proposal textarea { min-width:0; width:100%; min-height:44px; padding:10px; border:1px solid var(--rd-line); border-radius:8px; color:var(--rd-text); background:var(--rd-surface); font:inherit; }
+    #radar-discovery-proposal input::placeholder { color:var(--rd-muted); }
+    #radar-discovery-proposal button, #radar-discovery-proposal summary { font:inherit; font-size:12px; color:var(--rd-text); background:var(--rd-surface); border:1px solid var(--rd-line); border-radius:8px; padding:10px 12px; min-height:44px; cursor:pointer; }
+    #radar-discovery-proposal .rd-primary { background:var(--rd-accent); color:var(--rd-on-accent); border-color:var(--rd-accent); font-weight:600; }
+    #radar-discovery-proposal .rd-check { display:flex; align-items:center; gap:9px; min-height:44px; font-size:12px; font-weight:500; }
+    #radar-discovery-proposal input[type=checkbox] { width:17px; height:17px; accent-color:var(--rd-accent); }
+    #radar-discovery-proposal .rd-filters { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; border-top:1px solid var(--rd-line); padding-top:16px; }
+    #radar-discovery-proposal .rd-actions, #radar-discovery-proposal .rd-toolbar { display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+    #radar-discovery-proposal .rd-tools { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    #radar-discovery-proposal .rd-subgrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding-top:14px; }
+    #radar-discovery-proposal .rd-more { background:var(--rd-soft); border-radius:10px; padding:16px; }
+    #radar-discovery-proposal .rd-benef { position:relative; min-width:0; }
+    #radar-discovery-proposal .rd-benef>span { display:block; font-size:12px; font-weight:550; margin-bottom:6px; }
+    #radar-discovery-proposal .rd-benef summary { list-style:none; }
+    #radar-discovery-proposal .rd-benef summary::after { content:'⌄'; float:right; }
+    #radar-discovery-proposal .rd-options { position:absolute; top:100%; left:0; z-index:2; padding:12px; width:230px; max-width:100%; border:1px solid var(--rd-line); border-radius:8px; background:var(--rd-surface); }
+    #radar-discovery-proposal .rd-chips { display:flex; gap:8px; flex-wrap:wrap; }
+    #radar-discovery-proposal .rd-chips:empty { display:none; }
+    #radar-discovery-proposal .rd-chip { border-radius:24px; background:var(--rd-soft); }
+    #radar-discovery-proposal .rd-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr)); gap:14px; }
+    #radar-discovery-proposal article { min-width:0; background:var(--rd-surface); border:1px solid var(--rd-line); border-radius:14px; overflow:hidden; }
+    #radar-discovery-proposal .rd-art { display:flex; align-items:center; justify-content:center; min-height:105px; color:var(--rd-accent); background:var(--rd-soft); }
+    #radar-discovery-proposal .rd-art svg { width:38px; height:38px; }
+    #radar-discovery-proposal .rd-card-body { padding:16px; display:grid; gap:12px; }
+    #radar-discovery-proposal .rd-tag { display:inline-block; font-size:11px; padding:3px 8px; border:1px solid var(--rd-line); border-radius:20px; justify-self:start; }
+    #radar-discovery-proposal [hidden] { display:none !important; }
+    #radar-discovery-proposal :focus-visible { outline:3px solid var(--rd-accent); outline-offset:3px; }
+    @media(max-width:850px) { #radar-discovery-proposal .rd-shell { grid-template-columns:1fr; } #radar-discovery-proposal .rd-nav { display:none; } #radar-discovery-proposal .rd-filters { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media(max-width:580px) { #radar-discovery-proposal .rd-main { padding:14px; } #radar-discovery-proposal .rd-panel { padding:14px; } #radar-discovery-proposal .rd-filters, #radar-discovery-proposal .rd-subgrid, #radar-discovery-proposal .rd-cards { grid-template-columns:1fr; } #radar-discovery-proposal .rd-search { align-items:stretch; flex-direction:column; } }
+  </style>
+  <div class="rd-shell">
+    <aside class="rd-nav" aria-label="Nawigacja — podgląd">
+      <div class="rd-logo">radar<span style="color:var(--rd-accent)">.</span></div>
+      <div class="rd-nav-item"><i data-lucide="circle-check" aria-hidden="true"></i> Moje wdrożenia</div>
+      <div class="rd-nav-item rd-selected"><i data-lucide="search" aria-hidden="true"></i> Szukaj innowacji</div>
+      <div class="rd-nav-item"><i data-lucide="arrow-left-right" aria-hidden="true"></i> Porównanie</div>
+    </aside>
+    <div class="rd-main">
+      <div class="rd-heading"><h2>Szukaj innowacji</h2><span class="rd-muted">Propozycja układu · przykładowe karty ze zrzutu</span></div>
+      <section class="rd-panel" aria-label="Wyszukiwanie i filtry">
+        <div class="rd-search">
+          <label class="rd-query">Czego szukasz?<input type="search" placeholder="Nazwa, temat lub słowo kluczowe…" aria-label="Fraza — podgląd pola"></label>
+          <button type="button" class="rd-primary" id="rd-search">Szukaj innowacji</button>
+        </div>
+        <label class="rd-check"><input type="checkbox" id="rd-problem" aria-controls="rd-context">Opisz problem dokładniej i dopasuj rozwiązania</label>
+        <div id="rd-context" class="rd-more" hidden>
+          <label>Opis problemu<textarea rows="2" placeholder="Jaki efekt chcesz osiągnąć?"></textarea></label>
+          <div class="rd-subgrid"><label>Typ Twojej organizacji<select><option>Nie określono</option><option>Gmina</option><option>Szkoła</option></select></label><label>Lokalizacja wdrożenia<input placeholder="Np. Rzeszów"></label></div>
+        </div>
+        <div class="rd-filters">
+          <label>Obszar innowacji<select data-filter="Obszar"><option value="">Wszystkie</option><option>Technologiczny</option><option>Edukacyjny</option><option>Administracyjny</option></select></label>
+          <label>Branża<select data-filter="Branża"><option value="">Wszystkie</option><option>Administracja</option><option>Edukacja</option><option>ICT</option></select></label>
+          <div class="rd-benef"><span>Beneficjenci</span><details id="rd-benef"><summary>Dowolni <span id="rd-benef-count"></span></summary><div class="rd-options"><label class="rd-check"><input type="checkbox" data-benef="Seniorzy">Seniorzy</label><label class="rd-check"><input type="checkbox" data-benef="Dzieci">Dzieci</label><label class="rd-check"><input type="checkbox" data-benef="Mieszkańcy">Mieszkańcy</label></div></details></div>
+          <label>Etap wdrożenia<select data-filter="Etap"><option value="">Wszystkie</option><option>Testy</option><option>Pilotaż</option><option>Stosowane w praktyce</option></select></label>
+        </div>
+        <div class="rd-actions"><button id="rd-toggle" type="button" aria-expanded="false" aria-controls="rd-advanced">Więcej filtrów <span id="rd-more-count"></span>⌄</button><button id="rd-reset" type="button">Wyczyść filtry</button></div>
+        <div id="rd-advanced" class="rd-more" hidden>
+          <div class="rd-subgrid" style="padding-top:0">
+            <label>Charakter rozwiązania<select data-filter="Charakter" data-advanced><option value="">Dowolny</option><option>Produktowy</option><option>Procesowy</option><option>Organizacyjny</option><option>Społeczny</option></select></label>
+            <label>Minimalny TRL<select data-filter="TRL" data-advanced><option value="">Dowolny</option><option>6</option><option>7</option><option>8</option><option>9</option></select></label>
+            <label>Pochodzenie innowacji<input data-filter="Pochodzenie" data-advanced placeholder="Np. Podkarpackie"></label>
+            <label>Typ organizacji źródłowej<select data-filter="Źródło" data-advanced><option value="">Dowolny</option><option>Uczelnia</option><option>Firma</option><option>Instytucja publiczna</option></select></label>
+          </div>
+          <label class="rd-check"><input id="rd-verified" type="checkbox" data-advanced>Tylko potwierdzone źródła</label>
+        </div>
+        <div class="rd-chips" id="rd-chips" aria-live="polite"></div>
+      </section>
+      <div class="rd-toolbar"><h3>Podgląd kart</h3><div class="rd-tools"><label>Sortowanie<select aria-label="Sortowanie — podgląd pola"><option>Potencjał wdrożenia</option><option>Nazwa A–Z</option></select></label><span class="rd-muted">Siatka / Tabela · CSV · PDF</span></div></div>
+      <p id="rd-notice" class="rd-muted" role="status" hidden>Podgląd układu — wyszukiwanie i dane zostaną podłączone podczas wdrożenia.</p>
+      <div class="rd-cards">
+        <article><div class="rd-art"><i data-lucide="layers" aria-hidden="true"></i></div><div class="rd-card-body"><span class="rd-tag">Administracyjny</span><h3>e-Urząd Seniora — Proste e-Usługi i Asystent Wniosków Gminy</h3><p class="rd-muted">Nakładka na systemy gminne pomagająca seniorom.</p><p class="rd-muted">Administracja, ICT<br>Stalowa Wola</p></div></article>
+        <article><div class="rd-art"><i data-lucide="scan-search" aria-hidden="true"></i></div><div class="rd-card-body"><span class="rd-tag">Edukacyjny</span><h3>Matematyka w Ruchu — Scenariusze AR dla Szkół Podstawowych</h3><p class="rd-muted">Scenariusze lekcji łączące matematykę i ruch.</p><p class="rd-muted">Edukacja, ICT<br>Krosno</p></div></article>
+        <article><div class="rd-art"><i data-lucide="lightbulb" aria-hidden="true"></i></div><div class="rd-card-body"><span class="rd-tag">Technologiczny · TRL 8/9</span><h3>AquaGuard Gdynia — Czujniki Podtopień i Alerty Kryzysowe dla Gmin</h3><p class="rd-muted">Autonomiczne sondy wspierające ochronę przed podtopieniami.</p><p class="rd-muted">Administracja, ICT<br>Gdynia</p></div></article>
+      </div>
+    </div>
+  </div>
+  <script>
+    (() => {
+      const root = document.getElementById('radar-discovery-proposal');
+      const fields = [...root.querySelectorAll('[data-filter]')];
+      const beneficiaries = [...root.querySelectorAll('[data-benef]')];
+      const verified = root.querySelector('#rd-verified');
+      const more = root.querySelector('#rd-advanced');
+      const toggle = root.querySelector('#rd-toggle');
+      const chips = root.querySelector('#rd-chips');
+      function update() {
+        chips.replaceChildren();
+        const selections = fields.filter(field => field.value.trim()).map(field => ({label:field.dataset.filter + ': ' + field.value, clear:() => {field.value='';}, advanced:field.hasAttribute('data-advanced')}));
+        beneficiaries.filter(field => field.checked).forEach(field => selections.push({label:field.dataset.benef, clear:() => {field.checked=false;}, advanced:false}));
+        if (verified.checked) selections.push({label:'Potwierdzone źródła',clear:() => {verified.checked=false;},advanced:true});
+        for (const selection of selections) {
+          const button=document.createElement('button'); button.type='button'; button.className='rd-chip'; button.textContent=selection.label+' ×'; button.setAttribute('aria-label','Usuń filtr: '+selection.label);
+          button.addEventListener('click',() => {selection.clear(); update(); root.querySelector('#rd-reset').focus();}); chips.append(button);
+        }
+        root.querySelector('#rd-more-count').textContent=selections.filter(s => s.advanced).length ? '('+selections.filter(s => s.advanced).length+') ' : '';
+        root.querySelector('#rd-benef-count').textContent=beneficiaries.filter(b => b.checked).length ? '('+beneficiaries.filter(b => b.checked).length+')' : '';
+      }
+      fields.forEach(field => field.addEventListener('input',update)); beneficiaries.forEach(field => field.addEventListener('change',update)); verified.addEventListener('change',update);
+      toggle.addEventListener('click',() => {more.hidden=!more.hidden; toggle.setAttribute('aria-expanded',String(!more.hidden));});
+      root.querySelector('#rd-reset').addEventListener('click',() => {fields.forEach(field => {field.value='';}); beneficiaries.forEach(field => {field.checked=false;}); verified.checked=false; update();});
+      root.querySelector('#rd-problem').addEventListener('change',event => {root.querySelector('#rd-context').hidden=!event.target.checked; root.querySelector('#rd-search').textContent=event.target.checked?'Dopasuj rozwiązania':'Szukaj innowacji';});
+      root.querySelector('#rd-search').addEventListener('click',() => {root.querySelector('#rd-notice').hidden=false;});
+      root.addEventListener('keydown',event => {if(event.key==='Escape'){const details=root.querySelector('#rd-benef');if(details.open){details.open=false;details.querySelector('summary').focus();}}});
+      update();
+    })();
+  </script>
+</div>

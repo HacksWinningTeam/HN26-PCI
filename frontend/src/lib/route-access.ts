@@ -130,17 +130,10 @@ export function getMainAppPageMeta(
     };
   }
 
-  if (path === "/solve") {
+  if (path === "/solve" || path === "/innovations") {
     return {
-      title: "Szukam rozwiązania problemu",
-      breadcrumbs: [homeCrumb, { label: "Szukaj rozwiązania" }],
-    };
-  }
-
-  if (path === "/innovations") {
-    return {
-      title: "Katalog innowacji",
-      breadcrumbs: [homeCrumb, { label: "Katalog innowacji" }],
+      title: "Szukaj innowacji",
+      breadcrumbs: [homeCrumb, { label: "Szukaj innowacji" }],
     };
   }
 
@@ -149,7 +142,7 @@ export function getMainAppPageMeta(
       title: "Szczegóły innowacji",
       breadcrumbs: [
         homeCrumb,
-        { label: "Katalog innowacji", href: "/innovations" },
+        { label: "Szukaj innowacji", href: "/innovations" },
         { label: "Szczegóły" },
       ],
     };

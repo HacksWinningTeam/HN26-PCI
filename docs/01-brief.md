@@ -26,10 +26,10 @@
 | ID | Requirement | Priority | Source (PDF / Notes) | Target Task(s) |
 | --- | --- | --- | --- | --- |
 | `REQ-01` | Publiczny katalog istniejących polskich innowacji pozyskanych z jawnych źródeł | Must | PDF + FAQ | `TBD (hackathon-plan)` |
-| `REQ-02` | Dwa tryby odkrywania: przeglądanie innowacji oraz opisanie problemu | Must | DEC-004 | `TBD (hackathon-plan)` |
+| `REQ-02` | Jeden ekran „Szukaj innowacji”: katalog, fraza i rozwijany opis problemu; wspólny panel wyszukiwania i filtrów nad wynikami | Must | DEC-004, DEC-014, DEC-015 | `T03` |
 | `REQ-03` | Doprecyzowanie zapytania przez branżę, beneficjentów, lokalizację wdrożenia i typ organizacji | Must | DEC-004, DEC-005 | `TBD (hackathon-plan)` |
 | `REQ-04` | Ranking dopasowań: problem 40%, branża 20%, beneficjenci 20%, zastosowanie w typie organizacji 20%, z widocznym wyjaśnieniem | Must | DEC-005 | `TBD (hackathon-plan)` |
-| `REQ-05` | Katalog z filtrami, widokiem siatki/tabeli i porównaniem 2–3 innowacji | Must | FAQ + Notes | `TBD (hackathon-plan)` |
+| `REQ-05` | Katalog z poziomym panelem filtrów, wynikami na pełną szerokość, widokiem siatki/tabeli i porównaniem 2–3 innowacji | Must | FAQ + Notes + DEC-015 | `T03` |
 | `REQ-06` | Trzy poziomy informacji: skrócona karta, publiczny detal oraz warstwa zarejestrowana z planem i kontaktem; źródła, TRL, wdrożenie i fakty vs szacunki | Must | FAQ + DEC-005 | `TBD (hackathon-plan)` |
 | `REQ-07` | Rejestracja wymagana dopiero dla planu wdrożeniowego, zapisanych danych i śledzenia postępu | Must | DEC-004 | `TBD (hackathon-plan)` |
 | `REQ-08` | Ankieta określająca typ organizacji, lokalizację, skalę, obecne podejście, zasoby, kompetencje, termin i ograniczenia | Must | DEC-005 | `TBD (hackathon-plan)` |
@@ -42,14 +42,14 @@
 
 ## Core User Flows
 
-1. **Problem → dopasowanie → wdrożenie:** użytkownik wybiera „Szukam rozwiązania problemu” → opisuje problem → system stopniowo prosi o branżę, beneficjentów, lokalizację wdrożenia i typ organizacji → pokazuje jakość opisu oraz ranking z rozbiciem wyniku 40/20/20/20 → użytkownik otwiera kartę i porównuje rozwiązania → wybiera „Odkryj plan” → rejestruje się i uzupełnia ankietę organizacji → otrzymuje pięciofazowy plan walidacji, pilotażu albo transferu/wdrożenia → zapisuje postęp na checkliście.
-2. **Katalog → porównanie → wdrożenie:** użytkownik wybiera „Przeglądam innowacje” → korzysta z wyszukiwania, filtrów oraz widoku kart/tabeli → porównuje 2–3 rekordy → otwiera szczegóły → po rejestracji generuje plan dostosowany do swojej organizacji.
+1. **Problem → dopasowanie → wdrożenie:** użytkownik otwiera „Szukaj innowacji” i rozwija opis problemu → opisuje problem → system stopniowo prosi o branżę, beneficjentów, lokalizację wdrożenia i typ organizacji → pokazuje jakość opisu oraz ranking z rozbiciem wyniku 40/20/20/20 → użytkownik otwiera kartę i porównuje rozwiązania → wybiera „Odkryj plan” → rejestruje się i uzupełnia ankietę organizacji → otrzymuje pięciofazowy plan walidacji, pilotażu albo transferu/wdrożenia → zapisuje postęp na checkliście.
+2. **Katalog → porównanie → wdrożenie:** użytkownik otwiera ten sam ekran „Szukaj innowacji” → korzysta z wyszukiwania, wspólnych filtrów oraz widoku kart/tabeli → porównuje 2–3 rekordy → otwiera szczegóły → po rejestracji generuje plan dostosowany do swojej organizacji.
 3. **Brak wyniku → powiadomienie:** użytkownik nie otrzymuje wystarczająco dobrych dopasowań → zmienia kryteria albo wybiera „Powiadom mnie” → podaje e-mail lub, jeśli jest zalogowany, zatwierdza e-mail konta.
 4. **Operator PCI:** administrator przegląda rekordy wymagające weryfikacji, poprawia lub łączy dane, kontroluje źródła i widzi, które zarejestrowane organizacje realizują poszczególne plany oraz na jakim są etapie.
 
 ## MVP Scope (Must-Have)
 
-- Dwa publiczne wejścia do wyszukiwania: katalog i opis problemu.
+- Jeden publiczny ekran wyszukiwania (`/innovations`) łączący katalog i opis problemu; dwa wejścia z landing page otwierają odpowiedni stan tego samego widoku (`DEC-014`).
 - Doprecyzowanie zapytania oraz wyjaśniony ranking dopasowań.
 - Filtry, skrócona i szczegółowa karta, transparentne źródła oraz porównanie.
 - Rejestracja i profil kontekstu wdrożenia.

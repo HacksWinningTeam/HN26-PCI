@@ -349,7 +349,7 @@ export default function ComparePage() {
                             <strong>{m.overall_score}%</strong> ({m.primary_reason})
                           </span>
                         ) : (
-                          <Link href="/solve" className="text-[var(--color-accent-text)] underline">
+                          <Link href="/innovations?mode=problem" className="text-[var(--color-accent-text)] underline">
                             Opisz problem, aby obliczyć dopasowanie
                           </Link>
                         )}

@@ -115,7 +115,7 @@ export default function HomePage() {
               aria-label="Sposób rozpoczęcia pracy"
             >
               <Link
-                href="/solve"
+                href="/innovations?mode=problem"
                 className="group flex h-full min-h-[136px] items-center justify-between gap-4 rounded-2xl border border-[var(--color-promo-navy-border)] bg-[var(--color-promo-navy-bg)] p-6 text-[var(--color-promo-navy-fg)] transition-colors hover:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[var(--color-focus)]"
               >
                 <div className="flex min-w-0 items-center gap-4">
@@ -268,7 +268,7 @@ export default function HomePage() {
               </p>
               <div className="flex flex-wrap gap-3 pt-1">
                 <Link
-                  href="/solve"
+                  href="/innovations?mode=problem"
                   className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--color-accent)] px-5 py-2.5 text-sm font-semibold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)]"
                 >
                   <span>Opisz problem</span>

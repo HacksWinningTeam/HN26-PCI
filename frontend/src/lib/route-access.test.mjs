@@ -125,3 +125,11 @@ test("getMainAppPageMeta provides title and breadcrumbs for all app routes", () 
   assert.equal(getMainAppPageMeta("/solve", true).breadcrumbs[0]?.href, "/workspace");
   assert.equal(getMainAppPageMeta("/innovations/test-slug", true).breadcrumbs[1]?.href, "/innovations");
 });
+
+test("catalog and problem entry share search title and detail breadcrumb", () => {
+  for (const route of ["/innovations", "/solve"]) {
+    assert.equal(getMainAppPageMeta(route, false).title, "Szukaj innowacji");
+    assert.equal(getMainAppPageMeta(route, true).breadcrumbs[1].label, "Szukaj innowacji");
+  }
+  assert.equal(getMainAppPageMeta("/innovations/example", false).breadcrumbs[1].label, "Szukaj innowacji");
+});

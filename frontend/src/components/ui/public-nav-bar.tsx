@@ -54,7 +54,7 @@ export function PublicNavBar({ variant = "landing", layout = "responsive" }: Pub
                   href="/innovations"
                   onClick={() => setMenuOpen(false)}
                 >
-                  {t("Catalog")}
+                  {t("Search innovations")}
                 </Link>
                 <Link
                   className={styles.link}

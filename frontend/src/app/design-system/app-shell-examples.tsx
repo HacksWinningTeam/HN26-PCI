@@ -21,8 +21,7 @@ import {
 } from "@/components/ui";
 
 const sections = [
-  { id: "catalog", label: "Katalog innowacji", icon: <MenuIcon size={20} /> },
-  { id: "solve", label: "Szukaj rozwiązania", icon: <SearchIcon size={20} /> },
+  { id: "catalog", label: "Szukaj innowacji", icon: <SearchIcon size={20} /> },
   { id: "compare", label: "Porównanie", icon: <CompareIcon size={20} /> },
   { id: "workspace", label: "Moje wdrożenia", icon: <CheckCircleIcon size={20} /> },
 ] as const;

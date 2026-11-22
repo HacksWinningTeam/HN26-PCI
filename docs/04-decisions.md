@@ -120,6 +120,37 @@
 - **Affected Docs & Tasks:** `docs/02-ui-system.md`, `docs/05-plan.md`, `frontend/src/components/ui/{app-shell-layout.module.css,app-footer.tsx}`. No active TXX spec or status changes.
 - **Verification:** Local `npm run typecheck`, scoped ESLint for `AppShellLayout`/`NavBar`/`AppFooter`, and `git diff --check` passed. Docker excluded at the user's request; full lint's previously observed unrelated errors remain outside this change.
 
+### `DEC-014` — Merge Catalog and Problem Discovery
+- **Date:** 2026-11-22 02:08
+- **Status:** Accepted
+- **Context / New Info:** User approved the proposed single „Szukaj innowacji” screen with shared search/filter/results and optional detailed problem context, and requested implementing this consolidation before further work.
+- **Decision:** Use `/innovations` as the canonical screen. Keep keyword/catalog browsing as the default and explicitly expand problem matching rather than infer it invisibly from text length. Reuse the existing catalog and discovery APIs; apply common constraints/sorting to both returned lists. Retain grid/table, comparison, saved innovations, implementation indicators, exports, notifications and actual 40/20/20/20 explanations. Distinguish adopter organization/deployment location from source organization/origin filters. Mark scores as needing recalculation after context edits. Replace the two product sidebar entries with one, omit duplicate shell search on this screen, and redirect `/solve` with query parameters preserved. Both landing entrances open states of the same screen. The user's explicit instruction approves this design and implementation; T03 remains `IN_PROGRESS` pending manual confirmation. Deadline/code freeze remain unspecified in the brief.
+- **Affected Docs & Tasks:** `AGENTS.md`, `docs/PROJECT_KNOWLEDGE.md`, `docs/01-brief.md` (`REQ-02`–`REQ-05`), `docs/02-ui-system.md`, `docs/03-architecture.md`, `docs/05-plan.md`, T03, frontend discovery/navigation. Product scope and existing APIs remain unchanged.
+- **Verification:** Recorded in T03. Docker is excluded per the user's earlier instruction.
+
+### `DEC-015` — Horizontal Discovery Filters
+- **Date:** 2026-11-22 02:18
+- **Status:** Accepted
+- **Context / New Info:** User supplied a screenshot of `/innovations` and requested combining filters at the top because a filter sidebar beside the application sidebar crowds the result cards.
+- **Decision:** Refine T03 with one search/filter surface above full-width results. Keep area, sector, beneficiaries and deployment level visible; reveal character, minimum TRL, origin, source organization and verification in an inline “Więcej filtrów” disclosure. Show removable active-filter chips, retain optional problem context and distinguish source/adopter fields. Keep the existing application sidebar and shared theme tokens. The detailed design was presented for review and approved below. Previous DEC-014 product/API behavior remains valid; its two-column filter layout is replaced. Deadline/code freeze remain unspecified; this is a bounded frontend layout change.
+- **Affected Docs & Tasks:** `docs/01-brief.md` (REQ-02, REQ-05), `docs/02-ui-system.md`, `docs/05-plan.md`, `docs/PROJECT_KNOWLEDGE.md`, T03. T03 returns from `IN_PROGRESS` to `DESIGN_REVIEW`; prior design approval and layout verification do not cover this proposal. No model, API, route or environment changes; `docs/03-architecture.md` contracts remain valid.
+- **Approval:** 2026-11-22 02:22 — user approved the presented design and implementation (“no to jazda”). T03 moved through `DESIGN_READY` to `IN_PROGRESS`.
+- **Verification:** Implementation and check results tracked in T03. No Docker commands, commit or push.
+
+### `DEC-016` — Align Compact Card Potential Blocks
+- **Date:** 2026-11-22 02:25
+- **Status:** Accepted
+- **Context / New Info:** User supplied a screenshot of unequal-height card content and explicitly requested stretching the first section rather than leaving empty space under implementation potential.
+- **Decision:** Let description/metadata absorb available card height; keep potential and action sections at natural height and align them at the bottom of equal-height grid cards. This is an explicitly approved bounded layout correction within T03, without new functionality or contracts.
+- **Affected Docs & Tasks:** T03 (`docs/tasks/T03-unified-discovery.md`), `frontend/src/components/InnovationCardCompact.tsx`. Product requirements, shared primitives and API architecture remain unchanged.
+
+### `DEC-017` — Stack Actions on Narrow Innovation Cards
+- **Date:** 2026-11-22 02:26
+- **Status:** Accepted
+- **Context / New Info:** User supplied a screenshot of a share action wrapping alone and explicitly requested a column of buttons when the card is narrow.
+- **Decision:** Use a named card container query: below 25rem of card width, stack the details, compare and share actions at full width; otherwise place them in a single row. Keep >=44px targets and let rem sizing respect text scaling. This small layout correction is explicitly authorized for implementation.
+- **Affected Docs & Tasks:** T03, `frontend/src/components/InnovationCardCompact.tsx`; no changes to API contracts or product scope.
+
 <!-- Template for new entries:
 ### `DEC-XXX` — `<Short Title>`
 - **Date:** `<YYYY-MM-DD HH:MM from date '+%Y-%m-%d %H:%M'>`

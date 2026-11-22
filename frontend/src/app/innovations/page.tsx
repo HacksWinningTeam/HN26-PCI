@@ -13,7 +13,6 @@ import {
   Button,
   ButtonGroup,
   ChevronDownIcon,
-  CloseIcon,
   CsvIcon,
   EmptyState,
   ErrorState,
@@ -23,7 +22,7 @@ import {
   ListViewIcon,
   LoadingState,
   PdfIcon,
-  SearchIcon,
+  Popover,
   SimpleTable,
   type SimpleTableColumn,
 } from "@/components/ui";
@@ -31,8 +30,13 @@ import {
   fetchImplementationPlans,
   fetchInnovations,
   fetchSavedInnovations,
+  matchProblem,
+  type DiscoveryMatchResponse,
+  type MatchItem,
   type InnovationSummary,
 } from "@/lib/radar-api";
+import { hasMatchContextChanged, selectInnovationResults } from "@/lib/innovation-search";
+import type { SolvePrefillContext } from "@/components/SessionProvider";
 import { downloadCsvFile, formatInnovationsCatalogCsv } from "@/lib/radar-export";
 import {
   BENEFICIARY_LABELS,
@@ -42,164 +46,160 @@ import {
   PRIMARY_AREA_LABELS,
   SECTOR_LABELS,
   VERIFICATION_LABELS,
+  type OrgType,
 } from "@/lib/radar-labels";
 
 const EMPTY_SLUG_SET = new Set<string>();
 
-function FilterAccordion({
-  title,
-  defaultOpen = false,
-  badgeCount = 0,
-  children,
-}: {
-  title: string;
-  defaultOpen?: boolean;
-  badgeCount?: number;
-  children: React.ReactNode;
+function FilterSelect({ id, label, value, onChange, options, emptyLabel = "Wszystkie" }: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Record<string, string>;
+  emptyLabel?: string;
 }) {
   return (
-    <details
-      open={defaultOpen}
-      className="group border-b border-[var(--color-border-subtle)] py-3 last:border-b-0"
-    >
-      <summary className="flex min-h-9 cursor-pointer list-none items-center justify-between gap-2 text-xs font-bold text-[var(--color-text)] [&::-webkit-details-marker]:hidden">
-        <span className="flex items-center gap-2">
-          <span>{title}</span>
-          {badgeCount > 0 ? (
-            <Badge tone="info" size="compact">
-              {badgeCount}
-            </Badge>
-          ) : null}
-        </span>
-        <ChevronDownIcon
-          size={15}
-          className="shrink-0 text-[var(--color-text-muted)] transition-transform group-open:rotate-180"
-        />
+    <div className="min-w-0 space-y-1.5">
+      <label htmlFor={id} className="block text-xs font-semibold text-[var(--color-text-muted)]">{label}</label>
+      <select id={id} value={value} onChange={(event) => onChange(event.target.value)}
+        className="min-h-11 w-full min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm text-[var(--color-text)]">
+        <option value="">{emptyLabel}</option>
+        {Object.entries(options).map(([key, option]) => <option key={key} value={key}>{option}</option>)}
+      </select>
+    </div>
+  );
+}
+
+type SearchRequest =
+  | { kind: "catalog"; query: string }
+  | { kind: "problem"; context: SolvePrefillContext };
+
+function MatchExplanation({ match }: { match: MatchItem }) {
+  return (
+    <details className="rounded-xl border border-[var(--color-info-border)] bg-[var(--color-info-bg)] p-3 text-xs text-[var(--color-info-text)]">
+      <summary className="flex min-h-11 cursor-pointer items-center font-semibold">
+        {match.overall_score}% dopasowania — dlaczego?
       </summary>
-      <div className="pt-2.5">{children}</div>
+      <p className="mb-3">{match.primary_reason}</p>
+      <dl className="space-y-2">
+        {[
+          ["Problem · waga 40%", match.problem_score],
+          ["Branża · waga 20%", match.sector_score],
+          ["Beneficjenci · waga 20%", match.beneficiary_score],
+          ["Typ organizacji · waga 20%", match.organization_fit_score],
+        ].map(([label, score]) => (
+          <div key={label} className="flex justify-between gap-3"><dt>{label}</dt><dd className="font-semibold">{score}%</dd></div>
+        ))}
+      </dl>
+      {match.reasons.length > 0 ? <ul className="mt-3 list-disc space-y-1 pl-4">{match.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul> : null}
     </details>
   );
 }
 
-function InnovationsCatalogInner() {
-  const searchParams = useSearchParams();
-  const initialQuery = searchParams.get("q") ?? "";
-  const { auth, authLoaded, compareSlugs, toggleCompare } = useSession();
-
-  const [queryOverride, setQueryOverride] = useState<{
-    base: string;
-    value: string;
-  } | null>(null);
-  const q =
-    queryOverride && queryOverride.base === initialQuery
-      ? queryOverride.value
-      : initialQuery;
-  const setQ = (next: string) => setQueryOverride({ base: initialQuery, value: next });
-
+function InnovationSearchInner({ initialQuery, initialProblemMode }: { initialQuery: string; initialProblemMode: boolean }) {
+  const { auth, authLoaded, compareSlugs, toggleCompare, solveContext, setSolveContext, setMatchResults } = useSession();
+  const [problemMode, setProblemMode] = useState(initialProblemMode);
+  const queryBase = initialQuery || (initialProblemMode ? solveContext.problem_text : "");
+  const [queryDraft, setQ] = useState<string | null>(null);
+  const q = queryDraft ?? queryBase;
+  const [catalogQuery, setCatalogQuery] = useState(initialProblemMode ? "" : initialQuery);
   const [primaryArea, setPrimaryArea] = useState("");
   const [character, setCharacter] = useState("");
-  const [sector, setSector] = useState("");
-  const [beneficiary, setBeneficiary] = useState("");
+  const [sectorDraft, setSector] = useState<string | null>(null);
+  const sector = sectorDraft ?? (initialProblemMode ? solveContext.sector : "");
+  const [beneficiariesDraft, setBeneficiaries] = useState<string[] | null>(null);
+  const beneficiaries = useMemo(() => beneficiariesDraft ?? (initialProblemMode ? solveContext.beneficiary_groups : []), [beneficiariesDraft, initialProblemMode, solveContext.beneficiary_groups]);
   const [originLocation, setOriginLocation] = useState("");
   const [deploymentLevel, setDeploymentLevel] = useState("");
   const [trlMin, setTrlMin] = useState("");
   const [orgType, setOrgType] = useState("");
+  const [adopterOrgDraft, setAdopterOrgDraft] = useState<OrgType | "" | null>(null);
+  const adopterOrgType = adopterOrgDraft ?? (solveContext.organization_type || (auth.authenticated ? auth.profile?.organization_type : "") || "");
+  const [locationDraft, setLocationDraft] = useState<string | null>(null);
+  const deploymentLocation = locationDraft ?? (solveContext.deployment_location || (auth.authenticated ? auth.profile?.deployment_location : "") || "");
+  const [scaleDraft, setProblemScale] = useState<string | null>(null);
+  const problemScale = scaleDraft ?? (initialProblemMode ? solveContext.problem_scale : "");
+  const [maturityDraft, setPreferredMaturity] = useState<string | null>(null);
+  const preferredMaturity = maturityDraft ?? (initialProblemMode ? solveContext.preferred_maturity : "");
   const [verifiedOnly, setVerifiedOnly] = useState(false);
   const [sort, setSort] = useState("potential");
   const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-
-  const [items, setItems] = useState<InnovationSummary[]>([]);
+  const [advancedFiltersOpen, setAdvancedFiltersOpen] = useState(false);
   const [savedSlugsState, setSavedSlugsState] = useState<Set<string>>(EMPTY_SLUG_SET);
   const [plannedSlugsState, setPlannedSlugsState] = useState<Set<string>>(EMPTY_SLUG_SET);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const [matchRequest, setMatchRequest] = useState<SearchRequest | null>(null);
+  const catalogRequest = useMemo<SearchRequest>(() => ({ kind: "catalog", query: catalogQuery }), [catalogQuery]);
+  const request = matchRequest ?? catalogRequest;
+  const [result, setResult] = useState<{
+    request: SearchRequest | null; retry: number; items: InnovationSummary[];
+    discovery: DiscoveryMatchResponse | null; error: string;
+  }>({ request: null, retry: 0, items: [], discovery: null, error: "" });
+  const loading = result.request !== request || result.retry !== retryCount;
+  const error = loading ? "" : result.error;
+  const discovery = loading ? null : result.discovery;
+  const matchesBySlug = useMemo(() => Object.fromEntries((discovery?.results ?? []).map((item) => [item.innovation.slug, item])), [discovery]);
+  const enoughProblemText = q.trim().split(/\s+/).filter((word) => word.length >= 3).length >= 2;
+  const currentContext: SolvePrefillContext = {
+    problem_text: q.trim(), sector, beneficiary_groups: beneficiaries, organization_type: adopterOrgType,
+    deployment_location: deploymentLocation, problem_scale: problemScale, preferred_maturity: preferredMaturity,
+  };
+  const contextChanged = request.kind === "problem" && hasMatchContextChanged(request.context, currentContext);
 
   useEffect(() => {
-    if (!authLoaded || !auth.authenticated) {
-      return;
-    }
+    if (!authLoaded || !auth.authenticated) return;
     let active = true;
-    void Promise.all([
-      fetchSavedInnovations().catch(() => []),
-      fetchImplementationPlans().catch(() => []),
-    ]).then(([saved, plans]) => {
-      if (!active) return;
-      setSavedSlugsState(new Set(saved.map((entry) => entry.innovation.slug)));
-      setPlannedSlugsState(new Set(plans.map((plan) => plan.innovation.slug)));
-    });
-    return () => {
-      active = false;
-    };
+    void Promise.all([fetchSavedInnovations().catch(() => []), fetchImplementationPlans().catch(() => [])])
+      .then(([saved, plans]) => {
+        if (!active) return;
+        setSavedSlugsState(new Set(saved.map((entry) => entry.innovation.slug)));
+        setPlannedSlugsState(new Set(plans.map((plan) => plan.innovation.slug)));
+      });
+    return () => { active = false; };
   }, [auth.authenticated, authLoaded]);
-
   const savedSlugs = auth.authenticated ? savedSlugsState : EMPTY_SLUG_SET;
   const plannedSlugs = auth.authenticated ? plannedSlugsState : EMPTY_SLUG_SET;
 
   useEffect(() => {
     let active = true;
-    const apiSort = sort === "potential" ? "updated_at" : sort;
-    void fetchInnovations({
-      q: q || undefined,
-      primary_area: primaryArea || undefined,
-      character: character || undefined,
-      sector: sector || undefined,
-      beneficiary: beneficiary || undefined,
-      origin_location: originLocation || undefined,
-      deployment_level: deploymentLevel || undefined,
-      trl_min: trlMin || undefined,
-      organization_type: orgType || undefined,
-      verified_only: verifiedOnly ? "true" : undefined,
-      sort: apiSort,
-    })
-      .then((data) => {
-        if (!active) return;
-        setItems(data);
-        setError("");
-      })
-      .catch((err) => {
-        if (!active) return;
-        setError(
-          err instanceof Error ? err.message : "Nie udało się pobrać katalogu.",
-        );
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [
-    beneficiary,
-    character,
-    deploymentLevel,
-    orgType,
-    originLocation,
-    primaryArea,
-    q,
-    retryCount,
-    sector,
-    sort,
-    trlMin,
-    verifiedOnly,
-  ]);
+    const operation = request.kind === "problem"
+      ? matchProblem(request.context).then((data) => ({ items: data.results.map((item) => item.innovation), discovery: data }))
+      : fetchInnovations({ q: request.query || undefined }).then((items) => ({ items, discovery: null }));
+    void operation.then((data) => {
+      if (!active) return;
+      setResult({ ...data, request, retry: retryCount, error: "" });
+      if (data.discovery) setMatchResults(data.discovery.results);
+    }).catch((err) => {
+      if (active) setResult({ request, retry: retryCount, items: [], discovery: null, error: err instanceof Error ? err.message : "Nie udało się wyszukać innowacji." });
+    });
+    return () => { active = false; };
+  }, [request, retryCount, setMatchResults]);
 
-  const displayedItems = useMemo(() => {
-    if (sort !== "potential") return items;
-    return [...items].sort(
-      (a, b) =>
-        (b.scores?.application_potential ?? 0) -
-        (a.scores?.application_potential ?? 0),
-    );
-  }, [items, sort]);
+  const displayedItems = useMemo(() => selectInnovationResults(result.items, {
+    primaryArea, character, sector, beneficiaries, originLocation, deploymentLevel, trlMin,
+    sourceOrgType: orgType, verifiedOnly,
+  }, sort, matchesBySlug), [result.items, primaryArea, character, sector, beneficiaries, originLocation, deploymentLevel, trlMin, orgType, verifiedOnly, sort, matchesBySlug]);
 
-  function clearAll() {
-    setQ("");
+  function submitSearch(event: React.FormEvent) {
+    event.preventDefault();
+    if (problemMode) {
+      if (!enoughProblemText) return;
+      setSolveContext(currentContext);
+      setMatchRequest({ kind: "problem", context: currentContext });
+      setSort("relevance");
+    } else {
+      setMatchRequest(null);
+      setCatalogQuery(q.trim());
+      setRetryCount((count) => count + 1);
+    }
+  }
+
+  function clearFilters() {
     setPrimaryArea("");
     setCharacter("");
     setSector("");
-    setBeneficiary("");
+    setBeneficiaries([]);
     setOriginLocation("");
     setDeploymentLevel("");
     setTrlMin("");
@@ -208,7 +208,7 @@ function InnovationsCatalogInner() {
   }
 
   const activeChips: Array<{ label: string; clear: () => void }> = [];
-  if (q) activeChips.push({ label: `Szukaj: ${q}`, clear: () => setQ("") });
+
   if (primaryArea) {
     activeChips.push({
       label: `Obszar: ${PRIMARY_AREA_LABELS[primaryArea as keyof typeof PRIMARY_AREA_LABELS] ?? primaryArea}`,
@@ -227,10 +227,10 @@ function InnovationsCatalogInner() {
       clear: () => setSector(""),
     });
   }
-  if (beneficiary) {
+  for (const beneficiary of beneficiaries) {
     activeChips.push({
       label: `Beneficjent: ${BENEFICIARY_LABELS[beneficiary] ?? beneficiary}`,
-      clear: () => setBeneficiary(""),
+      clear: () => setBeneficiaries(beneficiaries.filter((key) => key !== beneficiary)),
     });
   }
   if (originLocation) {
@@ -278,6 +278,10 @@ function InnovationsCatalogInner() {
         </div>
       ),
     },
+    ...(discovery ? [{
+      id: "match", label: "Dopasowanie", minWidth: 240,
+      render: (item: InnovationSummary) => matchesBySlug[item.slug] ? <MatchExplanation match={matchesBySlug[item.slug]} /> : null,
+    }] : []),
     {
       id: "taxonomy",
       label: "Obszar i charakter",
@@ -350,7 +354,7 @@ function InnovationsCatalogInner() {
           <div className="flex flex-wrap gap-1.5">
             <Link
               href={`/innovations/${item.slug}`}
-              className="inline-flex min-h-9 items-center rounded-lg bg-[var(--color-accent)] px-2.5 text-xs font-semibold text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
+              className="inline-flex min-h-11 items-center rounded-lg bg-[var(--color-accent)] px-2.5 text-xs font-semibold text-[var(--color-on-accent)] hover:bg-[var(--color-accent-hover)]"
             >
               Szczegóły
             </Link>
@@ -359,7 +363,7 @@ function InnovationsCatalogInner() {
               onClick={() => toggleCompare(item.slug)}
               aria-pressed={pinned}
               className={[
-                "inline-flex min-h-9 cursor-pointer items-center rounded-lg border px-2.5 text-xs font-semibold",
+                "inline-flex min-h-11 cursor-pointer items-center rounded-lg border px-2.5 text-xs font-semibold",
                 pinned
                   ? "border-[var(--color-accent-lime-border)] bg-[var(--color-accent-lime)] text-[var(--color-on-accent-lime)]"
                   : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)]",
@@ -373,303 +377,163 @@ function InnovationsCatalogInner() {
     },
   ];
 
-  const filterSidebarContent = (
-    <div className="rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 shadow-xs">
-      <div className="flex items-center justify-between gap-2 border-b border-[var(--color-border-subtle)] pb-3">
-        <div className="flex items-center gap-2 text-sm font-bold text-[var(--color-text)]">
-          <FilterIcon size={17} />
-          <span>Filtry</span>
+  const advancedFilterCount = Number(Boolean(character)) + Number(Boolean(trlMin)) +
+    Number(Boolean(originLocation)) + Number(Boolean(orgType)) + Number(verifiedOnly);
+
+  const filterPanelContent = (
+    <section aria-label="Filtry innowacji" className="space-y-4 border-t border-[var(--color-border-subtle)] pt-5">
+      <div className="grid grid-cols-1 gap-4 @min-[560px]:grid-cols-2 @min-[1000px]:grid-cols-4">
+        <FilterSelect id="cat-area" label="Obszar innowacji" value={primaryArea} onChange={setPrimaryArea} options={PRIMARY_AREA_LABELS} />
+        <FilterSelect id="cat-sector" label="Branża" value={sector} onChange={setSector} options={SECTOR_LABELS} />
+        <div className="min-w-0 space-y-1.5">
+          <span id="cat-beneficiaries-label" className="block text-xs font-semibold text-[var(--color-text-muted)]">Beneficjenci</span>
+          <Popover title="Grupy beneficjentów" mobileModal closeButton width={360}
+            trigger={(props) => (
+              <button {...props} aria-labelledby="cat-beneficiaries-label cat-beneficiaries-value"
+                className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-left text-sm">
+                <span id="cat-beneficiaries-value" className="min-w-0 truncate">{beneficiaries.length ? `Wybrano: ${beneficiaries.length}` : "Dowolni"}</span>
+                <ChevronDownIcon size={16} className="shrink-0 text-[var(--color-text-muted)]" />
+              </button>
+            )}>
+            {(close) => (
+              <div className="space-y-3">
+                <fieldset>
+                  <legend className="mb-2 text-xs text-[var(--color-text-muted)]">Pasuje dowolna z wybranych grup</legend>
+                  {Object.entries(BENEFICIARY_LABELS).map(([key, label]) => (
+                    <label key={key} className="flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 text-sm hover:bg-[var(--color-surface-raised)]">
+                      <input type="checkbox" checked={beneficiaries.includes(key)}
+                        onChange={() => setBeneficiaries(beneficiaries.includes(key) ? beneficiaries.filter((value) => value !== key) : [...beneficiaries, key])}
+                        className="h-4 w-4 shrink-0 accent-[var(--color-accent)]" />
+                      <span>{label}</span>
+                    </label>
+                  ))}
+                </fieldset>
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-[var(--color-border-subtle)] pt-3">
+                  <Button type="button" variant="ghost" onClick={() => setBeneficiaries([])} disabled={beneficiaries.length === 0}>Wyczyść wybór</Button>
+                  <Button type="button" onClick={close}>Gotowe</Button>
+                </div>
+              </div>
+            )}
+          </Popover>
         </div>
-        {activeChips.length > 0 ? (
-          <Badge tone="info" size="compact">
-            {activeChips.length}
-          </Badge>
-        ) : null}
+        <FilterSelect id="cat-lvl" label="Etap wdrożenia" value={deploymentLevel} onChange={setDeploymentLevel} options={DEPLOYMENT_LABELS} />
       </div>
 
-      <FilterAccordion title="Obszar innowacji" defaultOpen badgeCount={primaryArea ? 1 : 0}>
-        <div className="space-y-1.5" role="radiogroup" aria-label="Główny obszar innowacji">
-          <label className="flex min-h-9 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 text-xs font-medium hover:bg-[var(--color-surface-raised)]">
-            <input
-              type="radio"
-              name="catalog-primary-area"
-              checked={primaryArea === ""}
-              onChange={() => setPrimaryArea("")}
-              className="h-4 w-4 accent-[var(--color-accent)]"
-            />
-            <span>Wszystkie obszary</span>
-          </label>
-          {Object.entries(PRIMARY_AREA_LABELS).map(([k, v]) => (
-            <label
-              key={k}
-              className="flex min-h-9 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 text-xs font-medium hover:bg-[var(--color-surface-raised)]"
-            >
-              <input
-                type="radio"
-                name="catalog-primary-area"
-                checked={primaryArea === k}
-                onChange={() => setPrimaryArea(k)}
-                className="h-4 w-4 accent-[var(--color-accent)]"
-              />
-              <span>{v}</span>
-            </label>
-          ))}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button type="button" variant="outline" leadingIcon={<FilterIcon size={16} />}
+          aria-expanded={advancedFiltersOpen} aria-controls="innovation-advanced-filters"
+          onClick={() => setAdvancedFiltersOpen((open) => !open)}>
+          {advancedFiltersOpen ? "Mniej filtrów" : "Więcej filtrów"}
+          {advancedFilterCount > 0 ? <Badge tone="info" size="compact">{advancedFilterCount}</Badge> : null}
+          <ChevronDownIcon size={15} className={`shrink-0 transition-transform ${advancedFiltersOpen ? "rotate-180" : ""}`} />
+        </Button>
+        {activeChips.length > 0 ? <Button type="button" variant="ghost" onClick={clearFilters}>Wyczyść filtry</Button> : null}
+      </div>
+
+      <div id="innovation-advanced-filters" hidden={!advancedFiltersOpen}
+        className="rounded-xl bg-[var(--color-canvas)] p-4">
+        <div className="grid grid-cols-1 gap-4 @min-[560px]:grid-cols-2 @min-[1000px]:grid-cols-4">
+          <FilterSelect id="cat-character" label="Charakter rozwiązania" value={character} onChange={setCharacter} options={CHARACTER_LABELS} emptyLabel="Dowolny" />
+          <FilterSelect id="cat-trl" label="Minimalny TRL (jeśli dotyczy)" value={trlMin} onChange={setTrlMin}
+            options={Object.fromEntries([1, 2, 3, 4, 5, 6, 7, 8, 9].map((level) => [String(level), `TRL ≥ ${level}`]))} emptyLabel="Dowolny" />
+          <div className="min-w-0 space-y-1.5">
+            <label htmlFor="cat-location" className="block text-xs font-semibold text-[var(--color-text-muted)]">Pochodzenie innowacji</label>
+            <input id="cat-location" value={originLocation} onChange={(event) => setOriginLocation(event.target.value)} placeholder="Np. Podkarpackie, Gdynia"
+              className="min-h-11 w-full min-w-0 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm" />
+          </div>
+          <FilterSelect id="cat-org" label="Typ organizacji źródłowej" value={orgType} onChange={setOrgType} options={ORG_TYPE_LABELS} emptyLabel="Dowolny" />
         </div>
-      </FilterAccordion>
-
-      <FilterAccordion title="Charakter rozwiązania" defaultOpen badgeCount={character ? 1 : 0}>
-        <div className="space-y-1.5" role="radiogroup" aria-label="Charakter rozwiązania">
-          <label className="flex min-h-9 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 text-xs font-medium hover:bg-[var(--color-surface-raised)]">
-            <input
-              type="radio"
-              name="catalog-character"
-              checked={character === ""}
-              onChange={() => setCharacter("")}
-              className="h-4 w-4 accent-[var(--color-accent)]"
-            />
-            <span>Dowolny charakter</span>
-          </label>
-          {Object.entries(CHARACTER_LABELS).map(([k, v]) => (
-            <label
-              key={k}
-              className="flex min-h-9 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1 text-xs font-medium hover:bg-[var(--color-surface-raised)]"
-            >
-              <input
-                type="radio"
-                name="catalog-character"
-                checked={character === k}
-                onChange={() => setCharacter(k)}
-                className="h-4 w-4 accent-[var(--color-accent)]"
-              />
-              <span>{v}</span>
-            </label>
-          ))}
-        </div>
-      </FilterAccordion>
-
-      <FilterAccordion
-        title="Etap wdrożenia i TRL"
-        defaultOpen
-        badgeCount={(deploymentLevel ? 1 : 0) + (trlMin ? 1 : 0)}
-      >
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="cat-lvl" className="mb-1 block text-[11px] font-semibold text-[var(--color-text-muted)]">
-              Poziom wdrożenia
-            </label>
-            <select
-              id="cat-lvl"
-              value={deploymentLevel}
-              onChange={(e) => setDeploymentLevel(e.target.value)}
-              className="min-h-10 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-xs"
-            >
-              <option value="">Wszystkie</option>
-              {Object.entries(DEPLOYMENT_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label htmlFor="cat-trl" className="mb-1 block text-[11px] font-semibold text-[var(--color-text-muted)]">
-              Poziom TRL (jeśli dotyczy)
-            </label>
-            <select
-              id="cat-trl"
-              value={trlMin}
-              onChange={(e) => setTrlMin(e.target.value)}
-              className="min-h-10 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-xs"
-            >
-              <option value="">Dowolny</option>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((level) => (
-                <option key={level} value={String(level)}>
-                  TRL &ge; {level}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </FilterAccordion>
-
-      <FilterAccordion
-        title="Branża i beneficjenci"
-        badgeCount={(sector ? 1 : 0) + (beneficiary ? 1 : 0)}
-      >
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="cat-sector" className="mb-1 block text-[11px] font-semibold text-[var(--color-text-muted)]">
-              Branża
-            </label>
-            <select
-              id="cat-sector"
-              value={sector}
-              onChange={(e) => setSector(e.target.value)}
-              className="min-h-10 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-xs"
-            >
-              <option value="">Wszystkie</option>
-              {Object.entries(SECTOR_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label htmlFor="cat-ben" className="mb-1 block text-[11px] font-semibold text-[var(--color-text-muted)]">
-              Grupa beneficjentów
-            </label>
-            <select
-              id="cat-ben"
-              value={beneficiary}
-              onChange={(e) => setBeneficiary(e.target.value)}
-              className="min-h-10 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-xs"
-            >
-              <option value="">Wszystkie</option>
-              {Object.entries(BENEFICIARY_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </FilterAccordion>
-
-      <FilterAccordion
-        title="Lokalizacja i wiarygodność"
-        badgeCount={(originLocation ? 1 : 0) + (orgType ? 1 : 0) + (verifiedOnly ? 1 : 0)}
-      >
-        <div className="space-y-3">
-          <div>
-            <label htmlFor="cat-location" className="mb-1 block text-[11px] font-semibold text-[var(--color-text-muted)]">
-              Lokalizacja pochodzenia
-            </label>
-            <input
-              id="cat-location"
-              value={originLocation}
-              onChange={(e) => setOriginLocation(e.target.value)}
-              placeholder="np. Podkarpackie, Gdynia"
-              className="min-h-10 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-xs"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="cat-org" className="mb-1 block text-[11px] font-semibold text-[var(--color-text-muted)]">
-              Typ organizacji źródłowej
-            </label>
-            <select
-              id="cat-org"
-              value={orgType}
-              onChange={(e) => setOrgType(e.target.value)}
-              className="min-h-10 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-2.5 text-xs"
-            >
-              <option value="">Wszystkie</option>
-              {Object.entries(ORG_TYPE_LABELS).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <label className="flex min-h-9 cursor-pointer items-center gap-2 text-xs font-medium text-[var(--color-text)]">
-            <input
-              type="checkbox"
-              checked={verifiedOnly}
-              onChange={(e) => setVerifiedOnly(e.target.checked)}
-              className="h-4 w-4 accent-[var(--color-accent)]"
-            />
-            <span>Tylko potwierdzone źródła</span>
-          </label>
-        </div>
-      </FilterAccordion>
+        <label className="mt-3 flex min-h-11 cursor-pointer items-center gap-2 text-sm">
+          <input type="checkbox" checked={verifiedOnly} onChange={(event) => setVerifiedOnly(event.target.checked)} className="h-4 w-4 accent-[var(--color-accent)]" />
+          Tylko potwierdzone źródła
+        </label>
+      </div>
 
       {activeChips.length > 0 ? (
-        <div className="border-t border-[var(--color-border-subtle)] pt-3">
-          <button
-            type="button"
-            onClick={clearAll}
-            className="inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 text-xs font-semibold text-[var(--color-accent-text)] transition-colors hover:border-[var(--color-accent)]"
-          >
-            <CloseIcon size={14} />
-            <span>Wyczyść filtry</span>
-          </button>
+        <div aria-label="Aktywne filtry" className="flex flex-wrap items-center gap-2">
+          {activeChips.map((chip) => (
+            <button key={chip.label} type="button" onClick={chip.clear} aria-label={`Usuń filtr: ${chip.label}`}
+              className="inline-flex min-h-11 max-w-full cursor-pointer items-center gap-2 rounded-full border border-[var(--color-info-border)] bg-[var(--color-info-bg)] px-3 text-xs font-semibold text-[var(--color-info-text)] hover:opacity-85">
+              <span className="min-w-0 break-words">{chip.label}</span><span aria-hidden="true" className="shrink-0">×</span>
+            </button>
+          ))}
         </div>
       ) : null}
-    </div>
+    </section>
   );
 
   return (
-    <div className="space-y-6">
-      {/* Top Search & Description Row */}
-      <div className="flex flex-col gap-4 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 sm:p-5 lg:flex-row lg:items-center lg:justify-between print:hidden">
-        <p className="max-w-xl text-sm leading-relaxed text-[var(--color-text-muted)]">
-          {auth.authenticated
-            ? "Przeglądaj, filtruj i porównuj sprawdzone rozwiązania. Gwiazdka na karcie zapisuje innowację bezpośrednio w Moich wdrożeniach."
-            : "Przeglądaj, filtruj i porównuj sprawdzone rozwiązania ze źródeł publicznych."}
+    <div className="@container space-y-6">
+      <form onSubmit={submitSearch} role="search" aria-label="Szukaj innowacji" className="space-y-4 rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4 sm:p-6 print:hidden">
+        <div className="space-y-1">
+          <label htmlFor="innovation-query" className="text-lg font-bold text-[var(--color-text)]">Czego szukasz?</label>
+          <p id="innovation-query-help" className="text-sm text-[var(--color-text-muted)]">
+            Wpisz nazwę lub frazę. Możesz też opisać problem i dopasować rozwiązania do swojej organizacji.
+          </p>
+        </div>
+        <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-end">
+          <textarea id="innovation-query" rows={problemMode ? 3 : 1} value={q} onChange={(event) => setQ(event.target.value)}
+            aria-describedby="innovation-query-help innovation-query-guidance"
+            placeholder={problemMode ? "Np. Nasza gmina chce ułatwić seniorom korzystanie z usług cyfrowych." : "Nazwa innowacji, temat lub słowo kluczowe…"}
+            className="min-h-11 min-w-0 flex-1 resize-y rounded-xl border border-[var(--color-border)] bg-[var(--color-canvas)] p-3 text-sm text-[var(--color-text)]"
+            onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !problemMode) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} />
+          <Button type="submit" disabled={loading || (problemMode && !enoughProblemText)}>
+            {loading ? "Wyszukiwanie…" : problemMode ? "Dopasuj rozwiązania" : "Szukaj innowacji"}
+          </Button>
+        </div>
+        <label className="inline-flex min-h-11 cursor-pointer items-center gap-2 text-sm font-semibold">
+          <input type="checkbox" checked={problemMode} aria-controls={problemMode ? "problem-context" : undefined}
+            onChange={(event) => {
+              setProblemMode(event.target.checked);
+              if (!event.target.checked) { setMatchRequest(null); setCatalogQuery(""); setSort("potential"); }
+            }} className="h-4 w-4 accent-[var(--color-accent)]" />
+          Opisz problem dokładniej i dopasuj rozwiązania
+        </label>
+        <p id="innovation-query-guidance" className="text-xs text-[var(--color-text-muted)]" aria-live="polite">
+          {problemMode
+            ? enoughProblemText ? "Dodaj branżę i beneficjentów w filtrach oraz kontekst poniżej, aby zwiększyć trafność dopasowania." : "Opisz problem w co najmniej kilku słowach, np. kogo dotyczy i jaki efekt chcesz osiągnąć."
+            : "Bez wpisanej frazy zobaczysz wszystkie innowacje. Filtry działają również na dopasowaniach problemu."}
         </p>
-
-        <form
-          onSubmit={(e) => e.preventDefault()}
-          role="search"
-          className="flex w-full max-w-md items-center gap-2"
-        >
-          <label htmlFor="cat-search" className="sr-only">
-            Wyszukaj w katalogu po nazwie, opisie, problemie, organizacji lub tagach
-          </label>
-          <div className="relative flex-1">
-            <SearchIcon
-              size={17}
-              className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-[var(--color-text-muted)]"
-            />
-            <input
-              id="cat-search"
-              type="search"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Wyszukaj w katalogu…"
-              className="min-h-11 w-full rounded-full border border-[var(--color-border)] bg-[var(--color-canvas)] pr-4 pl-10 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)]"
-            />
-          </div>
-          {q ? (
-            <IconButton
-              variant="outline"
-              shape="pill"
-              aria-label="Wyczyść wyszukiwanie"
-              onClick={() => setQ("")}
-            >
-              <CloseIcon size={16} />
-            </IconButton>
-          ) : null}
-        </form>
-      </div>
+        {problemMode ? (
+          <fieldset id="problem-context" className="space-y-4 border-t border-[var(--color-border-subtle)] pt-4">
+            <legend className="px-1 text-sm font-semibold">Kontekst wdrożenia · opcjonalnie</legend>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div><label htmlFor="search-adopter" className="mb-1 block text-xs font-semibold">Typ Twojej organizacji</label>
+                <select id="search-adopter" value={adopterOrgType} onChange={(event) => setAdopterOrgDraft(event.target.value as OrgType | "")}
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm">
+                  <option value="">Nie określono</option>{Object.entries(ORG_TYPE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                </select></div>
+              <div><label htmlFor="search-deployment-location" className="mb-1 block text-xs font-semibold">Lokalizacja planowanego wdrożenia</label>
+                <input id="search-deployment-location" value={deploymentLocation} onChange={(event) => setLocationDraft(event.target.value)} placeholder="Np. Rzeszów, Podkarpackie"
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm" /></div>
+              <div><label htmlFor="search-scale" className="mb-1 block text-xs font-semibold">Skala problemu</label>
+                <input id="search-scale" value={problemScale} onChange={(event) => setProblemScale(event.target.value)} placeholder="Np. 1500 seniorów w gminie"
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm" /></div>
+              <div><label htmlFor="search-maturity" className="mb-1 block text-xs font-semibold">Minimalna dojrzałość rozwiązania</label>
+                <select id="search-maturity" value={preferredMaturity} onChange={(event) => setPreferredMaturity(event.target.value)}
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm">
+                  <option value="">Dowolny poziom</option>{Object.entries(DEPLOYMENT_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                </select></div>
+            </div>
+            <p className="text-xs text-[var(--color-text-muted)]">Kontekst zapisze się na potrzeby planu wdrożenia. Lokalizacja wdrożenia jest osobna od filtra pochodzenia innowacji.</p>
+          </fieldset>
+        ) : null}
+        {filterPanelContent}
+      </form>
 
       <CompareTray />
+      {contextChanged ? <p role="status" className="rounded-xl border border-[var(--color-warn-border)] bg-[var(--color-warn-bg)] p-4 text-sm text-[var(--color-warn-text)]">Zmieniono opis lub kontekst. Kliknij „Dopasuj rozwiązania”, aby przeliczyć wynik. Widoczne procenty dotyczą poprzedniego zapytania.</p> : null}
+      {discovery ? <section aria-label="Informacja o dopasowaniu" className="space-y-2 text-sm text-[var(--color-text-muted)]">
+        <p aria-live="polite">{discovery.guidance_message}</p>
+        <p className="text-xs">Dopasowanie: problem 40%, branża 20%, beneficjenci 20%, typ Twojej organizacji 20%. Wynik opisuje podobieństwo do potrzeb, a nie prawdopodobieństwo udanego wdrożenia.</p>
+        {discovery.low_confidence ? <p role="status" className="font-semibold text-[var(--color-warn-text)]">{discovery.low_confidence_reason}</p> : null}
+        {discovery.low_confidence && displayedItems.length > 0 ? <NotifyMeBox key={JSON.stringify(request)} problemText={request.kind === "problem" ? request.context.problem_text : catalogQuery} filtersSnapshot={request.kind === "problem" ? { ...request.context } : {}} /> : null}
+      </section> : null}
 
-      {/* Main 2-column Layout: Left Filter Sidebar + Right Results */}
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[276px_minmax(0,1fr)]">
-        {/* Desktop Filter Sidebar */}
-        <aside aria-label="Filtry katalogu" className="hidden lg:block lg:sticky lg:top-4 print:hidden">
-          {filterSidebarContent}
-        </aside>
-
-        <div className="min-w-0 space-y-5">
-          {/* Toolbar: Results Count, Mobile Filter Button, Sort, View Switch, Exports */}
+      <section aria-label="Wyniki wyszukiwania" aria-busy={loading} className="min-w-0 space-y-5">
+          {/* Result count, sorting, view and export actions. */}
           <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
             <div className="flex flex-wrap items-center gap-2.5">
-              <Button
-                variant="outline"
-                size="compact"
-                leadingIcon={<FilterIcon size={16} />}
-                className="lg:hidden"
-                aria-expanded={mobileFiltersOpen}
-                onClick={() => setMobileFiltersOpen((prev) => !prev)}
-              >
-                {activeChips.length > 0 ? `Filtry (${activeChips.length})` : "Filtry"}
-              </Button>
-
               <p
                 aria-live="polite"
                 className="text-sm font-bold text-[var(--color-text)]"
@@ -698,8 +562,9 @@ function InnovationsCatalogInner() {
                   id="cat-sort"
                   value={sort}
                   onChange={(e) => setSort(e.target.value)}
-                  className="min-h-10 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-xs font-semibold text-[var(--color-text)]"
+                  className="min-h-11 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-xs font-semibold text-[var(--color-text)]"
                 >
+                  {discovery ? <option value="relevance">Trafność dopasowania</option> : null}
                   <option value="potential">Potencjał wdrożenia</option>
                   <option value="updated_at">Data aktualizacji</option>
                   <option value="deployment_level">Poziom wdrożenia</option>
@@ -730,7 +595,7 @@ function InnovationsCatalogInner() {
                 variant="outline"
                 size="compact"
                 leadingIcon={<CsvIcon size={16} />}
-                disabled={displayedItems.length === 0}
+                disabled={loading || Boolean(error) || displayedItems.length === 0}
                 onClick={() =>
                   downloadCsvFile(
                     "katalog-innowacji.csv",
@@ -744,7 +609,7 @@ function InnovationsCatalogInner() {
                 variant="outline"
                 size="compact"
                 leadingIcon={<PdfIcon size={16} />}
-                disabled={displayedItems.length === 0}
+                disabled={loading || Boolean(error) || displayedItems.length === 0}
                 onClick={() => window.print()}
               >
                 PDF
@@ -752,46 +617,16 @@ function InnovationsCatalogInner() {
             </div>
           </div>
 
-          {/* Mobile Expandable Filters */}
-          {mobileFiltersOpen ? (
-            <div className="lg:hidden print:hidden">{filterSidebarContent}</div>
-          ) : null}
-
-          {/* Active Chips */}
-          {activeChips.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2 print:hidden">
-              {activeChips.map((chip) => (
-                <button
-                  key={chip.label}
-                  type="button"
-                  onClick={chip.clear}
-                  className="inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--color-info-border)] bg-[var(--color-info-bg)] px-3 text-xs font-semibold text-[var(--color-info-text)] hover:opacity-85"
-                >
-                  <span>{chip.label}</span>
-                  <span aria-hidden="true">×</span>
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={clearAll}
-                className="cursor-pointer px-2 text-xs font-semibold text-[var(--color-accent-text)] underline"
-              >
-                Wyczyść wszystkie
-              </button>
-            </div>
-          ) : null}
-
           {/* Content States */}
           {loading ? (
             <LoadingState
-              label="Ładowanie katalogu innowacji…"
+              label="Wyszukiwanie innowacji…"
               description="Pobieramy zweryfikowane rekordy i wskaźniki gotowości."
             />
           ) : error ? (
             <ErrorState
               message={error}
               onRetry={() => {
-                setLoading(true);
                 setRetryCount((c) => c + 1);
               }}
             />
@@ -800,41 +635,44 @@ function InnovationsCatalogInner() {
               title="Brak wyników dla wybranych kryteriów"
               description="Usuń lub zmień część filtrów (np. wymagany TRL lub lokalizację) albo zostaw e-mail, aby otrzymać powiadomienie o nowych projektach."
               actions={
-                <Button variant="outline" onClick={clearAll}>
+                <Button variant="outline" onClick={clearFilters}>
                   Wyczyść filtry
                 </Button>
               }
             >
               <div className="w-full max-w-xl rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-canvas)] p-4 text-left">
                 <NotifyMeBox
-                  problemText={q}
+                  key={JSON.stringify(request)}
+                  problemText={request.kind === "problem" ? request.context.problem_text : catalogQuery}
                   filtersSnapshot={{
                     primaryArea,
                     character,
                     sector,
-                    beneficiary,
+                    beneficiaries,
                     originLocation,
                     deploymentLevel,
                     trlMin,
                     orgType,
                     verifiedOnly,
+                    ...(request.kind === "problem" ? request.context : {}),
                   }}
                 />
               </div>
             </EmptyState>
           ) : viewMode === "table" ? (
             <SimpleTable
-              name="Katalog innowacji"
+              name="Wyniki wyszukiwania innowacji"
               rows={displayedItems}
               columns={tableColumns}
               getRowId={(item) => item.slug}
             />
           ) : (
-            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-5 @min-[580px]:grid-cols-2 @min-[880px]:grid-cols-3">
               {displayedItems.map((item) => (
+                <div key={item.slug} className="flex min-w-0 flex-col gap-2 [&>article]:flex-1">
                 <InnovationCardCompact
-                  key={item.slug}
                   innovation={item}
+                  match={matchesBySlug[item.slug]}
                   isSaved={savedSlugs.has(item.slug)}
                   hasPlan={plannedSlugs.has(item.slug)}
                   onSaved={(slug) =>
@@ -848,26 +686,32 @@ function InnovationsCatalogInner() {
                     })
                   }
                 />
+                {matchesBySlug[item.slug] ? <MatchExplanation match={matchesBySlug[item.slug]} /> : null}
+                </div>
               ))}
             </div>
           )}
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
 
-export default function InnovationsCatalogPage() {
+function InnovationSearchRoute() {
+  const params = useSearchParams();
+  return <InnovationSearchInner key={params.toString()} initialQuery={params.get("q") ?? ""} initialProblemMode={params.get("mode") === "problem"} />;
+}
+
+export default function InnovationSearchPage() {
   return (
     <Suspense
       fallback={
         <LoadingState
-          label="Ładowanie katalogu innowacji…"
+          label="Wyszukiwanie innowacji…"
           description="Przygotowujemy filtry i listę rozwiązań."
         />
       }
     >
-      <InnovationsCatalogInner />
+      <InnovationSearchRoute />
     </Suspense>
   );
 }

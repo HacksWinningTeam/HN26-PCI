@@ -164,20 +164,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
     items.push(
       {
-        id: "solve",
-        label: "Szukaj rozwiązania",
-        href: "/solve",
-        icon: <SearchIcon size={20} />,
-        active: pathname === "/solve",
-        current: "page",
-        onSelect: () => setMenuOpenPath(null),
-      },
-      {
         id: "innovations",
-        label: "Katalog innowacji",
+        label: "Szukaj innowacji",
         href: "/innovations",
-        icon: <MenuIcon size={20} />,
-        active: pathname === "/innovations" || pathname.startsWith("/innovations/"),
+        icon: <SearchIcon size={20} />,
+        active: pathname === "/solve" || pathname === "/innovations" || pathname.startsWith("/innovations/"),
         current: "page",
         onSelect: () => setMenuOpenPath(null),
       },
@@ -269,14 +260,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         sidebar={
           <Sidebar
             label="Nawigacja główna"
-            mobileSearch={
+            mobileSearch={pathname === "/innovations" || pathname === "/solve" ? undefined : (
               <Suspense fallback={null}>
                 <ShellSearchForm
                   id={`${searchId}-mobile`}
                   onNavigate={() => setMenuOpenPath(null)}
                 />
               </Suspense>
-            }
+            )}
             brand={
               <Link
                 href={isAuthenticated ? "/workspace" : "/"}
@@ -324,7 +315,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </IconButton>
               }
               search={
-                navBarOverride?.hideSearch ? undefined : (
+                (pathname === "/innovations" || pathname === "/solve" || navBarOverride?.hideSearch) ? undefined : (
                   <Suspense fallback={null}>
                     <ShellSearchForm id={`${searchId}-desktop`} />
                   </Suspense>

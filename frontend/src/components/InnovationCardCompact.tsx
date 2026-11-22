@@ -108,8 +108,8 @@ export function InnovationCardCompact({
       : `Dodaj do ulubionych: ${innovation.title_pl}`;
 
   return (
-    <article className="group relative flex cursor-pointer flex-col justify-between overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-xs transition-all hover:border-[var(--color-accent)] hover:shadow-sm">
-      <div>
+    <article className="@container/card group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-xs transition-all hover:border-[var(--color-accent)] hover:shadow-sm">
+      <div className="flex flex-1 flex-col">
         <InnovationAreaVisual
           primaryArea={innovation.primary_area}
           size="card"
@@ -157,96 +157,99 @@ export function InnovationCardCompact({
           }
         />
 
-        <div className="space-y-3 p-5">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Badge tone={AREA_BADGE_TONE[innovation.primary_area]} size="compact">
-              {PRIMARY_AREA_LABELS[innovation.primary_area]}
-            </Badge>
-            {innovation.innovation_character.slice(0, 2).map((ch) => (
-              <Badge key={ch} tone="neutral" variant="outline" size="compact">
-                {CHARACTER_LABELS[ch]}
+        <div className="flex flex-1 flex-col p-5">
+          <div className="flex-1 space-y-3">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Badge tone={AREA_BADGE_TONE[innovation.primary_area]} size="compact">
+                {PRIMARY_AREA_LABELS[innovation.primary_area]}
               </Badge>
-            ))}
-            {innovation.trl !== null ? (
-              <Badge tone="neutral" size="compact">
-                TRL {innovation.trl}/9
-              </Badge>
-            ) : null}
-          </div>
+              {innovation.innovation_character.slice(0, 2).map((ch) => (
+                <Badge key={ch} tone="neutral" variant="outline" size="compact">
+                  {CHARACTER_LABELS[ch]}
+                </Badge>
+              ))}
+              {innovation.trl !== null ? (
+                <Badge tone="neutral" size="compact">
+                  TRL {innovation.trl}/9
+                </Badge>
+              ) : null}
+            </div>
 
-          <div className="space-y-1.5">
-            <h3 className="text-lg font-bold leading-snug text-[var(--color-text)]">
-              <Link
-                href={`/innovations/${innovation.slug}`}
-                className="after:absolute after:inset-0 after:z-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
-              >
-                {innovation.title_pl}
-              </Link>
-            </h3>
-            <p className="line-clamp-2 text-sm leading-relaxed text-[var(--color-text-muted)]">
-              {innovation.short_summary_pl}
-            </p>
-          </div>
-
-          {match ? (
-            <div className="rounded-xl border border-[var(--color-info-border)]/45 bg-[var(--color-info-bg)] p-3 text-xs">
-              <p className="font-semibold text-[var(--color-info-text)]">
-                Przyczyna dopasowania: {match.primary_reason}
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-bold leading-snug text-[var(--color-text)]">
+                <Link
+                  href={`/innovations/${innovation.slug}`}
+                  className="after:absolute after:inset-0 after:z-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+                >
+                  {innovation.title_pl}
+                </Link>
+              </h3>
+              <p className="line-clamp-2 text-sm leading-relaxed text-[var(--color-text-muted)]">
+                {innovation.short_summary_pl}
               </p>
-              <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[var(--color-text-muted)]">
-                <span>Problem (40%): {match.problem_score}%</span>
-                <span>Branża (20%): {match.sector_score}%</span>
-                <span>Beneficjenci (20%): {match.beneficiary_score}%</span>
-                <span>Organizacja (20%): {match.organization_fit_score}%</span>
+            </div>
+
+            {match ? (
+              <div className="rounded-xl border border-[var(--color-info-border)]/45 bg-[var(--color-info-bg)] p-3 text-xs">
+                <p className="font-semibold text-[var(--color-info-text)]">
+                  Przyczyna dopasowania: {match.primary_reason}
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 font-mono text-[var(--color-text-muted)]">
+                  <span>Problem (40%): {match.problem_score}%</span>
+                  <span>Branża (20%): {match.sector_score}%</span>
+                  <span>Beneficjenci (20%): {match.beneficiary_score}%</span>
+                  <span>Organizacja (20%): {match.organization_fit_score}%</span>
+                </div>
               </div>
-            </div>
-          ) : null}
+            ) : null}
 
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-            <div>
-              <dt className="text-[var(--color-text-muted)]">Branża</dt>
-              <dd className="truncate font-semibold text-[var(--color-text)]">
-                {innovation.sectors.map((s) => SECTOR_LABELS[s] ?? s).join(", ") || "—"}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[var(--color-text-muted)]">Pochodzenie</dt>
-              <dd className="truncate font-semibold text-[var(--color-text)]">
-                {innovation.origin_location}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[var(--color-text-muted)]">Gotowość</dt>
-              <dd className="truncate font-semibold text-[var(--color-text)]">
-                {DEPLOYMENT_LABELS[innovation.deployment_level]}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-[var(--color-text-muted)]">Weryfikacja</dt>
-              <dd className="truncate font-semibold text-[var(--color-text)]">
-                {VERIFICATION_LABELS[innovation.verification_status]}
-              </dd>
-            </div>
-            <div className="col-span-2">
-              <dt className="text-[var(--color-text-muted)]">Beneficjenci</dt>
-              <dd className="truncate font-medium text-[var(--color-text)]">
-                {innovation.beneficiary_groups
-                  .map((b) => BENEFICIARY_LABELS[b] ?? b)
-                  .join(", ") || "—"}
-              </dd>
-            </div>
-          </dl>
+            <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+              <div>
+                <dt className="text-[var(--color-text-muted)]">Branża</dt>
+                <dd className="truncate font-semibold text-[var(--color-text)]">
+                  {innovation.sectors.map((s) => SECTOR_LABELS[s] ?? s).join(", ") || "—"}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--color-text-muted)]">Pochodzenie</dt>
+                <dd className="truncate font-semibold text-[var(--color-text)]">
+                  {innovation.origin_location}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--color-text-muted)]">Gotowość</dt>
+                <dd className="truncate font-semibold text-[var(--color-text)]">
+                  {DEPLOYMENT_LABELS[innovation.deployment_level]}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-[var(--color-text-muted)]">Weryfikacja</dt>
+                <dd className="truncate font-semibold text-[var(--color-text)]">
+                  {VERIFICATION_LABELS[innovation.verification_status]}
+                </dd>
+              </div>
+              <div className="col-span-2">
+                <dt className="text-[var(--color-text-muted)]">Beneficjenci</dt>
+                <dd className="truncate font-medium text-[var(--color-text)]">
+                  {innovation.beneficiary_groups
+                    .map((b) => BENEFICIARY_LABELS[b] ?? b)
+                    .join(", ") || "—"}
+                </dd>
+              </div>
+            </dl>
 
-          <div className="border-t border-[var(--color-border-subtle)] pt-3">
+          </div>
+
+          <div className="mt-3 shrink-0 border-t border-[var(--color-border-subtle)] pt-3">
             <PotentialMeter score={innovation.scores?.application_potential} />
           </div>
         </div>
       </div>
 
-      <div className="relative z-10 flex flex-wrap items-center gap-2 border-t border-[var(--color-border-subtle)] bg-[var(--color-canvas)]/50 px-5 py-3">
+      <div className="relative z-10 flex shrink-0 flex-col items-stretch gap-2 border-t border-[var(--color-border-subtle)] bg-[var(--color-canvas)]/50 px-5 py-3 @min-[25rem]/card:flex-row @min-[25rem]/card:items-center">
         <Link
           href={`/innovations/${innovation.slug}`}
-          className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-[var(--color-accent)] px-3.5 py-2 text-xs font-bold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+          className="inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-[var(--color-accent)] px-3.5 py-2 text-center text-xs font-bold text-[var(--color-on-accent)] transition-colors hover:bg-[var(--color-accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] @min-[25rem]/card:w-auto @min-[25rem]/card:flex-1"
         >
           Otwórz szczegóły
         </Link>
@@ -255,7 +258,7 @@ export function InnovationCardCompact({
           onClick={() => toggleCompare(innovation.slug)}
           aria-pressed={isPinned}
           className={[
-            "inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]",
+            "inline-flex min-h-11 w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)] @min-[25rem]/card:w-auto",
             isPinned
               ? "border-[var(--color-accent-lime-border)] bg-[var(--color-accent-lime)] text-[var(--color-on-accent-lime)]"
               : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] hover:border-[var(--color-accent)]",
@@ -266,6 +269,7 @@ export function InnovationCardCompact({
         </button>
         <IconButton
           variant="outline"
+          className="w-full @min-[25rem]/card:w-11"
           aria-label={copied ? "Skopiowano link" : `Udostępnij: ${innovation.title_pl}`}
           title={copied ? "Skopiowano link" : "Udostępnij link"}
           onClick={handleShare}
