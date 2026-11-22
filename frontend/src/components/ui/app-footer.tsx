@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { useTranslations } from "@/i18n/provider";
 
 export function AppFooter({ fullWidth = false }: { fullWidth?: boolean }) {
+  const t = useTranslations();
+
   return (
     <footer
       className={[
@@ -18,13 +23,13 @@ export function AppFooter({ fullWidth = false }: { fullWidth?: boolean }) {
           .filter(Boolean)
           .join(" ")}
       >
-        <span>Praktoteka © 2026 • Stworzone na HackNation 2026</span>
+        <span>{t("Praktoteka © 2026 • Created for HackNation 2026")}</span>
         <div className="flex flex-wrap items-center gap-4">
           <Link href="/design-system" className="inline-flex min-h-11 items-center hover:text-[var(--color-text)] hover:underline">
-            Design System
+            {t("Design system")}
           </Link>
           <Link href="/admin" className="inline-flex min-h-11 items-center hover:text-[var(--color-text)] hover:underline">
-            Panel Admina
+            {t("Admin Panel")}
           </Link>
         </div>
       </div>

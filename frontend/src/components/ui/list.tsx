@@ -51,10 +51,10 @@ export function DefinitionList({
             isGrid
               ? "space-y-0.5 text-sm"
               : [
-                  "py-3 text-sm",
+                  "text-sm",
                   item.layout === "stacked"
-                    ? "space-y-1"
-                    : "flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1",
+                    ? "space-y-1 py-3"
+                    : "flex min-h-[60px] flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2",
                 ].join(" ")
           }
         >

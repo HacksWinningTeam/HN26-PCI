@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { useId, useRef, useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { SettingsPanel } from "@/components/SettingsPanel";
 import { AccessibilityIcon } from "@/components/accessibility/AccessibilityIcon";
 import { AccessibilityPreferencesControls } from "@/components/accessibility/AccessibilityPreferencesControls";
-import { LanguageSelector } from "@/i18n/language-selector";
 import { useTranslations } from "@/i18n/provider";
 import { CloseIcon, MenuIcon, SettingsIcon } from "./icons";
 import { Sheet } from "./sheet";
@@ -100,7 +100,7 @@ export function PublicNavBar({ variant = "landing", layout = "responsive" }: Pub
       </header>
       <Sheet open={panel !== null} onClose={() => setPanel(null)}
         title={panel === "settings" ? t("Settings") : t("Accessibility")}>
-        {panel === "settings" ? <LanguageSelector /> : null}
+        {panel === "settings" ? <SettingsPanel /> : null}
         {panel === "accessibility" ? <AccessibilityPreferencesControls layout="settings" /> : null}
       </Sheet>
     </>

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { SettingsPanel } from "@/components/SettingsPanel";
 import { AccessibilityIcon } from "@/components/accessibility/AccessibilityIcon";
 import { AccessibilityPreferencesControls } from "@/components/accessibility/AccessibilityPreferencesControls";
-import { LanguageSelector } from "@/i18n/language-selector";
 import { useTranslations } from "@/i18n/provider";
 import { SettingsIcon, SignOutIcon } from "./icons";
 import { Sheet } from "./sheet";
@@ -65,7 +65,7 @@ export function SidebarUtilities({ onLogout, logoutLabel }: SidebarUtilitiesProp
         title={panel === "settings" ? t("Settings") : t("Accessibility")}
         onClose={() => setPanel(null)}
       >
-        {panel === "settings" ? <LanguageSelector /> : null}
+        {panel === "settings" ? <SettingsPanel /> : null}
         {panel === "accessibility" ? <AccessibilityPreferencesControls layout="settings" /> : null}
       </Sheet>
     </>
