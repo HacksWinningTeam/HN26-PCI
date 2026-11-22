@@ -114,6 +114,21 @@ def test_auth_boundary_profile_plan_variants_and_pci_admin():
     assert reg.status_code == 201
     assert reg.data["authenticated"] is True
 
+    # Saved innovations: add and remove favorites
+    fav_add = client.post(
+        "/api/saved-innovations/",
+        {"innovation_slug": "aqua-guard-gdynia"},
+        format="json",
+    )
+    assert fav_add.status_code == 201
+    fav_list = client.get("/api/saved-innovations/")
+    assert any(item["innovation"]["slug"] == "aqua-guard-gdynia" for item in fav_list.data)
+
+    fav_del = client.delete("/api/saved-innovations/aqua-guard-gdynia/")
+    assert fav_del.status_code == 204
+    fav_del_missing = client.delete("/api/saved-innovations/aqua-guard-gdynia/")
+    assert fav_del_missing.status_code == 404
+
     # Level-3 detail reveals contact_info
     full = client.get("/api/innovations/e-urzad-senior/full/")
     assert full.status_code == 200

@@ -226,3 +226,26 @@ class SavedInnovationListCreateView(APIView):
             innovation=innovation,
         )
         return Response(SavedInnovationSerializer(saved).data, status=status.HTTP_201_CREATED)
+
+
+class SavedInnovationDetailView(APIView):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Discovery"],
+        responses={204: None},
+        summary="Remove a saved innovation from current user's workspace",
+    )
+    def delete(self, request, slug: str):
+        saved = SavedInnovation.objects.filter(
+            user=request.user,
+            innovation__slug=slug,
+        ).first()
+        if not saved:
+            return Response(
+                {"detail": "Nie znaleziono zapisanej innowacji."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        saved.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useSession } from "@/components/SessionProvider";
-import { Badge, LoadingState } from "@/components/ui";
+import { Badge, IconButton, LoadingState, StarSlashedIcon } from "@/components/ui";
 import {
   fetchImplementationPlans,
   fetchSavedComparisons,
   fetchSavedInnovations,
+  removeSavedInnovation,
   type ImplementationPlan,
   type SavedComparison,
   type SavedInnovation,
@@ -211,16 +212,36 @@ export default function WorkspacePage() {
           ) : (
             <ul className="space-y-2 text-sm">
               {savedInnovations.map((s) => (
-                <li key={s.id} className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] p-3">
-                  <Link
-                    href={`/innovations/${s.innovation.slug}`}
-                    className="font-semibold text-[var(--color-accent-text)] hover:underline"
-                  >
-                    {s.innovation.title_pl}
-                  </Link>
-                  <div className="text-xs text-[var(--color-text-muted)]">
-                    {s.innovation.organization_name}
+                <li
+                  key={s.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] p-3"
+                >
+                  <div className="min-w-0">
+                    <Link
+                      href={`/innovations/${s.innovation.slug}`}
+                      className="block truncate font-semibold text-[var(--color-accent-text)] hover:underline"
+                    >
+                      {s.innovation.title_pl}
+                    </Link>
+                    <div className="truncate text-xs text-[var(--color-text-muted)]">
+                      {s.innovation.organization_name}
+                    </div>
                   </div>
+                  <IconButton
+                    variant="ghost"
+                    tone="destructive"
+                    aria-label={`Usuń z ulubionych: ${s.innovation.title_pl}`}
+                    title="Usuń z ulubionych"
+                    onClick={() => {
+                      void removeSavedInnovation(s.innovation.slug).then(() => {
+                        setSavedInnovations((prev) =>
+                          prev.filter((item) => item.id !== s.id),
+                        );
+                      });
+                    }}
+                  >
+                    <StarSlashedIcon size={18} />
+                  </IconButton>
                 </li>
               ))}
             </ul>

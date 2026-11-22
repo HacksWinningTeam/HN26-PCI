@@ -348,6 +348,15 @@ export function saveInnovation(innovation_slug: string) {
   });
 }
 
+export function removeSavedInnovation(innovation_slug: string) {
+  return apiRequest<void>(
+    `/api/saved-innovations/${encodeURIComponent(innovation_slug)}/`,
+    {
+      method: "DELETE",
+    },
+  );
+}
+
 export function fetchImplementationPlans() {
   return apiRequest<ImplementationPlan[]>("/api/implementation-plans/");
 }

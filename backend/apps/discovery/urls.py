@@ -4,6 +4,7 @@ from .views import (
     DiscoveryMatchView,
     MatchNotificationCreateView,
     SavedComparisonListCreateView,
+    SavedInnovationDetailView,
     SavedInnovationListCreateView,
 )
 
@@ -14,4 +15,9 @@ urlpatterns = [
     ),
     path("comparisons/", SavedComparisonListCreateView.as_view(), name="saved-comparisons"),
     path("saved-innovations/", SavedInnovationListCreateView.as_view(), name="saved-innovations"),
+    path(
+        "saved-innovations/<slug:slug>/",
+        SavedInnovationDetailView.as_view(),
+        name="saved-innovation-detail",
+    ),
 ]

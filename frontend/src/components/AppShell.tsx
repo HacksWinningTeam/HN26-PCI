@@ -31,6 +31,7 @@ import {
   isMainAppRoute,
   isProtectedRoute,
 } from "@/lib/route-access";
+import { useNavBarOverride } from "@/lib/navbar-override";
 
 function ShellSearchForm({
   id,
@@ -127,6 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navigationId = useId();
   const searchId = useId();
   const menuButton = useRef<HTMLButtonElement>(null);
+  const navBarOverride = useNavBarOverride(pathname);
 
   const isAuthenticated = Boolean(auth.authenticated && auth.user);
   const isPciAdmin = Boolean(isAuthenticated && auth.user?.is_pci_admin);
@@ -301,7 +303,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         navbar={
           <header>
             <NavBar
-              title={pageMeta.title}
+              title={navBarOverride?.title ?? pageMeta.title}
+              truncateTitle={navBarOverride?.truncateTitle}
               breadcrumbs={pageMeta.breadcrumbs}
               leading={
                 <IconButton
@@ -321,19 +324,25 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </IconButton>
               }
               search={
-                <Suspense fallback={null}>
-                  <ShellSearchForm id={`${searchId}-desktop`} />
-                </Suspense>
+                navBarOverride?.hideSearch ? undefined : (
+                  <Suspense fallback={null}>
+                    <ShellSearchForm id={`${searchId}-desktop`} />
+                  </Suspense>
+                )
               }
               actions={
-                !authLoaded || isAuthenticated ? undefined : (
+                navBarOverride?.actions !== undefined ? (
+                  navBarOverride.actions
+                ) : !authLoaded || isAuthenticated ? undefined : (
                   <Suspense fallback={null}>
                     <ShellAuthButtons pathname={pathname} />
                   </Suspense>
                 )
               }
               mobileActions={
-                !authLoaded || isAuthenticated ? undefined : (
+                navBarOverride?.mobileActions !== undefined ? (
+                  navBarOverride.mobileActions
+                ) : !authLoaded || isAuthenticated ? undefined : (
                   <Suspense fallback={null}>
                     <ShellAuthButtons pathname={pathname} mobile />
                   </Suspense>
