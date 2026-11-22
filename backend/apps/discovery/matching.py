@@ -61,6 +61,70 @@ POLISH_STOPWORDS = {
     "wystepuje",
 }
 
+SYNONYM_GROUPS: tuple[tuple[str, ...], ...] = (
+    ("senior", "emeryt", "starsz"),
+    ("urzad", "urzed", "gmin", "samorzad", "soltys", "miasto"),
+    ("cyfrow", "onlin", "inter", "elektr", "aplik", "uslug"),
+    ("podtop", "powod", "zalan", "wodn", "przep", "deszc"),
+    ("uczni", "szkol", "klaso", "naucz", "lekcj", "eduka"),
+    ("psych", "kryzy", "stres", "pedag"),
+    ("satel", "kosmi", "obraz", "suszo", "rolni"),
+    ("bakte", "biofi", "mikro", "labor"),
+    ("kompo", "lotni", "skane", "defek", "inspe"),
+)
+
+_SECTOR_HINTS: dict[str, tuple[str, ...]] = {
+    "administracja": ("gmin", "urzad", "urzed", "samorzad", "administrac", "soltys", "jst"),
+    "edukacja": ("szkol", "uczni", "student", "nauczyciel", "lekcj", "edukac", "geometri"),
+    "zdrowie_jakosc_zycia": ("zdrow", "pacjent", "psych", "szpital", "biofilm", "opiek"),
+    "ICT": ("cyfrow", "aplikac", "online", "czujnik", "dane", "ai", "gis", "ar"),
+    "lotnictwo": ("lotnic", "samolot", "kompozyt", "ndt"),
+    "motoryzacja": ("motoryzac", "pojazd", "aut"),
+    "sektor_kosmiczny": ("satelit", "kosmic", "copernicus", "sentinel"),
+}
+
+_BENEFICIARY_HINTS: dict[str, tuple[str, ...]] = {
+    "children_0_12": ("dziec", "podstawow"),
+    "youth_13_18": ("mlodziez", "lice"),
+    "seniors_60_plus": ("senior", "starsz", "emeryt"),
+    "families_parents": ("rodzin", "rodzic", "opiekun"),
+    "disabilities_special_needs": ("niepelnosprawn", "szczegoln potrzeb", "wcag"),
+    "ill_needing_care": ("chor", "pacjent"),
+    "mental_crisis": ("psych", "kryzys", "stygmatyz"),
+    "social_digital_exclusion": ("wyklucz", "cyfrow"),
+    "students_teachers": ("uczni", "student", "nauczyciel"),
+    "workers_jobseekers": ("pracown", "bezrobot"),
+    "entrepreneurs_startups": ("przedsiebiorc", "startup", "firma"),
+    "public_orgs_communities": ("gmin", "urzad", "samorzad", "spoleczn", "osp", "solectw"),
+}
+
+_ORG_TYPE_HINTS: dict[str, tuple[str, ...]] = {
+    "public_institution": ("gmin", "urzad", "urzed", "samorzad", "powiat", "miasto", "jst"),
+    "school": ("szkol", "liceum", "podstawow", "technikum"),
+    "university": ("uczelni", "politechni", "uniwersyt", "instytut"),
+    "social_org": ("fundac", "stowarzyszen", "ngo"),
+    "startup": ("startup",),
+    "company": ("firma", "przedsiebiorstw", "zaklad"),
+}
+
+_LOCATION_HINTS = (
+    "Rzeszów",
+    "Krosno",
+    "Stalowa Wola",
+    "Trzebownisko",
+    "Gdynia",
+    "Gdańsk",
+    "Kraków",
+    "Warszawa",
+    "Wrocław",
+    "Poznań",
+    "Katowice",
+    "Podkarpackie",
+    "Pomorskie",
+    "Małopolska",
+    "Śląskie",
+)
+
 
 def _normalize(text: str) -> str:
     decomposed = unicodedata.normalize("NFKD", text.lower())
@@ -81,7 +145,38 @@ def _stem(word: str) -> str:
 def _tokens(text: str) -> set[str]:
     norm = _normalize(text)
     words = re.findall(r"[a-z0-9]+", norm)
-    return {_stem(w) for w in words if len(w) >= 3 and w not in POLISH_STOPWORDS}
+    stems = {_stem(w) for w in words if len(w) >= 3 and w not in POLISH_STOPWORDS}
+    expanded = set(stems)
+    for stem in stems:
+        for idx, group in enumerate(SYNONYM_GROUPS):
+            if any(stem.startswith(prefix) or prefix.startswith(stem) for prefix in group):
+                expanded.add(f"syn{idx}")
+    return expanded
+
+
+def suggest_fields_from_problem(problem_text: str) -> dict:
+    """Detect candidate sectors, beneficiaries, org type, and location from free text."""
+    norm = _normalize(problem_text)
+    sectors = [sec for sec, kws in _SECTOR_HINTS.items() if any(kw in norm for kw in kws)]
+    beneficiaries = [
+        ben for ben, kws in _BENEFICIARY_HINTS.items() if any(kw in norm for kw in kws)
+    ]
+    org_type = ""
+    for candidate_org, kws in _ORG_TYPE_HINTS.items():
+        if any(kw in norm for kw in kws):
+            org_type = candidate_org
+            break
+    location = ""
+    for loc in _LOCATION_HINTS:
+        if _normalize(loc) in norm:
+            location = loc
+            break
+    return {
+        "sectors": sectors,
+        "beneficiary_groups": beneficiaries,
+        "organization_type": org_type,
+        "deployment_location": location,
+    }
 
 
 def score_innovation_for_query(
@@ -178,34 +273,67 @@ def evaluate_query_sufficiency(
     sector: str = "",
     beneficiary_groups: list[str] | None = None,
     organization_type: str = "",
+    deployment_location: str = "",
 ) -> dict:
-    tokens = _tokens(problem_text)
+    norm = _normalize(problem_text)
+    raw_words = [
+        w for w in re.findall(r"[a-z0-9]+", norm) if len(w) >= 3 and w not in POLISH_STOPWORDS
+    ]
+    word_count = len(raw_words)
     missing: list[str] = []
-    if len(tokens) < 3:
+    missing_fields: list[str] = []
+
+    if word_count < 3:
         missing.append(
             "opisz problem nieco dokładniej (kogo dotyczy i jaki rezultat chcesz osiągnąć)"
         )
+        missing_fields.append("problem_text")
     if not sector:
         missing.append("branżę")
+        missing_fields.append("sector")
     if not beneficiary_groups:
         missing.append("grupę beneficjentów")
+        missing_fields.append("beneficiary_groups")
     if not organization_type:
         missing.append("typ organizacji")
+        missing_fields.append("organization_type")
+    if not deployment_location:
+        missing_fields.append("deployment_location")
 
-    sufficient = len(tokens) >= 2
+    if word_count >= 5:
+        text_points = 40
+    elif word_count >= 3:
+        text_points = 30
+    elif word_count >= 2:
+        text_points = 20
+    else:
+        text_points = 0
+    completeness_percent = (
+        text_points
+        + (20 if sector else 0)
+        + (20 if beneficiary_groups else 0)
+        + (15 if organization_type else 0)
+        + (5 if deployment_location else 0)
+    )
+
+    sufficient = word_count >= 2
     if not sufficient:
         message = "Wpisz co najmniej kilka słów o problemie, aby rozpocząć wyszukiwanie."
     elif missing:
         message = (
-            "Opis jest wystarczający do rozpoczęcia wyszukiwania. "
-            f"Dodaj {', '.join(missing[:2])}, aby zwiększyć trafność wyników."
+            f"Ten opis jest kompletny na {completeness_percent}%. "
+            f"Dopisz {', '.join(missing[:2])}, a dopasowania będą skuteczniejsze."
         )
     else:
         message = (
-            "Opis i kontekst są kompletne — wyniki uwzględniają wszystkie 4 składowe dopasowania."
+            "Opis i kontekst są kompletne (100%) — wyniki uwzględniają wszystkie "
+            "składowe dopasowania."
         )
 
     return {
         "sufficient": sufficient,
+        "completeness_percent": completeness_percent,
+        "missing_fields": missing_fields,
+        "suggested_fields": suggest_fields_from_problem(problem_text),
         "message": message,
     }

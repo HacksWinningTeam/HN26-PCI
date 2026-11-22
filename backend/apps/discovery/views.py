@@ -1,3 +1,5 @@
+from django.http import HttpResponse
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
@@ -8,8 +10,14 @@ from rest_framework.views import APIView
 from apps.innovations.models import Innovation
 from apps.innovations.serializers import InnovationSummarySerializer
 
+from .comparison import (
+    build_comparison_payload,
+    render_comparison_csv,
+    render_comparison_markdown,
+)
 from .matching import evaluate_query_sufficiency, score_innovation_for_query
 from .models import (
+    InnovationMatch,
     MatchNotification,
     ProblemQuery,
     SavedComparison,
@@ -17,6 +25,9 @@ from .models import (
     ScoringConfig,
 )
 from .serializers import (
+    ComparisonExportRequestSerializer,
+    DiscoveryCompareRequestSerializer,
+    DiscoveryCompareResponseSerializer,
     DiscoveryMatchRequestSerializer,
     DiscoveryMatchResponseSerializer,
     MatchNotificationCreateSerializer,
@@ -50,10 +61,12 @@ class DiscoveryMatchView(APIView):
             sector=data["sector"],
             beneficiary_groups=data["beneficiary_groups"],
             organization_type=data["organization_type"],
+            deployment_location=data["deployment_location"],
         )
 
+        query_obj = None
         if data["problem_text"].strip():
-            ProblemQuery.objects.create(
+            query_obj = ProblemQuery.objects.create(
                 user=request.user if request.user.is_authenticated else None,
                 problem_text=data["problem_text"],
                 sector=data["sector"],
@@ -94,6 +107,25 @@ class DiscoveryMatchView(APIView):
 
         scored.sort(key=lambda x: x["overall_score"], reverse=True)
 
+        if query_obj is not None and scored:
+            InnovationMatch.objects.bulk_create(
+                [
+                    InnovationMatch(
+                        query=query_obj,
+                        innovation=item["innovation"],
+                        problem_score=item["problem_score"],
+                        sector_score=item["sector_score"],
+                        beneficiary_score=item["beneficiary_score"],
+                        organization_fit_score=item["organization_fit_score"],
+                        overall_score=item["overall_score"],
+                        primary_reason=item["primary_reason"][:255],
+                        reasons=item["reasons"],
+                        scoring_version=config.version,
+                    )
+                    for item in scored
+                ]
+            )
+
         low_confidence = (
             len(scored) == 0 or scored[0]["overall_score"] < config.low_confidence_threshold
         )
@@ -116,6 +148,9 @@ class DiscoveryMatchView(APIView):
 
         payload = {
             "sufficient": guidance["sufficient"],
+            "completeness_percent": guidance["completeness_percent"],
+            "missing_fields": guidance["missing_fields"],
+            "suggested_fields": guidance["suggested_fields"],
             "guidance_message": guidance["message"],
             "low_confidence": low_confidence,
             "low_confidence_reason": low_confidence_reason,
@@ -267,3 +302,93 @@ class SavedInnovationDetailView(APIView):
             )
         saved.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def _resolve_comparison_innovations(slugs: list[str]) -> list[Innovation]:
+    unique_slugs = list(dict.fromkeys(slugs))
+    found = {
+        inv.slug: inv
+        for inv in Innovation.objects.filter(
+            slug__in=unique_slugs, is_merged=False, is_public=True
+        ).prefetch_related("sources", "evidences__source")
+    }
+    return [found[s] for s in unique_slugs if s in found]
+
+
+class DiscoveryCompareView(APIView):
+    """Compare 2–3 innovations side-by-side with differences, leaders, and evidence quality."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(
+        tags=["Discovery"],
+        request=DiscoveryCompareRequestSerializer,
+        responses={200: DiscoveryCompareResponseSerializer},
+        summary="Compare 2–3 innovations side by side",
+    )
+    def post(self, request):
+        serializer = DiscoveryCompareRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        innovations = _resolve_comparison_innovations(data["innovation_slugs"])
+        if len(innovations) < 2:
+            return Response(
+                {"detail": "Wybierz co najmniej 2 dostępne innowacje do porównania."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        payload = build_comparison_payload(
+            innovations,
+            problem_text=data.get("problem_text", ""),
+            sector=data.get("sector", ""),
+            beneficiary_groups=data.get("beneficiary_groups", []),
+            organization_type=data.get("organization_type", ""),
+        )
+        return Response(payload)
+
+
+class ComparisonExportView(APIView):
+    """Export a 2–3 innovation comparison in JSON, Markdown, or CSV."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(
+        tags=["Discovery"],
+        request=ComparisonExportRequestSerializer,
+        responses={200: OpenApiTypes.OBJECT},
+        summary="Export side-by-side comparison (json, md, csv)",
+    )
+    def post(self, request):
+        serializer = ComparisonExportRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        innovations = _resolve_comparison_innovations(data["innovation_slugs"])
+        if len(innovations) < 2:
+            return Response(
+                {"detail": "Wybierz co najmniej 2 dostępne innowacje do eksportu."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        payload = build_comparison_payload(
+            innovations,
+            problem_text=data.get("problem_text", ""),
+            sector=data.get("sector", ""),
+            beneficiary_groups=data.get("beneficiary_groups", []),
+            organization_type=data.get("organization_type", ""),
+        )
+        fmt = data.get("export_format", "md")
+        if fmt == "json":
+            return Response(payload)
+        if fmt == "csv":
+            resp = HttpResponse(
+                render_comparison_csv(payload),
+                content_type="text/csv; charset=utf-8",
+            )
+            resp["Content-Disposition"] = 'attachment; filename="comparison.csv"'
+            return resp
+        resp = HttpResponse(
+            render_comparison_markdown(payload),
+            content_type="text/markdown; charset=utf-8",
+        )
+        resp["Content-Disposition"] = 'attachment; filename="comparison.md"'
+        return resp

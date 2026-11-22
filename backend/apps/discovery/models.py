@@ -78,6 +78,34 @@ class ProblemQuery(models.Model):
         return self.problem_text[:60]
 
 
+class InnovationMatch(models.Model):
+    query = models.ForeignKey(
+        ProblemQuery,
+        on_delete=models.CASCADE,
+        related_name="matches",
+    )
+    innovation = models.ForeignKey(
+        Innovation,
+        on_delete=models.CASCADE,
+        related_name="problem_matches",
+    )
+    problem_score = models.PositiveSmallIntegerField()
+    sector_score = models.PositiveSmallIntegerField()
+    beneficiary_score = models.PositiveSmallIntegerField()
+    organization_fit_score = models.PositiveSmallIntegerField()
+    overall_score = models.PositiveSmallIntegerField()
+    primary_reason = models.CharField(max_length=255)
+    reasons = models.JSONField(default=list)
+    scoring_version = models.CharField(max_length=32, default="v1.0")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-overall_score", "innovation_id"]
+
+    def __str__(self) -> str:
+        return f"Query#{self.query_id} -> {self.innovation.slug} ({self.overall_score}%)"
+
+
 class MatchNotification(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
