@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useId, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useId, useState } from "react";
 import { InnovationCardCompact } from "@/components/InnovationCardCompact";
 import { InnovationAreaVisual } from "@/components/InnovationVisuals";
 import { useSession } from "@/components/SessionProvider";
@@ -26,6 +26,7 @@ import {
   PdfIcon,
   Popover,
   ShareIcon,
+  Sheet,
   StarIcon,
   StarSlashedIcon,
   TargetIcon,
@@ -74,12 +75,11 @@ const EVIDENCE_BADGE_TONE: Record<
   missing_info: "error",
 };
 
-type DetailTabId = "overview" | "effects" | "implementation" | "sources" | "similar";
+type DetailTabId = "overview" | "effects" | "sources" | "similar";
 
 const DETAIL_TABS: Array<{ id: DetailTabId; label: string }> = [
   { id: "overview", label: "Opis rozwiązania" },
   { id: "effects", label: "Efekty i wskaźniki" },
-  { id: "implementation", label: "Wdrożenie i plan" },
   { id: "sources", label: "Źródła i materiały" },
   { id: "similar", label: "Podobne rozwiązania" },
 ];
@@ -104,7 +104,6 @@ function InnovationDetailInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const autoDeploy = searchParams.get("deploy") === "1";
-  const questionnaireRef = useRef<HTMLElement>(null);
   const tabBaseId = useId();
 
   const { auth, refreshAuth, compareSlugs, toggleCompare, solveContext } =
@@ -122,12 +121,10 @@ function InnovationDetailInner() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<DetailTabId>(
-    autoDeploy ? "implementation" : "overview",
-  );
+  const [activeTab, setActiveTab] = useState<DetailTabId>("overview");
 
-  // Level-3 Questionnaire + Plan generation state
-  const [showQuestionnaire, setShowQuestionnaire] = useState(false);
+  // Level-3 Questionnaire + Plan generation state (rendered inside Sheet)
+  const [deploySheetOpen, setDeploySheetOpen] = useState(false);
   const [orgType, setOrgType] = useState<OrgType>("public_institution");
   const [orgName, setOrgName] = useState("");
   const [roleTitle, setRoleTitle] = useState("");
@@ -216,11 +213,7 @@ function InnovationDetailInner() {
         setKeyConstraints(p?.key_constraints || "");
 
         if (autoDeploy) {
-          setActiveTab("implementation");
-          setShowQuestionnaire(true);
-          window.requestAnimationFrame(() => {
-            questionnaireRef.current?.scrollIntoView({ behavior: "smooth" });
-          });
+          setDeploySheetOpen(true);
         }
       })
       .catch(() => {});
@@ -277,11 +270,7 @@ function InnovationDetailInner() {
       );
       return;
     }
-    setActiveTab("implementation");
-    setShowQuestionnaire(true);
-    window.requestAnimationFrame(() => {
-      questionnaireRef.current?.scrollIntoView({ behavior: "smooth" });
-    });
+    setDeploySheetOpen(true);
   }, [auth.authenticated, router, slug]);
 
   const isPinnedForNav = detail ? compareSlugs.includes(detail.slug) : false;
@@ -708,12 +697,12 @@ function InnovationDetailInner() {
       </section>
 
       {/* Tabbed Navigation Bar */}
-      <div className="border-b border-[var(--color-border-subtle)] print:hidden">
+      <div className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden print:hidden">
         <div
           role="tablist"
           aria-label="Sekcje karty innowacji"
           onKeyDown={handleTabKeyDown}
-          className="-mb-px flex flex-wrap gap-1 sm:gap-2"
+          className="flex w-max min-w-full flex-nowrap gap-1 border-b border-[var(--color-border-subtle)] sm:gap-2"
         >
           {DETAIL_TABS.map((t) => {
             const selected = activeTab === t.id;
@@ -726,9 +715,16 @@ function InnovationDetailInner() {
                 aria-selected={selected}
                 aria-controls={`${tabBaseId}-panel-${t.id}`}
                 tabIndex={selected ? 0 : -1}
-                onClick={() => setActiveTab(t.id)}
+                onClick={(event) => {
+                  setActiveTab(t.id);
+                  event.currentTarget.scrollIntoView({
+                    behavior: "smooth",
+                    inline: "nearest",
+                    block: "nearest",
+                  });
+                }}
                 className={[
-                  "min-h-11 cursor-pointer border-b-2 px-3.5 py-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]",
+                  "-mb-px min-h-11 shrink-0 cursor-pointer whitespace-nowrap border-b-2 px-3.5 py-2.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]",
                   selected
                     ? "border-[var(--color-accent)] font-bold text-[var(--color-text)]"
                     : "border-transparent font-medium text-[var(--color-text-muted)] hover:border-[var(--color-border)] hover:text-[var(--color-text)]",
@@ -836,6 +832,32 @@ function InnovationDetailInner() {
                   layout: "stacked",
                   value: detail.verification_method,
                 },
+                ...(detail.required_resources.length > 0
+                  ? [
+                      {
+                        id: "required-resources",
+                        label: "Wymagane zasoby",
+                        layout: "stacked" as const,
+                        value: (
+                          <ul className="list-disc space-y-1 pl-4 text-xs font-normal text-[var(--color-text)]">
+                            {detail.required_resources.map((res, idx) => (
+                              <li key={idx}>{res}</li>
+                            ))}
+                          </ul>
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(detail.partner_archetypes.length > 0
+                  ? [
+                      {
+                        id: "partner-archetypes",
+                        label: "Archetypy partnerów",
+                        layout: "stacked" as const,
+                        value: detail.partner_archetypes.join(", "),
+                      },
+                    ]
+                  : []),
                 ...(detail.tags.length > 0
                   ? [
                       {
@@ -965,286 +987,6 @@ function InnovationDetailInner() {
         </div>
       </section>
 
-      {/* Tab 3: Wdrożenie i plan (Level 3) */}
-      <section
-        id={`${tabBaseId}-panel-implementation`}
-        role="tabpanel"
-        aria-labelledby={`${tabBaseId}-tab-implementation`}
-        className={activeTab === "implementation" ? "space-y-6" : "hidden space-y-6 print:block"}
-      >
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-          <div className="lg:col-span-6">
-            <DefinitionList
-              items={[
-                {
-                  id: "resources",
-                  label: "Wymagane zasoby",
-                  layout: "stacked",
-                  value:
-                    detail.required_resources.length > 0 ? (
-                      <ul className="list-disc space-y-1 pl-4 text-sm font-normal text-[var(--color-text)]">
-                        {detail.required_resources.map((res, idx) => (
-                          <li key={idx}>{res}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      "Do doprecyzowania podczas przygotowania pilotażu."
-                    ),
-                },
-                {
-                  id: "partners",
-                  label: "Archetypy partnerów",
-                  layout: "stacked",
-                  value: detail.partner_archetypes.join(", ") || "Brak danych w źródle",
-                },
-                ...(detail.suggested_next_step
-                  ? [
-                      {
-                        id: "next-step",
-                        label: "Sugerowany następny krok",
-                        layout: "stacked" as const,
-                        value: detail.suggested_next_step,
-                      },
-                    ]
-                  : []),
-              ]}
-            />
-          </div>
-
-          <div className="space-y-4 lg:col-span-6">
-            {fullDetail?.contact_info && Object.keys(fullDetail.contact_info).length > 0 ? (
-              <Banner
-                tone="success"
-                appearance="tinted"
-                title="Zweryfikowany kontakt wdrożeniowy"
-              >
-                <div className="space-y-0.5 text-xs sm:text-sm">
-                  <div className="font-bold">{fullDetail.contact_info.unit_name}</div>
-                  {fullDetail.contact_info.contact_person ? (
-                    <div>{fullDetail.contact_info.contact_person}</div>
-                  ) : null}
-                  <div className="font-mono text-xs">
-                    {[fullDetail.contact_info.email, fullDetail.contact_info.phone]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </div>
-                </div>
-              </Banner>
-            ) : !auth.authenticated ? (
-              <Banner
-                tone="info"
-                appearance="tinted"
-                title="Kontakt i spersonalizowany plan po zalogowaniu"
-                actions={[
-                  <Link
-                    key="login"
-                    href={`/login?next=${encodeURIComponent(`/innovations/${slug}?deploy=1`)}`}
-                    className="inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-3.5 py-2 text-xs font-semibold text-[var(--color-on-accent)]"
-                  >
-                    Zaloguj się
-                  </Link>,
-                  <Link
-                    key="register"
-                    href={`/register?next=${encodeURIComponent(`/innovations/${slug}?deploy=1`)}`}
-                    className="inline-flex min-h-10 items-center rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-2 text-xs font-semibold text-[var(--color-text)]"
-                  >
-                    Załóż konto
-                  </Link>,
-                ]}
-              >
-                Zaloguj się lub załóż bezpłatne konto organizacji, aby odblokować dane kontaktowe jednostki wdrażającej oraz wygenerować 5-fazowy plan działania.
-              </Banner>
-            ) : null}
-
-            {existingPlan ? (
-              <Banner
-                tone="info"
-                appearance="tinted"
-                title={`Aktywny ${PLAN_VARIANT_LABELS[existingPlan.variant]}`}
-                actions={[
-                  <Link
-                    key="open-plan"
-                    href={`/workspace/plans/${existingPlan.id}`}
-                    className="inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-3.5 py-2 text-xs font-semibold text-[var(--color-on-accent)]"
-                  >
-                    Otwórz plan i checklistę →
-                  </Link>,
-                ]}
-              >
-                Masz już wygenerowany plan dla tej innowacji w swojej przestrzeni wdrożeń.
-              </Banner>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Level-3 Organization Questionnaire after Login */}
-        {auth.authenticated && (showQuestionnaire || !existingPlan) ? (
-          <section
-            ref={questionnaireRef}
-            id="org-questionnaire"
-            className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface)] p-6 print:hidden"
-          >
-            <div>
-              <h3 className="text-lg font-bold text-[var(--color-text)]">
-                Ankieta organizacji — wygeneruj plan w 5 fazach
-              </h3>
-              <p className="text-xs text-[var(--color-text-muted)]">
-                {prefilledFromSearch
-                  ? "Część pól została uzupełniona z wyszukiwarki problemów. "
-                  : ""}
-                System dobierze wariant planu (walidacja, pilotaż albo transfer i wdrożenie) na podstawie gotowości innowacji i Twojego kontekstu.
-              </p>
-            </div>
-
-            <form onSubmit={handleGeneratePlan} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div>
-                  <label htmlFor="q-org-type" className="mb-1 block text-xs font-semibold">
-                    Typ organizacji
-                  </label>
-                  <select
-                    id="q-org-type"
-                    value={orgType}
-                    onChange={(e) => setOrgType(e.target.value as OrgType)}
-                    className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-                  >
-                    {Object.entries(ORG_TYPE_LABELS).map(([k, v]) => (
-                      <option key={k} value={k}>
-                        {v}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="q-org-name" className="mb-1 block text-xs font-semibold">
-                    Nazwa organizacji
-                  </label>
-                  <input
-                    id="q-org-name"
-                    required
-                    value={orgName}
-                    onChange={(e) => setOrgName(e.target.value)}
-                    placeholder="np. Gmina Trzebownisko"
-                    className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="q-role" className="mb-1 block text-xs font-semibold">
-                    Twoja rola
-                  </label>
-                  <input
-                    id="q-role"
-                    required
-                    value={roleTitle}
-                    onChange={(e) => setRoleTitle(e.target.value)}
-                    placeholder="np. Sołtys / Dyrektor / Kierownik IT"
-                    className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="q-loc" className="mb-1 block text-xs font-semibold">
-                    Lokalizacja wdrożenia
-                  </label>
-                  <input
-                    id="q-loc"
-                    required
-                    value={deploymentLocation}
-                    onChange={(e) => setDeploymentLocation(e.target.value)}
-                    placeholder="np. Trzebownisko, Podkarpackie"
-                    className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="q-users" className="mb-1 block text-xs font-semibold">
-                    Liczba potencjalnych użytkowników
-                  </label>
-                  <input
-                    id="q-users"
-                    type="number"
-                    min={1}
-                    required
-                    value={usersCount}
-                    onChange={(e) => setUsersCount(Number(e.target.value))}
-                    className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="q-timeline" className="mb-1 block text-xs font-semibold">
-                    Zakładany termin
-                  </label>
-                  <input
-                    id="q-timeline"
-                    value={targetTimeline}
-                    onChange={(e) => setTargetTimeline(e.target.value)}
-                    placeholder="np. Q1 2027"
-                    className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="q-current" className="mb-1 block text-xs font-semibold">
-                    Obecny sposób rozwiązania problemu
-                  </label>
-                  <input
-                    id="q-current"
-                    value={currentApproach}
-                    onChange={(e) => setCurrentApproach(e.target.value)}
-                    className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="q-resources" className="mb-1 block text-xs font-semibold">
-                    Dostępne zasoby
-                  </label>
-                  <input
-                    id="q-resources"
-                    value={availableResources}
-                    onChange={(e) => setAvailableResources(e.target.value)}
-                    className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="q-comp" className="mb-1 block text-xs font-semibold">
-                    Kompetencje zespołu
-                  </label>
-                  <input
-                    id="q-comp"
-                    value={teamCompetencies}
-                    onChange={(e) => setTeamCompetencies(e.target.value)}
-                    className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="q-constraints" className="mb-1 block text-xs font-semibold">
-                    Najważniejsze ograniczenia
-                  </label>
-                  <input
-                    id="q-constraints"
-                    value={keyConstraints}
-                    onChange={(e) => setKeyConstraints(e.target.value)}
-                    className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
-                  />
-                </div>
-              </div>
-
-              {error ? (
-                <p role="alert" className="text-sm font-semibold text-[var(--color-error-text)]">
-                  {error}
-                </p>
-              ) : null}
-
-              <Button type="submit" loading={submittingPlan}>
-                {submittingPlan
-                  ? "Generowanie planu…"
-                  : "Wygeneruj spersonalizowany plan w 5 fazach"}
-              </Button>
-            </form>
-          </section>
-        ) : null}
-      </section>
-
       {/* Tab 4: Źródła i materiały */}
       <section
         id={`${tabBaseId}-panel-sources`}
@@ -1336,6 +1078,222 @@ function InnovationDetailInner() {
           </div>
         )}
       </section>
+
+      {/* Deployment Planning Sheet */}
+      <Sheet
+        open={deploySheetOpen}
+        onClose={() => setDeploySheetOpen(false)}
+        title="Zaplanuj wdrożenie"
+        busy={submittingPlan}
+        detents={["medium", "large"]}
+        confirmAction={{
+          label: submittingPlan ? "Generowanie planu…" : "Wygeneruj plan w 5 fazach",
+          form: "org-questionnaire-form",
+          loading: submittingPlan,
+        }}
+      >
+        <div className="space-y-5">
+          {existingPlan ? (
+            <Banner
+              tone="info"
+              appearance="tinted"
+              title={`Aktywny ${PLAN_VARIANT_LABELS[existingPlan.variant]}`}
+              actions={[
+                <Link
+                  key="open-plan"
+                  href={`/workspace/plans/${existingPlan.id}`}
+                  onClick={() => setDeploySheetOpen(false)}
+                  className="inline-flex min-h-10 items-center rounded-lg bg-[var(--color-accent)] px-3.5 py-2 text-xs font-semibold text-[var(--color-on-accent)]"
+                >
+                  Otwórz istniejący plan →
+                </Link>,
+              ]}
+            >
+              Masz już wygenerowany plan dla tej innowacji. Możesz go otworzyć lub wygenerować nowy wariant poniżej.
+            </Banner>
+          ) : null}
+
+          {fullDetail?.contact_info && Object.keys(fullDetail.contact_info).length > 0 ? (
+            <Banner
+              tone="success"
+              appearance="tinted"
+              title="Zweryfikowany kontakt wdrożeniowy"
+            >
+              <div className="space-y-0.5 text-xs">
+                <div className="font-bold">{fullDetail.contact_info.unit_name}</div>
+                {fullDetail.contact_info.contact_person ? (
+                  <div>{fullDetail.contact_info.contact_person}</div>
+                ) : null}
+                <div className="font-mono">
+                  {[fullDetail.contact_info.email, fullDetail.contact_info.phone]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </div>
+              </div>
+            </Banner>
+          ) : null}
+
+          {detail.suggested_next_step ? (
+            <p className="rounded-xl border border-[var(--color-border-subtle)] bg-[var(--color-surface-raised)] p-3 text-xs leading-relaxed text-[var(--color-text-muted)]">
+              <strong className="text-[var(--color-text)]">Sugerowany następny krok:</strong>{" "}
+              {detail.suggested_next_step}
+            </p>
+          ) : null}
+
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-[var(--color-text)]">
+              Ankieta organizacji — kontekst wdrożenia
+            </h3>
+            <p className="text-xs leading-relaxed text-[var(--color-text-muted)]">
+              {prefilledFromSearch
+                ? "Część pól uzupełniono z wyszukiwarki problemów. "
+                : ""}
+              Na podstawie gotowości innowacji i tego formularza system dobierze wariant planu (walidacja, pilotaż albo transfer i wdrożenie).
+            </p>
+          </div>
+
+          <form
+            id="org-questionnaire-form"
+            onSubmit={handleGeneratePlan}
+            className="space-y-4"
+          >
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+              <div>
+                <label htmlFor="q-org-type" className="mb-1 block text-xs font-semibold">
+                  Typ organizacji
+                </label>
+                <select
+                  id="q-org-type"
+                  value={orgType}
+                  onChange={(e) => setOrgType(e.target.value as OrgType)}
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                >
+                  {Object.entries(ORG_TYPE_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="q-org-name" className="mb-1 block text-xs font-semibold">
+                  Nazwa organizacji
+                </label>
+                <input
+                  id="q-org-name"
+                  required
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  placeholder="np. Gmina Trzebownisko"
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="q-role" className="mb-1 block text-xs font-semibold">
+                  Twoja rola
+                </label>
+                <input
+                  id="q-role"
+                  required
+                  value={roleTitle}
+                  onChange={(e) => setRoleTitle(e.target.value)}
+                  placeholder="np. Sołtys / Dyrektor / Kierownik IT"
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="q-loc" className="mb-1 block text-xs font-semibold">
+                  Lokalizacja wdrożenia
+                </label>
+                <input
+                  id="q-loc"
+                  required
+                  value={deploymentLocation}
+                  onChange={(e) => setDeploymentLocation(e.target.value)}
+                  placeholder="np. Trzebownisko, Podkarpackie"
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="q-users" className="mb-1 block text-xs font-semibold">
+                  Liczba potencjalnych użytkowników
+                </label>
+                <input
+                  id="q-users"
+                  type="number"
+                  min={1}
+                  required
+                  value={usersCount}
+                  onChange={(e) => setUsersCount(Number(e.target.value))}
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="q-timeline" className="mb-1 block text-xs font-semibold">
+                  Zakładany termin
+                </label>
+                <input
+                  id="q-timeline"
+                  value={targetTimeline}
+                  onChange={(e) => setTargetTimeline(e.target.value)}
+                  placeholder="np. Q1 2027"
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="q-current" className="mb-1 block text-xs font-semibold">
+                  Obecny sposób rozwiązania problemu
+                </label>
+                <input
+                  id="q-current"
+                  value={currentApproach}
+                  onChange={(e) => setCurrentApproach(e.target.value)}
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="q-resources" className="mb-1 block text-xs font-semibold">
+                  Dostępne zasoby
+                </label>
+                <input
+                  id="q-resources"
+                  value={availableResources}
+                  onChange={(e) => setAvailableResources(e.target.value)}
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="q-comp" className="mb-1 block text-xs font-semibold">
+                  Kompetencje zespołu
+                </label>
+                <input
+                  id="q-comp"
+                  value={teamCompetencies}
+                  onChange={(e) => setTeamCompetencies(e.target.value)}
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="q-constraints" className="mb-1 block text-xs font-semibold">
+                  Najważniejsze ograniczenia
+                </label>
+                <input
+                  id="q-constraints"
+                  value={keyConstraints}
+                  onChange={(e) => setKeyConstraints(e.target.value)}
+                  className="min-h-11 w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] px-3 text-sm"
+                />
+              </div>
+            </div>
+
+            {error ? (
+              <p role="alert" className="text-sm font-semibold text-[var(--color-error-text)]">
+                {error}
+              </p>
+            ) : null}
+          </form>
+        </div>
+      </Sheet>
     </div>
   );
 }

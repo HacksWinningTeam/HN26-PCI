@@ -22,6 +22,7 @@
 .mobileActions { display: none; }
 
 @media (max-width: 767px) {
+  .bar { padding-block: 4px 12px; }
   .layout { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "context actions"; gap: 8px; }
   .context { gap: 8px; }
   .title { font-size: 1rem; }
@@ -29,6 +30,7 @@
   .mobileActions { display: flex; flex-wrap: nowrap; }
 }
 
+.bar[data-layout="mobile"] { padding-block: 4px 12px; }
 .bar[data-layout="mobile"] .layout { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "context actions"; gap: 8px; }
 .bar[data-layout="mobile"] .context { gap: 8px; }
 .bar[data-layout="mobile"] .title { font-size: 1rem; }

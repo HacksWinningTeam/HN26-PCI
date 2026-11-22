@@ -178,7 +178,7 @@ export function InnovationCardCompact({
             <h3 className="text-lg font-bold leading-snug text-[var(--color-text)]">
               <Link
                 href={`/innovations/${innovation.slug}`}
-                className="after:absolute after:inset-0 after:z-0 group-hover:text-[var(--color-accent-text)] hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
+                className="after:absolute after:inset-0 after:z-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-focus)]"
               >
                 {innovation.title_pl}
               </Link>
