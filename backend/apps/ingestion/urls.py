@@ -8,6 +8,9 @@ from .views import (
     AdminMergeDuplicateView,
     AdminRunIngestionView,
     AdminScoringConfigView,
+    AdminScrapeUrlView,
+    AdminSourceFeedDetailView,
+    AdminSourceFeedListCreateView,
 )
 
 urlpatterns = [
@@ -33,5 +36,20 @@ urlpatterns = [
         name="admin-merge-duplicate",
     ),
     path("admin/ingestion/run/", AdminRunIngestionView.as_view(), name="admin-ingestion-run"),
+    path(
+        "admin/ingestion/scrape-url/",
+        AdminScrapeUrlView.as_view(),
+        name="admin-ingestion-scrape-url",
+    ),
+    path(
+        "admin/source-feeds/",
+        AdminSourceFeedListCreateView.as_view(),
+        name="admin-source-feeds",
+    ),
+    path(
+        "admin/source-feeds/<int:pk>/",
+        AdminSourceFeedDetailView.as_view(),
+        name="admin-source-feed-detail",
+    ),
     path("admin/scoring-config/", AdminScoringConfigView.as_view(), name="admin-scoring-config"),
 ]

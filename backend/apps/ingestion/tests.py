@@ -6,9 +6,15 @@ from datetime import timedelta
 import pytest
 from django.core.management import call_command
 from django.utils import timezone
+from pypdf import PdfWriter
 from rest_framework.test import APIClient
 
-from apps.ingestion.adapters import parse_api_payload, parse_html_document
+from apps.ingestion.adapters import (
+    fetch_feed_records,
+    parse_api_payload,
+    parse_html_document,
+    parse_pdf_document,
+)
 from apps.ingestion.ai_service import extract_and_classify_innovation
 from apps.ingestion.models import IngestionRun, InnovationAuditLog, SourceFeed
 from apps.ingestion.pipeline import ingest_raw_record, mark_stale_innovations
@@ -16,8 +22,14 @@ from apps.innovations.models import Innovation
 
 
 class _FakeHTTPResponse:
-    def __init__(self, payload: dict) -> None:
-        self._body = json.dumps(payload).encode("utf-8")
+    def __init__(self, body: dict | bytes | str, content_type: str = "application/json") -> None:
+        if isinstance(body, bytes):
+            self._body = body
+        elif isinstance(body, str):
+            self._body = body.encode("utf-8")
+        else:
+            self._body = json.dumps(body).encode("utf-8")
+        self.headers = {"Content-Type": content_type}
 
     def read(self) -> bytes:
         return self._body
@@ -321,3 +333,255 @@ def test_phase_e_admin_manual_import_reject_merge_history_and_scoring_config():
     assert good_cfg.status_code == 200
     assert good_cfg.data["active"]["version"] == "v2.0"
     assert len(good_cfg.data["versions"]) >= 2
+
+
+def _build_test_pdf_bytes(title: str = "Raport pilotażu SmartGmina") -> bytes:
+    """Create a valid single-page PDF with extractable text in memory."""
+    from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=200, height=200)
+    writer.add_metadata({"/Title": title})
+
+    stream = DecodedStreamObject()
+    stream.set_data(
+        b"BT /F1 12 Tf 10 100 Td "
+        b"(Pilotaz czujnikow jakosci powietrza w gminie Rzeszow TRL 6.) Tj ET"
+    )
+    page[NameObject("/Contents")] = writer._add_object(stream)
+    font_dict = DictionaryObject(
+        {
+            NameObject("/Type"): NameObject("/Font"),
+            NameObject("/Subtype"): NameObject("/Type1"),
+            NameObject("/BaseFont"): NameObject("/Helvetica"),
+        }
+    )
+    page[NameObject("/Resources")] = DictionaryObject(
+        {NameObject("/Font"): DictionaryObject({NameObject("/F1"): writer._add_object(font_dict)})}
+    )
+    buf = io.BytesIO()
+    writer.write(buf)
+    return buf.getvalue()
+
+
+def test_phase_f_adapters_cordis_oai_pmh_danegov_openalex_pdf_and_antibot():
+    # 1. CORDIS JSON
+    cordis_payload = {
+        "hits": {
+            "hit": [
+                {
+                    "project": {
+                        "id": "101129698",
+                        "acronym": "PROMATAI",
+                        "title": "Hybrid material processing with AI",
+                        "teaser": "Industrial pilot for composite manufacturing.",
+                        "objective": "Developed in Poland for SMEs at TRL 6.",
+                        "status": "SIGNED",
+                    }
+                }
+            ]
+        }
+    }
+    cordis_recs = parse_api_payload(
+        json.dumps(cordis_payload).encode("utf-8"),
+        content_type="application/json",
+        base_url="https://cordis.europa.eu/search",
+        registry="CORDIS",
+        label="CORDIS",
+    )
+    assert len(cordis_recs) == 1
+    assert cordis_recs[0].url == "https://cordis.europa.eu/project/id/101129698"
+    assert "PROMATAI" in cordis_recs[0].title
+
+    # 2. Dane.gov.pl JSON:API
+    dane_payload = {
+        "data": [
+            {
+                "id": "280",
+                "attributes": {
+                    "title": "Akredytowane Ośrodki Innowacji",
+                    "notes": "<p>Rejestr ośrodków wspierających transfer technologii.</p>",
+                    "institution_title": "Ministerstwo Rozwoju",
+                },
+                "links": {"self": "https://api.dane.gov.pl/1.4/datasets/280"},
+            }
+        ]
+    }
+    dane_recs = parse_api_payload(
+        json.dumps(dane_payload).encode("utf-8"),
+        content_type="application/vnd.api+json",
+        base_url="https://api.dane.gov.pl/1.4/datasets",
+        registry="Dane.gov.pl",
+        label="Dane.gov.pl",
+    )
+    assert len(dane_recs) == 1
+    assert "<p>" not in dane_recs[0].text
+    assert dane_recs[0].organization_name == "Ministerstwo Rozwoju"
+
+    # 3. OpenAlex JSON with inverted abstract
+    openalex_payload = {
+        "results": [
+            {
+                "id": "https://openalex.org/W1",
+                "title": "IoT Water Sensor",
+                "abstract_inverted_index": {"Sensor": [0], "measures": [1], "flood": [2]},
+                "authorships": [{"institutions": [{"display_name": "Politechnika Gdańska"}]}],
+                "primary_location": {"landing_page_url": "https://pg.edu.pl/iot"},
+            }
+        ]
+    }
+    oa_recs = parse_api_payload(
+        json.dumps(openalex_payload).encode("utf-8"),
+        content_type="application/json",
+        base_url="https://api.openalex.org/works",
+        registry="OpenAlex",
+        label="OpenAlex",
+    )
+    assert len(oa_recs) == 1
+    assert oa_recs[0].text == "Sensor measures flood"
+    assert oa_recs[0].organization_name == "Politechnika Gdańska"
+
+    # 4. OAI-PMH XML (oai_dc)
+    oai_xml = (
+        b'<?xml version="1.0" encoding="UTF-8"?>'
+        b'<OAI-PMH xmlns="http://www.openarchives.org/OAI/2.0/">'
+        b"<ListRecords><record><header><identifier>oai:ruj:1</identifier></header>"
+        b'<metadata><oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" '
+        b'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+        b"<dc:title>Algorytm detekcji mowy</dc:title>"
+        b"<dc:description>Narz\xc4\x99dzie wsparcia terapii logopedycznej.</dc:description>"
+        b"<dc:publisher>Uniwersytet Jagiello\xc5\x84ski</dc:publisher>"
+        b"<dc:identifier>https://ruj.uj.edu.pl/item/1</dc:identifier>"
+        b"</oai_dc:dc></metadata></record></ListRecords></OAI-PMH>"
+    )
+    oai_recs = parse_api_payload(
+        oai_xml,
+        content_type="text/xml",
+        base_url="https://ruj.uj.edu.pl/server/oai/request",
+        registry="RUJ UJ",
+        label="RUJ",
+    )
+    assert len(oai_recs) == 1
+    assert oai_recs[0].url == "https://ruj.uj.edu.pl/item/1"
+    assert oai_recs[0].organization_name == "Uniwersytet Jagielloński"
+
+    # 5. PDF parsing via pypdf
+    pdf_bytes = _build_test_pdf_bytes()
+    pdf_rec = parse_pdf_document(
+        pdf_bytes,
+        url="https://example.pl/raport.pdf",
+        registry="Raport JST",
+        label="Raport",
+    )
+    assert pdf_rec.title == "Raport pilotażu SmartGmina"
+    assert "Rzeszow" in pdf_rec.text
+    assert pdf_rec.metadata["document_format"] == "pdf"
+
+    # 6. Anti-bot / CAPTCHA pages are rejected cleanly rather than bypassed
+    with pytest.raises(ValueError, match="CAPTCHA"):
+        parse_html_document(
+            "<html><title>High Load - Verifying Browser</title></html>",
+            url="https://blocked.pl",
+            registry="Blocked",
+            label="Blocked",
+        )
+
+
+@pytest.mark.django_db
+def test_phase_f_scrape_url_pdf_and_source_feed_crud(settings, monkeypatch):
+    settings.GEMINI_API_KEY = ""
+    call_command("seed_demo")
+    client = APIClient()
+
+    # 1. SourceFeed CRUD
+    list_res = client.get("/api/admin/source-feeds/")
+    assert list_res.status_code == 200
+    assert len(list_res.data) >= 5
+
+    create_feed = client.post(
+        "/api/admin/source-feeds/",
+        {
+            "name": "Politechnika Rzeszowska — Repozytorium",
+            "category": "Nauka i patenty",
+            "url": "https://example.edu.pl/oai",
+            "method": "OAI-PMH",
+            "config": {"live_fetch": True, "max_records": 2},
+        },
+        format="json",
+    )
+    assert create_feed.status_code == 201
+    feed_id = create_feed.data["id"]
+    assert create_feed.data["config"]["max_records"] == 2
+
+    patch_feed = client.patch(
+        f"/api/admin/source-feeds/{feed_id}/",
+        {"status": "stale", "config": {"live_fetch": False, "max_records": 4}},
+        format="json",
+    )
+    assert patch_feed.status_code == 200
+    assert patch_feed.data["status"] == "stale"
+    assert patch_feed.data["config"]["max_records"] == 4
+
+    # 2. Scrape PDF URL on demand
+    pdf_bytes = _build_test_pdf_bytes("Czujniki Powietrza Rzeszów")
+    monkeypatch.setattr(
+        "apps.ingestion.adapters.urllib.request.urlopen",
+        lambda req, timeout=15: _FakeHTTPResponse(pdf_bytes, content_type="application/pdf"),
+    )
+    scrape_pdf = client.post(
+        "/api/admin/ingestion/scrape-url/",
+        {
+            "url": "https://rzeszow.pl/raport-powietrze.pdf",
+            "registry": "BIP Rzeszów",
+            "organization_name": "Gmina Miasto Rzeszów",
+        },
+        format="json",
+    )
+    assert scrape_pdf.status_code == 201
+    assert scrape_pdf.data["created_count"] == 1
+    slug = scrape_pdf.data["results"][0]["innovation"]["slug"]
+    assert scrape_pdf.data["results"][0]["innovation"]["verification_status"] == "pending_review"
+    inv = Innovation.objects.get(slug=slug)
+    assert inv.sources.first().content_hash
+    assert "Rzeszow" in inv.sources.first().raw_snapshot
+
+    # 3. Scrape duplicate HTML URL detects existing innovation
+    html_dup = (
+        "<html><head><title>Czujniki Powietrza Rzeszów</title></head>"
+        "<body><p>System pomiaru jakości powietrza w gminie Rzeszów, TRL 6.</p></body></html>"
+    )
+    monkeypatch.setattr(
+        "apps.ingestion.adapters.urllib.request.urlopen",
+        lambda req, timeout=15: _FakeHTTPResponse(html_dup, content_type="text/html"),
+    )
+    scrape_dup = client.post(
+        "/api/admin/ingestion/scrape-url/",
+        {
+            "url": "https://rzeszow.pl/aktualnosci/czujniki",
+            "organization_name": "Gmina Miasto Rzeszów",
+        },
+        format="json",
+    )
+    assert scrape_dup.status_code == 201
+    assert scrape_dup.data["duplicate_count"] == 1
+    assert scrape_dup.data["results"][0]["potential_duplicate_slug"] == slug
+
+    # 4. Anti-bot URL returns 400 and network error returns 502
+    monkeypatch.setattr(
+        "apps.ingestion.adapters.urllib.request.urlopen",
+        lambda req, timeout=15: _FakeHTTPResponse(
+            "<html><title>Checking your browser before accessing</title></html>",
+            content_type="text/html",
+        ),
+    )
+    blocked_res = client.post(
+        "/api/admin/ingestion/scrape-url/",
+        {"url": "https://example.pl/protected"},
+        format="json",
+    )
+    assert blocked_res.status_code == 400
+
+    # Clean up custom feed
+    del_res = client.delete(f"/api/admin/source-feeds/{feed_id}/")
+    assert del_res.status_code == 204
+    assert fetch_feed_records.__name__ == "fetch_feed_records"

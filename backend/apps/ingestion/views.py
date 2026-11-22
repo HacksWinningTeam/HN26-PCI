@@ -1,3 +1,7 @@
+import json
+import urllib.error
+import xml.etree.ElementTree as ET
+
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -10,7 +14,12 @@ from apps.discovery.models import ScoringConfig
 from apps.innovations.models import Innovation, InnovationSource
 
 from .models import IngestionRun, InnovationAuditLog, SourceFeed
-from .pipeline import _unique_slug, find_potential_duplicate, run_ingestion_pipeline
+from .pipeline import (
+    _unique_slug,
+    find_potential_duplicate,
+    run_ingestion_pipeline,
+    scrape_url_and_ingest,
+)
 from .serializers import (
     AdminDataQualityResponseSerializer,
     AdminInnovationCreateResponseSerializer,
@@ -20,12 +29,17 @@ from .serializers import (
     AdminInnovationRejectSerializer,
     AdminRunIngestionRequestSerializer,
     AdminScoringConfigResponseSerializer,
+    AdminScrapeUrlRequestSerializer,
+    AdminScrapeUrlResponseSerializer,
     IngestionRunSerializer,
     InnovationAuditLogSerializer,
     MergeDuplicateRequestSerializer,
     MergeDuplicateResponseSerializer,
     ScoringConfigPatchSerializer,
     ScoringConfigSerializer,
+    SourceFeedCreateSerializer,
+    SourceFeedPatchSerializer,
+    SourceFeedSerializer,
 )
 
 
@@ -71,17 +85,7 @@ class AdminDataQualityView(APIView):
                     incomplete_records, many=True
                 ).data,
                 "all_records": AdminInnovationItemSerializer(active, many=True).data,
-                "source_feeds": SourceFeed.objects.values(
-                    "id",
-                    "name",
-                    "category",
-                    "url",
-                    "method",
-                    "status",
-                    "error_message",
-                    "last_synced_at",
-                    "records_count",
-                ),
+                "source_feeds": SourceFeedSerializer(SourceFeed.objects.all(), many=True).data,
                 "ingestion_runs": IngestionRunSerializer(runs, many=True).data,
             }
         )
@@ -364,9 +368,152 @@ class AdminRunIngestionView(APIView):
         run = run_ingestion_pipeline(
             feed_ids=data.get("feed_ids") or None,
             live_fetch=bool(data.get("live_fetch", False)),
+            max_records=int(data.get("max_records", 5)),
             actor=_resolve_actor(request),
         )
         return Response(IngestionRunSerializer(run).data, status=status.HTTP_201_CREATED)
+
+
+class AdminScrapeUrlView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["Admin"],
+        request=AdminScrapeUrlRequestSerializer,
+        responses={201: AdminScrapeUrlResponseSerializer},
+        summary="Scrape public HTML, JSON/RSS/OAI-PMH, or PDF URL as pending_review",
+    )
+    def post(self, request):
+        serializer = AdminScrapeUrlRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        try:
+            ingested = scrape_url_and_ingest(
+                url=data["url"],
+                registry=data.get("registry", ""),
+                label=data.get("label", ""),
+                organization_name=data.get("organization_name", ""),
+                method=data.get("method", "auto"),
+                max_records=int(data.get("max_records", 3)),
+                actor=_resolve_actor(request),
+            )
+        except (urllib.error.URLError, TimeoutError) as exc:
+            return Response(
+                {"detail": f"Błąd pobierania ze źródła zewnętrznego: {exc}"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        except (ValueError, json.JSONDecodeError, ET.ParseError) as exc:
+            return Response(
+                {"detail": str(exc)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        counts = {
+            "created": 0,
+            "updated": 0,
+            "unchanged": 0,
+            "duplicate": 0,
+            "conflict": 0,
+        }
+        results_payload = []
+        for inv, outcome in ingested:
+            if outcome in counts:
+                counts[outcome] += 1
+            results_payload.append(
+                {
+                    "innovation": AdminInnovationItemSerializer(inv).data,
+                    "outcome": outcome,
+                    "potential_duplicate_slug": inv.duplicate_of.slug if inv.duplicate_of else "",
+                }
+            )
+
+        return Response(
+            {
+                "url": data["url"],
+                "scraped_count": len(results_payload),
+                "created_count": counts["created"],
+                "updated_count": counts["updated"],
+                "unchanged_count": counts["unchanged"],
+                "duplicate_count": counts["duplicate"],
+                "conflict_count": counts["conflict"],
+                "results": results_payload,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class AdminSourceFeedListCreateView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["Admin"],
+        responses={200: SourceFeedSerializer(many=True)},
+        summary="List all configured public ingestion SourceFeeds",
+    )
+    def get(self, request):
+        feeds = SourceFeed.objects.all()
+        return Response(SourceFeedSerializer(feeds, many=True).data)
+
+    @extend_schema(
+        tags=["Admin"],
+        request=SourceFeedCreateSerializer,
+        responses={201: SourceFeedSerializer},
+        summary="Create a new configurable public SourceFeed",
+    )
+    def post(self, request):
+        serializer = SourceFeedCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        data.setdefault("last_synced_at", timezone.now())
+        feed = SourceFeed.objects.create(**data)
+        return Response(SourceFeedSerializer(feed).data, status=status.HTTP_201_CREATED)
+
+
+class AdminSourceFeedDetailView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["Admin"],
+        responses={200: SourceFeedSerializer},
+        summary="Retrieve a single SourceFeed configuration",
+    )
+    def get(self, request, pk: int):
+        feed = SourceFeed.objects.filter(pk=pk).first()
+        if not feed:
+            return Response({"detail": "Nie znaleziono źródła."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(SourceFeedSerializer(feed).data)
+
+    @extend_schema(
+        tags=["Admin"],
+        request=SourceFeedPatchSerializer,
+        responses={200: SourceFeedSerializer},
+        summary="Update a SourceFeed URL, adapter method, status, or config",
+    )
+    def patch(self, request, pk: int):
+        feed = SourceFeed.objects.filter(pk=pk).first()
+        if not feed:
+            return Response({"detail": "Nie znaleziono źródła."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = SourceFeedPatchSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        for field, value in serializer.validated_data.items():
+            setattr(feed, field, value)
+        feed.save()
+        return Response(SourceFeedSerializer(feed).data)
+
+    @extend_schema(
+        tags=["Admin"],
+        responses={204: None},
+        summary="Delete a custom SourceFeed",
+    )
+    def delete(self, request, pk: int):
+        feed = SourceFeed.objects.filter(pk=pk).first()
+        if not feed:
+            return Response({"detail": "Nie znaleziono źródła."}, status=status.HTTP_404_NOT_FOUND)
+        feed.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class AdminScoringConfigView(APIView):

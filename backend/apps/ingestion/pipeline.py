@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import difflib
+import json
 import re
 import unicodedata
 import urllib.error
+import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from typing import Any
+from urllib.parse import urlparse
 
 from django.utils import timezone
 from django.utils.text import slugify
@@ -73,6 +77,7 @@ def ingest_raw_record(
     record: RawSourceRecord,
     *,
     actor: str = "system_ingestion",
+    precomputed_extracted: dict[str, Any] | None = None,
 ) -> tuple[Innovation, str]:
     """Normalize, enrich, and upsert a single raw source record.
 
@@ -89,7 +94,13 @@ def ingest_raw_record(
         .first()
     )
 
-    extracted = extract_and_classify_innovation(
+    if existing_source is not None and existing_source.content_hash == new_hash:
+        existing_source.last_verified_at = today
+        existing_source.is_available = True
+        existing_source.save(update_fields=["last_verified_at", "is_available"])
+        return existing_source.innovation, "unchanged"
+
+    extracted = precomputed_extracted or extract_and_classify_innovation(
         record.text,
         title_hint=record.title,
         organization_hint=record.organization_name,
@@ -100,12 +111,6 @@ def ingest_raw_record(
 
     if existing_source is not None:
         inv = existing_source.innovation
-        if existing_source.content_hash == new_hash:
-            existing_source.last_verified_at = today
-            existing_source.is_available = True
-            existing_source.save(update_fields=["last_verified_at", "is_available"])
-            return inv, "unchanged"
-
         conflicts = list(inv.conflicting_info or [])
         outcome = "updated"
         if (
@@ -282,17 +287,72 @@ def _records_from_feed_config(feed: SourceFeed) -> list[RawSourceRecord]:
     return records
 
 
+def _precompute_extractions(records: list[RawSourceRecord]) -> dict[int, dict[str, Any]]:
+    """Run AI/rule extraction in parallel for new or changed records without touching ORM."""
+    if not records:
+        return {}
+
+    urls = [r.url for r in records]
+    existing_hashes = dict(
+        InnovationSource.objects.filter(
+            url__in=urls, innovation__is_merged=False
+        ).values_list("url", "content_hash")
+    )
+
+    to_extract: list[tuple[int, RawSourceRecord]] = []
+    for idx, rec in enumerate(records):
+        snapshot = normalize_whitespace(f"{rec.title}. {rec.text}")[:6000]
+        new_hash = InnovationSource.compute_hash(snapshot)
+        if existing_hashes.get(rec.url) != new_hash:
+            to_extract.append((idx, rec))
+
+    if not to_extract:
+        return {}
+
+    if len(to_extract) == 1:
+        idx, rec = to_extract[0]
+        return {
+            idx: extract_and_classify_innovation(
+                rec.text,
+                title_hint=rec.title,
+                organization_hint=rec.organization_name,
+                source_registry=rec.registry,
+                url=rec.url,
+                metadata=rec.metadata,
+            )
+        }
+
+    def _run_one(item: tuple[int, RawSourceRecord]) -> tuple[int, dict[str, Any]]:
+        idx, rec = item
+        return idx, extract_and_classify_innovation(
+            rec.text,
+            title_hint=rec.title,
+            organization_hint=rec.organization_name,
+            source_registry=rec.registry,
+            url=rec.url,
+            metadata=rec.metadata,
+        )
+
+    extracted_map: dict[int, dict[str, Any]] = {}
+    with ThreadPoolExecutor(max_workers=min(4, len(to_extract))) as pool:
+        for idx, data in pool.map(_run_one, to_extract):
+            extracted_map[idx] = data
+    return extracted_map
+
+
 def run_ingestion_pipeline(
     *,
     feed_ids: list[int] | None = None,
     live_fetch: bool = False,
+    max_records: int = 5,
     actor: str = "system_ingestion",
 ) -> IngestionRun:
     """Execute ingestion across configured SourceFeeds, detect duplicates/stale, and log run."""
     now = timezone.now()
-    feeds = SourceFeed.objects.all()
+    feeds_qs = SourceFeed.objects.all()
     if feed_ids:
-        feeds = feeds.filter(id__in=feed_ids)
+        feeds_qs = feeds_qs.filter(id__in=feed_ids)
+    feeds = list(feeds_qs)
 
     new_records = 0
     updated_records = 0
@@ -300,34 +360,79 @@ def run_ingestion_pipeline(
     conflicts_found = 0
     errors_count = 0
 
+    live_targets: list[tuple[SourceFeed, int]] = []
+    feed_records: dict[int, list[RawSourceRecord]] = {}
+    feed_errors: dict[int, str] = {}
+
     for feed in feeds:
         cfg = feed.config if isinstance(feed.config, dict) else {}
         if feed.status == "error" and not live_fetch and not cfg.get("sample_items"):
             errors_count += 1
             continue
+        feed_limit = int(cfg.get("max_records", max_records) or max_records)
+        if live_fetch or cfg.get("live_fetch"):
+            live_targets.append((feed, feed_limit))
+        else:
+            feed_records[feed.id] = _records_from_feed_config(feed)
 
-        try:
-            if live_fetch or cfg.get("live_fetch"):
-                raw_records = fetch_feed_records(
-                    url=feed.url,
-                    method=feed.method,
-                    registry=feed.name.split("—")[0].strip(),
-                    label=feed.name,
+    if live_targets:
+        def _fetch_one(target: tuple[SourceFeed, int]) -> tuple[int, list[RawSourceRecord], str]:
+            feed_obj, limit = target
+            try:
+                recs = fetch_feed_records(
+                    url=feed_obj.url,
+                    method=feed_obj.method,
+                    registry=feed_obj.name.split("—")[0].strip(),
+                    label=feed_obj.name,
+                    max_records=limit,
                 )
-            else:
-                raw_records = _records_from_feed_config(feed)
-        except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+                return feed_obj.id, recs, ""
+            except (
+                urllib.error.URLError,
+                TimeoutError,
+                ValueError,
+                json.JSONDecodeError,
+                ET.ParseError,
+            ) as exc:
+                return feed_obj.id, [], f"Błąd pobierania: {exc}"
+
+        with ThreadPoolExecutor(max_workers=min(4, len(live_targets))) as pool:
+            for fid, recs, err in pool.map(_fetch_one, live_targets):
+                if err:
+                    feed_errors[fid] = err
+                else:
+                    feed_records[fid] = recs
+
+    # Precompute AI classifications in parallel across all fetched records
+    flat_records: list[RawSourceRecord] = []
+    feed_slices: dict[int, tuple[int, int]] = {}
+    for feed in feeds:
+        if feed.id in feed_records:
+            start = len(flat_records)
+            recs = feed_records[feed.id]
+            flat_records.extend(recs)
+            feed_slices[feed.id] = (start, len(flat_records))
+
+    precomputed = _precompute_extractions(flat_records)
+
+    for feed in feeds:
+        if feed.id in feed_errors:
             feed.status = "error"
-            feed.error_message = f"Błąd pobierania: {exc}"
+            feed.error_message = feed_errors[feed.id]
             feed.save(update_fields=["status", "error_message"])
             errors_count += 1
             continue
+        if feed.id not in feed_slices:
+            continue
 
-        processed = 0
+        start, end = feed_slices[feed.id]
         feed_new = 0
-        for rec in raw_records:
-            _, outcome = ingest_raw_record(rec, actor=actor)
-            processed += 1
+        for idx in range(start, end):
+            _, outcome = ingest_raw_record(
+                flat_records[idx],
+                actor=actor,
+                precomputed_extracted=precomputed.get(idx),
+            )
             if outcome == "created":
                 new_records += 1
                 feed_new += 1
@@ -373,3 +478,43 @@ def run_ingestion_pipeline(
         summary="; ".join(summary_parts) + ".",
     )
     return run
+
+
+def scrape_url_and_ingest(
+    *,
+    url: str,
+    registry: str = "",
+    label: str = "",
+    organization_name: str = "",
+    method: str = "auto",
+    max_records: int = 3,
+    actor: str = "pci_admin",
+) -> list[tuple[Innovation, str]]:
+    """Fetch a public URL (HTML/JSON/XML/PDF), classify records, and ingest as pending_review."""
+    domain = urlparse(url).netloc or "Źródło zewnętrzne"
+    resolved_registry = registry.strip() or domain
+    resolved_label = label.strip() or domain
+    raw_records = fetch_feed_records(
+        url=url,
+        method=method,
+        registry=resolved_registry,
+        label=resolved_label,
+        max_records=max_records,
+    )
+    if not raw_records:
+        raise ValueError("Nie znaleziono żadnych rekordów pod wskazanym adresem URL.")
+
+    for rec in raw_records:
+        if organization_name.strip() and not rec.organization_name:
+            rec.organization_name = organization_name.strip()
+    precomputed = _precompute_extractions(raw_records)
+
+    results: list[tuple[Innovation, str]] = []
+    for idx, rec in enumerate(raw_records):
+        inv, outcome = ingest_raw_record(
+            rec,
+            actor=actor,
+            precomputed_extracted=precomputed.get(idx),
+        )
+        results.append((inv, outcome))
+    return results

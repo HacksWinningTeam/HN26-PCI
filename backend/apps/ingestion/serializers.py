@@ -7,6 +7,8 @@ from .models import IngestionRun, InnovationAuditLog, SourceFeed
 
 
 class SourceFeedSerializer(serializers.ModelSerializer):
+    config = serializers.JSONField(required=False, default=dict)
+
     class Meta:
         model = SourceFeed
         fields = [
@@ -19,7 +21,42 @@ class SourceFeedSerializer(serializers.ModelSerializer):
             "error_message",
             "last_synced_at",
             "records_count",
+            "config",
         ]
+
+
+class SourceFeedCreateSerializer(serializers.ModelSerializer):
+    status = serializers.ChoiceField(
+        choices=SourceFeed.STATUS_CHOICES, required=False, default="active"
+    )
+    error_message = serializers.CharField(required=False, allow_blank=True, default="")
+    last_synced_at = serializers.DateTimeField(required=False)
+    records_count = serializers.IntegerField(min_value=0, required=False, default=0)
+    config = serializers.JSONField(required=False, default=dict)
+
+    class Meta:
+        model = SourceFeed
+        fields = [
+            "name",
+            "category",
+            "url",
+            "method",
+            "status",
+            "error_message",
+            "last_synced_at",
+            "records_count",
+            "config",
+        ]
+
+
+class SourceFeedPatchSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=255, required=False)
+    category = serializers.CharField(max_length=64, required=False)
+    url = serializers.URLField(max_length=500, required=False)
+    method = serializers.CharField(max_length=64, required=False)
+    status = serializers.ChoiceField(choices=SourceFeed.STATUS_CHOICES, required=False)
+    error_message = serializers.CharField(required=False, allow_blank=True)
+    config = serializers.JSONField(required=False)
 
 
 class IngestionRunSerializer(serializers.ModelSerializer):
@@ -140,11 +177,44 @@ class MergeDuplicateResponseSerializer(serializers.Serializer):
 
 class AdminRunIngestionRequestSerializer(serializers.Serializer):
     live_fetch = serializers.BooleanField(required=False, default=False)
+    max_records = serializers.IntegerField(min_value=1, max_value=25, required=False, default=5)
     feed_ids = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         required=False,
         default=list,
     )
+
+
+class AdminScrapeUrlRequestSerializer(serializers.Serializer):
+    url = serializers.URLField(max_length=500)
+    registry = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
+    label = serializers.CharField(max_length=255, required=False, allow_blank=True, default="")
+    organization_name = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, default=""
+    )
+    method = serializers.ChoiceField(
+        choices=["auto", "HTML", "PDF", "API", "RSS", "OAI-PMH"],
+        required=False,
+        default="auto",
+    )
+    max_records = serializers.IntegerField(min_value=1, max_value=20, required=False, default=3)
+
+
+class ScrapedInnovationResultSerializer(serializers.Serializer):
+    innovation = AdminInnovationItemSerializer()
+    outcome = serializers.CharField()
+    potential_duplicate_slug = serializers.CharField(allow_blank=True)
+
+
+class AdminScrapeUrlResponseSerializer(serializers.Serializer):
+    url = serializers.URLField()
+    scraped_count = serializers.IntegerField()
+    created_count = serializers.IntegerField()
+    updated_count = serializers.IntegerField()
+    unchanged_count = serializers.IntegerField()
+    duplicate_count = serializers.IntegerField()
+    conflict_count = serializers.IntegerField()
+    results = ScrapedInnovationResultSerializer(many=True)
 
 
 class AdminInnovationCreateSerializer(serializers.Serializer):

@@ -377,9 +377,10 @@ def extract_and_classify_innovation(
         return baseline
 
     prompt = (
-        "Przeanalizuj poniższy opis polskiej innowacji wyłącznie na podstawie podanego tekstu. "
+        "Przeanalizuj poniższy opis polskiej lub europejskiej innowacji wyłącznie na podstawie "
+        "podanego tekstu (jeśli tekst jest po angielsku, przetłumacz pola _pl na język polski). "
         "Nie zmyślaj faktów ani danych kontaktowych. Zwróć JSON z kluczami: "
-        "short_summary_pl, problem_pl, solution_pl, primary_area "
+        "title_pl, short_summary_pl, problem_pl, solution_pl, primary_area "
         "(technological|educational|administrative), innovation_character (lista z: "
         "product,process,organizational,social), sectors (lista z: administracja,edukacja,"
         "zdrowie_jakosc_zycia,ICT,lotnictwo,motoryzacja,sektor_kosmiczny), "
@@ -387,15 +388,15 @@ def extract_and_classify_innovation(
         "students_teachers,disabilities_special_needs,public_orgs_communities,"
         "entrepreneurs_startups,ill_needing_care,mental_crisis,families_parents), "
         "deployment_level (concept|prototype|tests|pilot|deployed), trl (int 1-9 lub null), "
-        "missing_info (lista braków), oslo_novelty (krótkie zdanie).\n\n"
-        f"Źródło: {source_registry} ({url})\nTytuł roboczy: {title_hint}\nTreść:\n{raw_text[:4000]}"
+        "missing_info (lista braków), oslo_novelty (krótkie zdanie po polsku).\n\n"
+        f"Źródło: {source_registry} ({url})\nTytuł roboczy: {title_hint}\nTreść:\n{raw_text[:4500]}"
     )
     ai_data = _call_gemini_structured(prompt)
     if not ai_data:
         return baseline
 
     provenance = dict(baseline["classification_provenance"])
-    for text_field in ("short_summary_pl", "problem_pl", "solution_pl"):
+    for text_field in ("title_pl", "short_summary_pl", "problem_pl", "solution_pl"):
         val = ai_data.get(text_field)
         if isinstance(val, str) and val.strip():
             baseline[text_field] = normalize_whitespace(val)
