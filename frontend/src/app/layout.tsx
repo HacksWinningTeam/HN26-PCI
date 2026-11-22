@@ -21,6 +21,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "Praktoteka",
+  icons: { icon: "/favicon.ico" },
   description:
     "Wyszukiwanie, porównywanie i planowanie wdrożeń istniejących polskich innowacji.",
 };
