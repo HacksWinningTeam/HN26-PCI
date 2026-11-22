@@ -46,11 +46,17 @@ class ImplementationPlanSerializer(serializers.ModelSerializer):
             "innovation",
             "variant",
             "variant_rationale",
+            "recommendation_path",
+            "recommendation_rationale",
             "organization_snapshot",
             "comparison_slugs",
             "requirements",
             "risks",
             "success_metrics",
+            "missing_info_blockers",
+            "similar_innovations",
+            "partner_archetypes",
+            "ai_personalized",
             "user_reported_issues",
             "steps",
             "created_at",
@@ -82,6 +88,7 @@ class AdminImplementationOverviewSerializer(serializers.Serializer):
     innovation_title = serializers.CharField()
     comparison_slugs = serializers.ListField(child=serializers.SlugField())
     variant = serializers.CharField()
+    recommendation_path = serializers.CharField()
     current_phase = serializers.IntegerField()
     completed_steps_count = serializers.IntegerField()
     total_steps_count = serializers.IntegerField()

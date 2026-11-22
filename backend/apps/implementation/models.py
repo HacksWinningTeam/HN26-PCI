@@ -10,6 +10,12 @@ class ImplementationPlan(models.Model):
         ("pilot", "Plan pilotażu"),
         ("transfer_deployment", "Plan transferu i wdrożenia"),
     ]
+    RECOMMENDATION_PATH_CHOICES = [
+        ("contact_creator", "Kontakt z twórcą / właścicielem IP"),
+        ("pilot", "Przeprowadzenie pilotażu"),
+        ("transfer", "Transfer do organizacji"),
+        ("partnership", "Nawiązanie partnerstwa"),
+    ]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -23,11 +29,21 @@ class ImplementationPlan(models.Model):
     )
     variant = models.CharField(max_length=32, choices=VARIANT_CHOICES)
     variant_rationale = models.TextField(default="")
+    recommendation_path = models.CharField(
+        max_length=32,
+        choices=RECOMMENDATION_PATH_CHOICES,
+        default="pilot",
+    )
+    recommendation_rationale = models.TextField(blank=True, default="")
     organization_snapshot = models.JSONField(default=dict)
     comparison_slugs = models.JSONField(default=list)
     requirements = models.JSONField(default=list)
     risks = models.JSONField(default=list)
     success_metrics = models.JSONField(default=list)
+    missing_info_blockers = models.JSONField(default=list)
+    similar_innovations = models.JSONField(default=list)
+    partner_archetypes = models.JSONField(default=list)
+    ai_personalized = models.BooleanField(default=False)
     user_reported_issues = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

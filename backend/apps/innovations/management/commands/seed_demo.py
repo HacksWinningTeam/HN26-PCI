@@ -7,7 +7,13 @@ from django.utils import timezone
 from apps.accounts.models import AdopterProfile
 from apps.discovery.models import SavedComparison, SavedInnovation, ScoringConfig
 from apps.implementation.models import ImplementationPlan, ImplementationStep
-from apps.implementation.planner import build_five_phases, select_plan_variant
+from apps.implementation.planner import (
+    build_five_phases,
+    build_missing_blockers,
+    find_similar_innovations,
+    select_plan_variant,
+    select_recommendation_path,
+)
 from apps.ingestion.models import IngestionRun, InnovationAuditLog, SourceFeed
 from apps.innovations.models import Evidence, Innovation, InnovationSource
 
@@ -865,11 +871,14 @@ class Command(BaseCommand):
 
         if not ImplementationPlan.objects.filter(user=adopter_user, innovation=aqua).exists():
             variant, rationale = select_plan_variant(aqua)
+            rec_path, rec_rationale = select_recommendation_path(aqua, profile, variant)
             plan = ImplementationPlan.objects.create(
                 user=adopter_user,
                 innovation=aqua,
                 variant=variant,
                 variant_rationale=rationale,
+                recommendation_path=rec_path,
+                recommendation_rationale=rec_rationale,
                 organization_snapshot={
                     "organization_name": profile.organization_name,
                     "organization_type": profile.organization_type,
@@ -880,6 +889,9 @@ class Command(BaseCommand):
                 requirements=aqua.required_resources,
                 risks=aqua.risks,
                 success_metrics=aqua.metrics,
+                missing_info_blockers=build_missing_blockers(aqua, profile),
+                similar_innovations=find_similar_innovations(aqua),
+                partner_archetypes=aqua.partner_archetypes,
                 user_reported_issues="Prośba o weryfikację pracy czujnika bez zasilania w dolinie potoku.",
             )
             for phase in build_five_phases(aqua, profile, variant):

@@ -1,4 +1,6 @@
-from drf_spectacular.utils import extend_schema
+from django.http import HttpResponse
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -9,8 +11,17 @@ from apps.accounts.models import AdopterProfile
 from apps.accounts.serializers import AdopterProfileSerializer
 from apps.innovations.models import Innovation
 
+from .exports import render_plan_csv, render_plan_markdown
 from .models import ImplementationPlan, ImplementationStep
-from .planner import build_five_phases, select_plan_variant
+from .planner import (
+    build_five_phases,
+    build_missing_blockers,
+    build_personalized_metrics,
+    find_similar_innovations,
+    personalize_phases_with_gemini,
+    select_plan_variant,
+    select_recommendation_path,
+)
 from .serializers import (
     AdminImplementationOverviewSerializer,
     ImplementationPlanCreateSerializer,
@@ -50,7 +61,9 @@ class ImplementationPlanListCreateView(APIView):
         slug = serializer.validated_data["innovation_slug"]
         comparison_slugs = serializer.validated_data.get("comparison_slugs", [])
 
-        innovation = Innovation.objects.filter(slug=slug, is_merged=False).first()
+        innovation = Innovation.objects.filter(
+            slug=slug, is_merged=False, is_public=True
+        ).first()
         if not innovation:
             return Response(
                 {"detail": "Nie znaleziono wskazanej innowacji."},
@@ -59,20 +72,33 @@ class ImplementationPlanListCreateView(APIView):
 
         profile, _ = AdopterProfile.objects.get_or_create(user=request.user)
         variant, rationale = select_plan_variant(innovation)
+        rec_path, rec_rationale = select_recommendation_path(innovation, profile, variant)
+        base_phases = build_five_phases(
+            innovation, profile, variant, recommendation_path=rec_path
+        )
+        phases, ai_personalized = personalize_phases_with_gemini(
+            base_phases, innovation, profile, variant, rec_path
+        )
 
         plan = ImplementationPlan.objects.create(
             user=request.user,
             innovation=innovation,
             variant=variant,
             variant_rationale=rationale,
+            recommendation_path=rec_path,
+            recommendation_rationale=rec_rationale,
             organization_snapshot=AdopterProfileSerializer(profile).data,
             comparison_slugs=comparison_slugs or [slug],
             requirements=innovation.required_resources or [],
             risks=innovation.risks or [],
-            success_metrics=innovation.metrics or [],
+            success_metrics=build_personalized_metrics(innovation, profile, variant),
+            missing_info_blockers=build_missing_blockers(innovation, profile),
+            similar_innovations=find_similar_innovations(innovation),
+            partner_archetypes=innovation.partner_archetypes or [],
+            ai_personalized=ai_personalized,
         )
 
-        for phase in build_five_phases(innovation, profile, variant):
+        for phase in phases:
             ImplementationStep.objects.create(plan=plan, **phase)
 
         plan.refresh_from_db()
@@ -180,6 +206,7 @@ class AdminImplementationOverviewView(APIView):
                     "innovation_title": plan.innovation.title_pl,
                     "comparison_slugs": plan.comparison_slugs or [],
                     "variant": plan.variant,
+                    "recommendation_path": plan.recommendation_path,
                     "current_phase": current_phase,
                     "completed_steps_count": len(completed),
                     "total_steps_count": len(steps),
@@ -192,3 +219,48 @@ class AdminImplementationOverviewView(APIView):
                 }
             )
         return Response(rows)
+
+
+class ImplementationPlanExportView(APIView):
+    authentication_classes = [SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["Implementation"],
+        summary="Export personalized implementation plan (json, md, csv)",
+        parameters=[
+            OpenApiParameter(
+                "export_format",
+                str,
+                enum=["json", "md", "csv"],
+                default="md",
+            ),
+        ],
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    def get(self, request, pk: int):
+        plan = (
+            ImplementationPlan.objects.filter(pk=pk, user=request.user)
+            .select_related("innovation")
+            .prefetch_related("steps", "innovation__sources", "innovation__evidences")
+            .first()
+        )
+        if not plan:
+            return Response({"detail": "Nie znaleziono planu."}, status=status.HTTP_404_NOT_FOUND)
+
+        fmt = (request.query_params.get("export_format") or "md").strip().lower()
+        if fmt == "json":
+            return Response(ImplementationPlanSerializer(plan).data)
+        if fmt == "csv":
+            resp = HttpResponse(
+                render_plan_csv(plan),
+                content_type="text/csv; charset=utf-8",
+            )
+            resp["Content-Disposition"] = f'attachment; filename="plan-{pk}.csv"'
+            return resp
+        resp = HttpResponse(
+            render_plan_markdown(plan),
+            content_type="text/markdown; charset=utf-8",
+        )
+        resp["Content-Disposition"] = f'attachment; filename="plan-{pk}.md"'
+        return resp

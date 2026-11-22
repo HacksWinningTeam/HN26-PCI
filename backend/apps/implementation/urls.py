@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     AdminImplementationOverviewView,
     ImplementationPlanDetailView,
+    ImplementationPlanExportView,
     ImplementationPlanListCreateView,
     ImplementationStepUpdateView,
 )
@@ -17,6 +18,11 @@ urlpatterns = [
         "implementation-plans/<int:pk>/",
         ImplementationPlanDetailView.as_view(),
         name="implementation-plan-detail",
+    ),
+    path(
+        "implementation-plans/<int:pk>/export/",
+        ImplementationPlanExportView.as_view(),
+        name="implementation-plan-export",
     ),
     path(
         "implementation-steps/<int:pk>/",
